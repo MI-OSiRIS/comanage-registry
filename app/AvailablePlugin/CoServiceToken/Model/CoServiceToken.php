@@ -18,7 +18,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * @link          http://www.internet2.edu/comanage COmanage Project
  * @package       registry-plugin
  * @since         COmanage Registry v2.0.0
@@ -28,23 +28,23 @@
 class CoServiceToken extends AppModel {
   // Define class name for cake
   public $name = "CoServiceToken";
-  
+
   // Required by COmanage Plugins
   // To enable this plugin (even though it doesn't do anything), change the type to 'enroller'
   public $cmPluginType = "other";
-  
+
   // Association rules from this model to other models
   public $belongsTo = array(
     "CoPerson",
     "CoService"
   );
-  
+
   public $actsAs = array('Containable',
                          'Provisioner');
-  
+
   // Document foreign keys
   public $cmPluginHasMany = array();
-  
+
   // Validation rules for table elements
   public $validate = array(
     'co_service_id' => array(
@@ -64,19 +64,22 @@ class CoServiceToken extends AppModel {
     ),
     'token_type' => array(
       'rule' => array('inList', array(CoServiceTokenTypeEnum::Plain08,
-                                      CoServiceTokenTypeEnum::Plain15)),
+                                      CoServiceTokenTypeEnum::Plain15,
+                                      CoServiceTokenTypeEnum::Plain30,
+                                      CoServiceTokenTypeEnum::CephKey,
+                                      CoServiceTokenTypeEnum::CephRgwToken)),
       'required' => false,
       'allowEmpty' => true
     )
   );
-  
+
   /**
    * Expose menu items.
-   * 
+   *
    * @since  COmanage Registry v2.0.0
    * @return Array with menu location type as key and array of labels, controllers, actions as values.
    */
-  
+
   public function cmPluginMenus() {
     return array(
       "coconfig" => array(_txt('ct.co_service_token_settings.pl') =>
@@ -87,7 +90,7 @@ class CoServiceToken extends AppModel {
                                 'action'     => 'index'))
     );
   }
-  
+
   /**
    * Generate a CO Service Token.
    *
@@ -99,59 +102,67 @@ class CoServiceToken extends AppModel {
    * @throws LogicException
    * @throws RuntimeException
    */
-  
+
   public function generate($coPersonId,
                            $coServiceId,
                            $tokenType=CoServiceTokenTypeEnum::Plain15,
                            $actorCoPersonId=null) {
     $token = null;
-    
+
     switch($tokenType) {
       case CoServiceTokenTypeEnum::Plain08:
       case CoServiceTokenTypeEnum::Plain15:
+      case CoServiceTokenTypeEnum::Plain30:
+      case CoServiceTokenTypeEnum::CephRgwToken:
         // Note we use Security::randomBytes() rather than php random_bytes, which was not added until 7.0
-        $token = substr(preg_replace("/[^a-zA-Z0-9]+/", "", base64_encode(Security::randomBytes(30))),
+        //$token = substr(preg_replace("/[^a-zA-Z0-9#-/<-@{-~!^_]+/", "", base64_encode(Security::randomBytes(64))),
+        //                0,
+        //                (integer)$tokenType);
+        $token = substr(base64_encode(Security::randomBytes(64)),
                         0,
                         (integer)$tokenType);
+        break;
+      case CoServiceTokenTypeEnum::CephKey:
+        $token = 'output of ceph auth get-or-create-key grabbing user caps from somewhere else';
         break;
       default:
         throw new LogicException(_txt('er.notimpl'));
         break;
     }
-    
+
     if(!$token) {
       throw new RuntimeException(_txt('er.coservicetoken.fail'));
     }
-    
+
     // Is there already a token?
     $args = array();
     $args['conditions']['CoServiceToken.co_service_id'] = $coServiceId;
     $args['conditions']['CoServiceToken.co_person_id'] = $coPersonId;
     $args['contain'] = false;
-    
+
     $curToken = $this->find('first', $args);
-    
+
     $newToken = array(
       'co_service_id' => $coServiceId,
       'co_person_id'  => $coPersonId,
       'token'         => $token,
       'token_type'    => $tokenType
     );
-    
+
     if(!empty($curToken['CoServiceToken']['id'])) {
       $newToken['id'] = $curToken['CoServiceToken']['id'];
     }
-    
+
     $this->clear();
-    
+
     if(!$this->save($newToken)) {
       throw new RuntimeException(_txt('er.db.save-a', array('CoServiceToken')));
     }
-    
+
     // Pull the service name for the history record
-    
+
     $serviceName = $this->CoService->field('name', array('CoService.id' => $coServiceId));
-    
+
     // Cut history
     $this->CoPerson->HistoryRecord->record($coPersonId,
                                            null,
@@ -161,7 +172,7 @@ class CoServiceToken extends AppModel {
                                            'XTOK',
                                            _txt('pl.coservicetoken.history', array($serviceName,
                                                                                    _txt('en.coservicetoken.tokentype', null, $tokenType))));
-    
+
     return $token;
   }
 }
