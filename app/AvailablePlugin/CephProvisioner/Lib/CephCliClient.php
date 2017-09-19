@@ -46,8 +46,17 @@ class CephCliClient extends CephCli {
     return $capstring;
   }
 
+
+  public function removeEntity($id) {
+    $this->ceph("auth rm client.$id");
+  }
+
   public function addEntity($id, $caps = array()) {
     $this->ceph("auth add client.$id " . $this->mapArrayToCapString($caps));
+  }
+
+  public function getOrCreateKey($id, $caps = array()) {
+    return $this->ceph("auth get-or-create-key client.$id " . $this->mapArrayToCapString($caps));
   }
 
   public function setCaps($id, $caps = array()) {
@@ -63,8 +72,33 @@ class CephCliClient extends CephCli {
     return join('\n', $this->ceph("auth get-key client.$id " . $this->mapArrayToCapString($caps)));
   }
 
-  public function getKeyring($id) {
-    return join('\n', $this->ceph("auth get client.$id " . $this->mapArrayToCapString($caps)));
+  public function getKeyring($id, $format='array') {
+    $output =  $this->ceph("auth get client.$id", 'array');
+    // remove the 'exported keyring for xxx' output line
+    array_shift($output);
+    if ($format == 'string') {
+      return join('\n', $output);
+    } else {
+      return $output;
+    }
+  }
+
+  // keyring should be an array as output by getKeyring function
+  // returns an array suitable for feeding to addEntity or setCaps
+  public function formatKeyringToCapsArray($keyring) {
+    // strip formatting tabs from output
+    $fixedKeyring = preg_replace('/[\t\"]/', '', $keyring);
+    //str_replace('\t', '', $keyring);
+    // skip the client identifier and key
+    $capsArray = array_slice($fixedKeyring, 2);
+    $returnCapsArray = array();
+
+    foreach($capsArray as $cap) {
+      $capLine = explode(' = ', $cap);
+      $capLine = str_replace('caps ', '', $capLine);
+      $returnCapsArray[$capLine[0]] = $capLine[1];
+    }
+    return $returnCapsArray;
   }
 
   // returns true if creation succeeds, false if pool exists, exception will be thrown if command fails
