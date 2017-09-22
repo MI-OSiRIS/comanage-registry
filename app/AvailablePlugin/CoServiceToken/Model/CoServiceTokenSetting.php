@@ -18,7 +18,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * @link          http://www.internet2.edu/comanage COmanage Project
  * @package       registry-plugin
  * @since         COmanage Registry v2.0.0
@@ -58,7 +58,10 @@ class CoServiceTokenSetting extends AppModel {
     ),
     'token_type' => array(
       'rule' => array('inList', array(CoServiceTokenTypeEnum::Plain08,
-                                      CoServiceTokenTypeEnum::Plain15)),
+                                      CoServiceTokenTypeEnum::Plain15,
+                                      CoServiceTokenTypeEnum::Plain30,
+                                      CoServiceTokenTypeEnum::CephKey,
+                                      CoServiceTokenTypeEnum::CephRgwToken)),
       'required' => false,
       'allowEmpty' => true
     )
