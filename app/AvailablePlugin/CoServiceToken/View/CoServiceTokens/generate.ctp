@@ -43,6 +43,8 @@
     <strong><?php print _txt('pl.coservicetoken.token.info'); ?></strong>
   </p>
 </div>
+<?php
+/*
 <div class="innerContent">
 <table id="<?php print $this->action; ?>_co_service_token" class="ui-widget">
   <tbody>
@@ -65,3 +67,6 @@
   </tbody>
 </table>
 </div>
+*/
+?>
+
