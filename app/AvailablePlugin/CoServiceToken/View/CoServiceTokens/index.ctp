@@ -41,15 +41,15 @@
 
   // Determine which services have tokens set
   $tokensSet = Hash::extract($co_service_tokens, '{n}.CoServiceToken.co_service_id');
+
 ?>
 
 <table id="co_service_tokens" class="ui-widget" style="table-layout: fixed;">
   <thead>
     <tr class="ui-widget-header">
-      <th><?php print $this->Paginator->sort('CoService.name', _txt('fd.name')); ?></th>
-      <th style="width: 25%;"><?php print _txt('fd.token'); ?></th>
-      <th style="width: 25%;"><?php print _txt('fd.encodings'); ?></th>
-      <th><?php print _txt('fd.actions'); ?></th>
+      <th style="width: 20%;"><?php print $this->Paginator->sort('CoService.name', _txt('fd.name')); ?></th>
+      <th style="width: 60%;"><?php print _txt('fd.token'); ?></th>
+      <th style="width: 20%;"><?php print _txt('fd.actions'); ?></th>
     </tr>
   </thead>
 
@@ -71,41 +71,38 @@
       </td>
        <td style="word-wrap: break-word;">
         <?php
+
           $co_service_id = $c['CoService']['id'];
+          $token_type = Hash::extract($co_service_tokens, "{n}.CoServiceToken[co_service_id=$co_service_id].token_type");
+
           if(in_array($co_service_id, $tokensSet)) {
             $token = Hash::extract($co_service_tokens, "{n}.CoServiceToken[co_service_id=$co_service_id].token");
-            print filter_var( $token[0], FILTER_SANITIZE_SPECIAL_CHARS);
-            //print _txt('pl.coservicetoken.token.ok');
           } else {
             print _txt('pl.coservicetoken.token.no');
           }
-        ?>
-      </td>
-       <td style="word-wrap: break-word;">
-        <?php
-
-          $token_type = Hash::extract($co_service_tokens, "{n}.CoServiceToken[co_service_id=$co_service_id].token_type");
 
           switch($token_type[0]) {
             case CoServiceTokenTypeEnum::CephRgwToken:
-              $encoding_description = "<font style='font-weight: bold;'>S3 Access Key:</font> ";
-              $encoding = base64_encode(json_encode(
-                [ "RGW_TOKEN" =>
-                  [
-                    "version" => 1,
-                     "type" => "ldap",
-                     "id" => $vv_co_person_uid,
-                     "key" => $token[0]
-                  ]
-                ]));
+              foreach ($vv_co_person_rgw_ids as $rgw_id) {
+                $encoding_description = "<font style='font-weight: bold;'>S3 Access Key for ". $rgw_id['cou_formatted'] . " COU: </font><br /><hr> ";
+                $encoding = base64_encode(json_encode(
+                  [ "RGW_TOKEN" =>
+                    [
+                      "version" => 1,
+                      "type" => "ldap",
+                      "id" => $rgw_id['uid'] . '_' . $rgw_id['cou'],
+                      "key" => $token[0]
+                    ]
+                  ]));
+                print $encoding_description . filter_var( $encoding, FILTER_SANITIZE_SPECIAL_CHARS) . '<br /><hr>';
+              }
               break;
             default:
-              $encoding_description = "None";
-              $encoding = '';
+              print filter_var( $token[0], FILTER_SANITIZE_SPECIAL_CHARS);
               break;
           }
 
-          print $encoding_description . filter_var( $encoding, FILTER_SANITIZE_SPECIAL_CHARS);
+          
 
         ?>
       <td>

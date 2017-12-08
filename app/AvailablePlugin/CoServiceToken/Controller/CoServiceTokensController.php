@@ -148,6 +148,8 @@ class CoServiceTokensController extends StandardController {
     $this->set('vv_co_services', $this->CoServiceToken->CoService->find('all', $args));
 
     $coPerson = ClassRegistry::init('CoPerson');
+    $CoGroupObject = ClassRegistry::init('CoGroup');
+    $CouObject = ClassRegistry::init('Cou');
 
     $args = array();
     $args['conditions']['Identifier.co_person_id'] =  $this->Session->read('Auth.User.co_person_id');
@@ -155,7 +157,33 @@ class CoServiceTokensController extends StandardController {
     $args['contain'] = false;
 
     $coPersonIdentifier = $coPerson -> Identifier->find('first', $args);
-    $this->set('vv_co_person_uid', $coPersonIdentifier['Identifier']['identifier']);
+    //$this->set('vv_co_person_uid', $coPersonIdentifier['Identifier']['identifier']);
+
+    $rgw_id_list = array();
+
+    //$CoPersonObject = ClassRegistry::init('CoPerson');
+    $CoGroups = $CoGroupObject->findForCoPerson($this->Session->read('Auth.User.co_person_id'));
+
+    foreach ($CoGroups as $group) {
+      $this->log("CoServiceTokensController - CoGRoup Info: " . json_encode($group));
+      if ($CoGroupObject->isCouMembersGroup($group)) {
+        if ($group['CoGroup']['group_type'] == GroupEnum::ActiveMembers) { 
+          $args = array();
+          $args['conditions']['Cou.id'] = $group['CoGroup']['cou_id'];
+          $args['contain'] = false;
+          $couData = $CouObject->find('first', $args);
+          $couName = $couData['Cou']['name'];
+          $temp = array();
+          $temp['uid'] = $coPersonIdentifier['Identifier']['identifier'];
+          $temp['cou'] = strtolower($couName);
+          $temp['cou_formatted'] = $couName;
+          $rgw_id_list[] = $temp;
+        }
+      }
+    }
+
+    $this->set('vv_co_person_rgw_ids', $rgw_id_list);
+
   }
 
   /**
