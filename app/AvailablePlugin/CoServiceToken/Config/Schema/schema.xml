@@ -28,7 +28,7 @@
   While this schema mostly works with database prefixes, foreign key constraints
   must be specified in raw SQL, which needs the prefixed table name.
 -->
-<schema version="0.3">
+<schema version="0.4">
   <table name="co_service_token_settings">
     <field name="id" type="I">
       <key />
@@ -40,6 +40,9 @@
     </field>
     <field name="enabled" type="L" />
     <field name="token_type" type="C" size="64" />
+    <field name="co_provisioner_target_id" type= "I">
+     <constraint>REFERENCES cm_co_provisioning_targets(id)</constraint>
+   </field>
     <field name="created" type="T" />
     <field name="modified" type="T" />
 

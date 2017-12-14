@@ -31,6 +31,14 @@ class CoServiceTokenSettingsController extends StandardController {
   // Class name, used by Cake
   public $name = "CoServiceTokenSettings";
 
+  public $uses = array(
+    //'CoServiceToken.CoServiceTokenProvisionerTarget',
+    //'CoServiceToken.CoServiceTokenSetting',
+    'CoProvisioningTarget',
+    //'CoService'
+  );
+  
+
   // This controller needs a CO to be set
   public $requires_co = true;
   
@@ -41,6 +49,38 @@ class CoServiceTokenSettingsController extends StandardController {
       'co_service_id' => 'asc'
     )
   );
+
+  /**
+   * Callback after controller methods are invoked but before views are rendered.
+   *
+   * @since  COmanage Registry v2.0.0
+   */
+
+  function beforeRender() {
+    parent::beforeRender();
+
+    $this->CoProvisioningTarget->bindModel(array('hasOne' =>
+                                                 array('CephProvisioner.CoCephProvisionerTarget')),
+                                           false);
+    
+    $args = array();
+    $args['conditions']['CoProvisioningTarget.co_id'] = $this->cur_co['Co']['id'];
+    $args['conditions']['CoProvisioningTarget.plugin'] = 'CephProvisioner';
+    $args['contain'][] = 'CoCephProvisionerTarget';
+    
+    $cephProvisioners = $this->CoProvisioningTarget -> find('all', $args);
+
+    $this->log('CoServiceTokensController - query CephProvisioner:' . json_encode($cephProvisioners), 'debug');
+    
+    $availableTargets = array();
+    
+    foreach($cephProvisioners as $lp) {
+      $availableTargets[ $lp['CoCephProvisionerTarget']['id'] ] = $lp['CoProvisioningTarget']['description'];
+    }
+    
+    $this->set('vv_ceph_provisioners', $availableTargets);
+
+  }
   
   /**
    * Configure CO Service Token Settings.
