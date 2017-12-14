@@ -66,4 +66,5 @@ $cm_co_service_token_texts['en_US'] = array(
   'pl.coservicetoken.token.no'        => 'Token Not Created',
   'pl.coservicetoken.token.ok'        => 'Token Established',
   'pl.coservicetoken.token.type'      => 'Token Type',
+  'pl.coservicetoken.token.provisioner' => 'External Provisioner'
 );

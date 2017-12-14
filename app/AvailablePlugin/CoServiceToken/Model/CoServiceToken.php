@@ -57,6 +57,11 @@ class CoServiceToken extends AppModel {
       'required' => true,
       'allowEmpty' => false
     ),
+    'co_provisioner_target_id' => array(
+      'rule' => 'numeric',
+      'required' => false,
+      'allowEmpty' => true
+    ),
     'token' => array(
       'rule' => 'notBlank',
       'required' => false,
@@ -123,6 +128,12 @@ class CoServiceToken extends AppModel {
                         (integer)$tokenType);
         break;
       case CoServiceTokenTypeEnum::CephKey:
+        $CephProvisioner = ClassRegistry::init('CephProvisioner');
+        $args = array();
+        //$args['conditions']['']
+        //$CephProvisioner -> getCouDataPools()
+
+
         $token = 'output of ceph auth get-or-create-key grabbing user caps from somewhere else';
         break;
       default:
