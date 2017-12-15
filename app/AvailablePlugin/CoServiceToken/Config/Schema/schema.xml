@@ -40,8 +40,11 @@
     </field>
     <field name="enabled" type="L" />
     <field name="token_type" type="C" size="64" />
-    <field name="co_provisioner_target_id" type= "I">
-     <constraint>REFERENCES cm_co_provisioning_targets(id)</constraint>
+    <field name="co_ceph_provisioner_target_id" type= "I">
+     <constraint>REFERENCES cm_co_ceph_provisioner_targets(id)</constraint>
+   </field>
+   <field name="co_ldap_provisioner_target_id" type= "I">
+     <constraint>REFERENCES cm_co_ldap_provisioner_targets(id)</constraint>
    </field>
     <field name="created" type="T" />
     <field name="modified" type="T" />
