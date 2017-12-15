@@ -62,6 +62,9 @@ class CoServiceTokenSettingsController extends StandardController {
     $this->CoProvisioningTarget->bindModel(array('hasOne' =>
                                                  array('CephProvisioner.CoCephProvisionerTarget')),
                                            false);
+    $this->CoProvisioningTarget->bindModel(array('hasOne' =>
+                                                 array('LdapProvisioner.CoLdapProvisionerTarget')),
+                                           false);
     
     $args = array();
     $args['conditions']['CoProvisioningTarget.co_id'] = $this->cur_co['Co']['id'];
@@ -72,13 +75,30 @@ class CoServiceTokenSettingsController extends StandardController {
 
     $this->log('CoServiceTokensController - query CephProvisioner:' . json_encode($cephProvisioners), 'debug');
     
-    $availableTargets = array();
+    $availableCephTargets = array();
+    $availableLdapTargets = array();
     
     foreach($cephProvisioners as $lp) {
-      $availableTargets[ $lp['CoCephProvisionerTarget']['id'] ] = $lp['CoProvisioningTarget']['description'];
+      $availableCephTargets[ $lp['CoCephProvisionerTarget']['id'] ] = $lp['CoProvisioningTarget']['description'];
+    }
+
+    $this->CoProvisioningTarget->bindModel(array('hasOne' =>
+                                                 array('LdapProvisioner.CoLdapProvisionerTarget')),
+                                           false);
+    
+    $args = array();
+    $args['conditions']['CoProvisioningTarget.co_id'] = $this->cur_co['Co']['id'];
+    $args['conditions']['CoProvisioningTarget.plugin'] = 'LdapProvisioner';
+    $args['contain'][] = 'CoLdapProvisionerTarget';
+    
+    $ldapProvisioners = $this->CoProvisioningTarget->find('all', $args);
+    
+    foreach($ldapProvisioners as $lp) {
+      $availableLdapTargets[ $lp['CoLdapProvisionerTarget']['id'] ] = $lp['CoProvisioningTarget']['description'];
     }
     
-    $this->set('vv_ceph_provisioners', $availableTargets);
+    $this->set('vv_ldap_provisioners', $availableLdapTargets);
+    $this->set('vv_ceph_provisioners', $availableCephTargets);
 
   }
   

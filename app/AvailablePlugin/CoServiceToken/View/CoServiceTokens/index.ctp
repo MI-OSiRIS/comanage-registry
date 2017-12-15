@@ -25,6 +25,9 @@
  * @license       Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
  */
 
+  // there's supposed to be some kind of automatic syntax to generate this path...
+  print $this->Html->script('CoServiceToken.script.js');
+
   // Add breadcrumbs
   print $this->element("coCrumb");
 
@@ -83,19 +86,30 @@
 
           switch($token_type[0]) {
             case CoServiceTokenTypeEnum::CephRgwToken:
-              foreach ($vv_co_person_rgw_ids as $rgw_id) {
-                $encoding_description = "<font style='font-weight: bold;'>S3 Access Key for ". $rgw_id['cou_formatted'] . " COU: </font><br /><hr> ";
+              foreach ($vv_co_person_info as $person_info) {
+                $encoding_description = "<font style='font-weight: bold;'>S3 Access Key for ". $person_info['cou_formatted'] . " COU: </font><br /><hr> ";
                 $encoding = base64_encode(json_encode(
                   [ "RGW_TOKEN" =>
                     [
                       "version" => 1,
                       "type" => "ldap",
-                      "id" => $rgw_id['uid'] . '_' . $rgw_id['cou'],
+                      "id" => $person_info['uid'] . '_' . $person_info['cou'],
                       "key" => $token[0]
                     ]
                   ]));
                 print $encoding_description . filter_var( $encoding, FILTER_SANITIZE_SPECIAL_CHARS) . '<br /><hr>';
               }
+              break;
+            case CoServiceTokenTypeEnum::CephKey:
+              $keyring = '[client.' . $vv_co_person_info[0]['uid'] . '] <br />' 
+                      . '&nbsp;&nbsp;&nbsp;key = ' . filter_var( $token[0], FILTER_SANITIZE_SPECIAL_CHARS);
+
+              $keyring_plain = '[client.' . $vv_co_person_info[0]['uid'] . ']\n' 
+                      . '\tkey = ' . $token[0];
+
+              print "<font style='font-weight: bold;'>Ceph Keyring</font> - "
+                      . '<a href=javascript:blobDownload("' . $keyring_plain . '", "client.' . $vv_co_person_info[0]['uid'] . 'keyring")>download</a><hr>'
+                      . $keyring;
               break;
             default:
               print filter_var( $token[0], FILTER_SANITIZE_SPECIAL_CHARS);
@@ -127,7 +141,9 @@
                       'controller'   => 'co_service_tokens',
                       'action'       => 'generate',
                       'tokensetting' => $c['CoServiceTokenSetting']['id'],
-                      'copersonid'   => $this->request->params['named']['copersonid']
+                      'copersonid'   => $this->request->params['named']['copersonid'],
+                      'cocephprovisionerid' => $c['CoServiceTokenSetting']['co_ceph_provisioner_target_id'],
+                      'coldapprovisionerid' => $c['CoServiceTokenSetting']['co_ldap_provisioner_target_id']
                     )
                   ) . '\',\''
                 . _txt('pl.coservicetoken.generate') . '\',\''    // dialog confirm button

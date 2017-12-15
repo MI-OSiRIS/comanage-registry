@@ -49,11 +49,14 @@ $cm_co_service_token_texts['en_US'] = array(
   ),
 
   // Plugin fields
-  'fd.token'       => 'Token String',
+  'fd.token'       => 'Token',
   'fd.encodings'   => 'Token Encodings',
 
   // Error messages
   'er.coservicetoken.fail'            => 'Failed to generate token',
+  'er.coservicetoken.nocephprovisioner'   => 'This token type requires an external Ceph provisioner but none is set in the configuration',
+  'er.coservicetoken.noldapprovisioner'   => 'This token type requires an external LDAP provisioner but none is set in the configuration',
+
 
   // Plugin texts
   'pl.coservicetoken.confirm'         => 'Are you sure you want to generate a new token for %1$s?',
@@ -66,5 +69,6 @@ $cm_co_service_token_texts['en_US'] = array(
   'pl.coservicetoken.token.no'        => 'Token Not Created',
   'pl.coservicetoken.token.ok'        => 'Token Established',
   'pl.coservicetoken.token.type'      => 'Token Type',
-  'pl.coservicetoken.token.provisioner' => 'External Provisioner'
+  'pl.coservicetoken.token.ceph_provisioner' => 'Ceph Provisioner',
+  'pl.coservicetoken.token.ldap_provisioner' => 'LDAP Provisioner',
 );

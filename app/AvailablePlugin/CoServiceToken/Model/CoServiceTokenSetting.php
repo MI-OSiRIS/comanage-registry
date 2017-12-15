@@ -51,7 +51,12 @@ class CoServiceTokenSetting extends AppModel {
       'required' => true,
       'allowEmpty' => false
     ),
-    'co_provisioner_target_id' => array(
+    'co_ceph_provisioner_target_id' => array(
+      'rule' => 'numeric',
+      'required' => false,
+      'allowEmpty' => true 
+    ),
+    'co_ldap_provisioner_target_id' => array(
       'rule' => 'numeric',
       'required' => false,
       'allowEmpty' => true 

@@ -57,7 +57,12 @@ class CoServiceToken extends AppModel {
       'required' => true,
       'allowEmpty' => false
     ),
-    'co_provisioner_target_id' => array(
+    'co_ceph_provisioner_target_id' => array(
+      'rule' => 'numeric',
+      'required' => false,
+      'allowEmpty' => true
+    ),
+    'co_ldap_provisioner_target_id' => array(
       'rule' => 'numeric',
       'required' => false,
       'allowEmpty' => true
@@ -111,7 +116,9 @@ class CoServiceToken extends AppModel {
   public function generate($coPersonId,
                            $coServiceId,
                            $tokenType=CoServiceTokenTypeEnum::Plain15,
-                           $actorCoPersonId=null) {
+                           $actorCoPersonId=null,
+                           $cephProvisionerId=null,
+                           $ldapProvisionerId=null) {
     $token = null;
 
     switch($tokenType) {
@@ -128,13 +135,7 @@ class CoServiceToken extends AppModel {
                         (integer)$tokenType);
         break;
       case CoServiceTokenTypeEnum::CephKey:
-        $CephProvisioner = ClassRegistry::init('CephProvisioner');
-        $args = array();
-        //$args['conditions']['']
-        //$CephProvisioner -> getCouDataPools()
-
-
-        $token = 'output of ceph auth get-or-create-key grabbing user caps from somewhere else';
+        $token = $this->regenCephKey($coPersonId, $cephProvisionerId, $ldapProvisionerId);
         break;
       default:
         throw new LogicException(_txt('er.notimpl'));
@@ -185,5 +186,36 @@ class CoServiceToken extends AppModel {
                                                                                    _txt('en.coservicetoken.tokentype', null, $tokenType))));
 
     return $token;
+  }
+
+  // look up existing entity and key capabilities, rm and recreate with new shared secret
+  // there is no way in ceph to simply regenerate the secret for an entity
+  private function regenCephKey($coPersonId, $cephProvisionerId, $ldapProvisionerId) {
+    $cephProvisionerTarget = ClassRegistry::init('CephProvisioner.CoCephProvisionerTarget');
+    $coPersonObject = ClassRegistry::init('CoPerson');
+
+    $args = array();
+    $args['conditions']['CoPerson.id'] = $coPersonId;
+    $arcs['contain'] = false;
+    $coPersonData = $coPersonObject -> find('first', $args);
+
+    $idType = IdentifierEnum::UID;
+    $uid = Hash::extract($coPersonData['Identifier'], "{n}[type=$idType].identifier");
+
+    // get ceph provisioner data
+    $args = array();
+    $args['conditions']['CoCephProvisionerTarget.id'] = $cephProvisionerId;
+    $args['contain'] = false;
+    $cephProvisionerTargetData = $cephProvisionerTarget -> find('first', $args);
+    $cephClient = $cephProvisionerTarget -> cephClientFactory($cephProvisionerTargetData);
+
+    $cephKeyring = $cephClient->getKeyring($uid[0]);
+    $this->log("regenCephKey - cephKeyring found:" . json_encode($cephKeyring));
+    $capsArray = $cephClient->formatKeyringToCapsArray($cephKeyring);
+    $this->log("regenCephKey - result of formatKeyringToCapsArray:" . json_encode($capsArray));
+    if (!empty($capsArray)) {
+      $cephClient->removeEntity($uid[0]);
+      return $cephClient->getOrCreateKey($uid[0], $capsArray);
+    }
   }
 }

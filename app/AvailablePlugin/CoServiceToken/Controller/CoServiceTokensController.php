@@ -111,6 +111,22 @@ class CoServiceTokensController extends StandardController {
     $tokenSetting = $this->CoServiceToken->CoService->CoServiceTokenSetting->find('first', $args);
 
     if(!empty($tokenSetting)) {
+      if ($tokenSetting['CoServiceTokenSetting']['token_type'] == CoServiceTokenTypeEnum::CephKey) {
+
+      if (empty($this->request->params['named']['cocephprovisionerid'])) {
+        $this->Flash->set(_txt('er.coservicetoken.nocephprovisioner', array(_txt('ct.co_service_token_settings.1'))),
+                        array('key' => 'error'));
+        $this->performRedirect();
+      }
+
+      if (empty($this->request->params['named']['coldapprovisionerid'])) {
+        $this->Flash->set(_txt('er.coservicetoken.noldapprovisioner', array(_txt('ct.co_service_token_settings.1'))),
+                        array('key' => 'error'));
+        $this->performRedirect();
+      }
+    }
+
+
       $args = array();
       $args['conditions']['CoService.id'] = $tokenSetting['CoServiceTokenSetting']['co_service_id'];
       $args['contain'] = false;
@@ -122,7 +138,9 @@ class CoServiceTokensController extends StandardController {
     $this->set('vv_token', $this->CoServiceToken->generate($this->request->params['named']['copersonid'],
                                                            $tokenSetting['CoServiceTokenSetting']['co_service_id'],
                                                            $tokenSetting['CoServiceTokenSetting']['token_type'],
-                                                           $this->Session->read('Auth.User.co_person_id')));
+                                                           $this->Session->read('Auth.User.co_person_id'),
+                                                           $this->request->params['named']['cocephprovisionerid'],
+                                                           $this->request->params['named']['coldapprovisionerid']));
     $this->set('title_for_layout', _txt('ct.co_service_tokens.1'));
   }
 
@@ -159,13 +177,13 @@ class CoServiceTokensController extends StandardController {
     $coPersonIdentifier = $coPerson -> Identifier->find('first', $args);
     //$this->set('vv_co_person_uid', $coPersonIdentifier['Identifier']['identifier']);
 
-    $rgw_id_list = array();
+    $co_person_info = array();
 
     //$CoPersonObject = ClassRegistry::init('CoPerson');
     $CoGroups = $CoGroupObject->findForCoPerson($this->Session->read('Auth.User.co_person_id'));
 
     foreach ($CoGroups as $group) {
-      $this->log("CoServiceTokensController - CoGRoup Info: " . json_encode($group));
+      $this->log("CoServiceTokensController - CoGroup Info: " . json_encode($group), 'debug');
       if ($CoGroupObject->isCouMembersGroup($group)) {
         if ($group['CoGroup']['group_type'] == GroupEnum::ActiveMembers) { 
           $args = array();
@@ -177,12 +195,12 @@ class CoServiceTokensController extends StandardController {
           $temp['uid'] = $coPersonIdentifier['Identifier']['identifier'];
           $temp['cou'] = strtolower($couName);
           $temp['cou_formatted'] = $couName;
-          $rgw_id_list[] = $temp;
+          $co_person_info[] = $temp;
         }
       }
     }
 
-    $this->set('vv_co_person_rgw_ids', $rgw_id_list);
+    $this->set('vv_co_person_info', $co_person_info);
 
   }
 
