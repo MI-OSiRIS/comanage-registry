@@ -150,25 +150,31 @@
         // This rendering is a bit different from how render_plugin_menus() does it...
         foreach(array_keys($menuContent['plugins']) as $plugin) {
           if(isset($menuContent['plugins'][$plugin]['coperson'])) {
+
+            // Just print a direct link to service tokens for each CO
+            // Sub-menus seem to be broken and I see no need for them anyways
+            // See this stackoverflow post for tip on fixing sub-menus:  https://stackoverflow.com/questions/31350822/material-design-lite-navigation
+            
             foreach(array_keys($menuContent['plugins'][$plugin]['coperson']) as $label) {
+              /*
               print '<li class="mdl-menu__item"> 
                        <a href="#">'.$label.'</a>
                        <span class="sf-sub-indicator"> »</span>
                        <ul>';
+            */
 
-              foreach($menuContent['cos'] as $co) {
-                if(empty($co['co_person_id']))
-                  continue;
+            foreach($menuContent['cos'] as $co) {
+              if(empty($co['co_person_id']))
+                continue;
 
-                $args = $menuContent['plugins'][$plugin]['coperson'][$label];
+              $args = $menuContent['plugins'][$plugin]['coperson'][$label];
+              
+              $args['copersonid'] = $co['co_person_id'];
+              $args['plugin'] = Inflector::underscore($plugin);
+              print "<li class='mdl-menu__item'>" . $this->Html->link($co['co_name'] . ' Tokens', $args) . "</li>\n";
+            }
 
-                $args[] = $co['co_person_id'];
-                $args['plugin'] = Inflector::underscore($plugin);
-
-                print "<li>" . $this->Html->link($co['co_name'], $args) . "</li>\n";
-              }
-
-              print "</ul></li>";
+              //print "</ul></li>";
             }
           }
         }
