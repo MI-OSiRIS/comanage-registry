@@ -36,62 +36,116 @@
   print $this->element("pageTitleAndButtons", $params);
 ?>
 
-<table id="co_services" class="ui-widget">
-  <thead>
-    <tr class="ui-widget-header">
-      <th><?php print _txt('fd.name'); ?></th>
-      <th><?php print _txt('fd.desc'); ?></th>
-      <th><?php print _txt('fd.svc.url'); ?></th>
-      <th><?php print _txt('fd.svc.mail'); ?></th>
-    </tr>
-  </thead>
+<div id="co-services">
   
-  <tbody>
-    <?php $i = 0; ?>
-    <?php foreach ($co_services as $c): ?>
-    <tr class="line<?php print ($i % 2)+1; ?>">
-      <td>
+  <?php foreach ($co_services as $c): ?>
+
+    <?php
+    if(!empty($c['CoService']['co_group_id'])) {
+      // Possibly render a join/leave link, depending on whether
+      // the group is open and if this person is currently a member.
+      $isMember = false;
+      $isOpen = false;
+
+      if(isset($vv_member_groups)
+        && in_array($c['CoService']['co_group_id'], $vv_member_groups)) {
+        $isMember = true;
+      }
+
+      if(isset($vv_open_groups)
+        && in_array($c['CoService']['co_group_id'], $vv_open_groups)) {
+        $isOpen = true;
+      }
+
+      $args = array(
+        'controller' => 'co_services',
+      );
+      $action = "";
+      $attribs = null;
+      $containerClass = "";
+
+      if($isMember) {
+        if($isOpen) {
+          $action = _txt('op.svc.leave');
+          $args['action'] = 'leave';
+          $attribs = array(
+            'class' => 'deletebutton ui-button ui-corner-all ui-widget',
+          );
+        } else {
+          $action = _txt('op.svc.member');
+          $args = null;
+        }
+        $containerClass = " is-member";
+      } else {
+        if($isOpen) {
+          $action = _txt('op.svc.join');
+          $args['action'] = 'join';
+          $attribs = array(
+            'class' => 'addbutton ui-button ui-corner-all ui-widget',
+          );
+        } else {
+          // XXX CO-1057
+          // $action = _txt('op.svc.request');
+          $args = null;
+        }
+      }
+    }
+    ?>
+
+  <div class="co-card<?php print $containerClass ?>">
+    <h2><?php print filter_var($c['CoService']['name'],FILTER_SANITIZE_SPECIAL_CHARS); ?></h2>
+    <div class="co-card-content">
+      <?php /* XXX keep the following for future RFE; these improve the portal layout:
+      <div class="co-card-image">
+        <img src="http://www.npr.org/about/images/press/Logos/npr_logo_rgb.JPG"/>
+      </div> */ ?>
+      <div class="co-card-description">
+        <?php print filter_var($c['CoService']['description'],FILTER_SANITIZE_SPECIAL_CHARS); ?>
+      </div>
+      <div class="co-card-join-button">
         <?php
-          if(!empty($c['CoService']['name'])) {
-            print $this->Html->link($c['CoService']['name'],
-                                    $c['CoService']['service_url']);
-          } else {
-            print $c['CoService']['name'];
+          if(!empty($c['CoService']['co_group_id'])) {
+            // Render the join/leave link, depending on the outcome of the code above
+            if($args) {
+              $args[] = $c['CoService']['id'];
+              
+              // If we have a cou (ie: cou portal), add it here as advisory for redirect
+              if(!empty($this->request->params['named']['cou'])) {
+                $args['cou'] = filter_var($this->request->params['named']['cou'],FILTER_SANITIZE_SPECIAL_CHARS);
+              }
+              print $this->Html->link($action, $args, $attribs);
+            } else {
+              print $action;
+            }
           }
         ?>
-      </td>
-      <td>
-        <?php
-          if(!empty($c['CoService']['description'])) {
-            print $c['CoService']['description'];
-          }
-        ?>
-      </td>
-      <td>
-        <?php
-          if(!empty($c['CoService']['service_url'])) {
-            print $this->Html->link($c['CoService']['service_url'],
-                                    $c['CoService']['service_url']);
-          }
-        ?>
-      </td>
-      <td>
-        <?php
-          if(!empty($c['CoService']['contact_email'])) {
-            print $this->Html->link($c['CoService']['contact_email'],
-                                    'mailto:'.$c['CoService']['contact_email']);
-          }
-        ?>
-      </td>
-    </tr>
-    <?php $i++; ?>
-    <?php endforeach; ?>
-  </tbody>
-  
-  <tfoot>
-    <tr class="ui-widget-header">
-      <th colspan="4">
-      </th>
-    </tr>
-  </tfoot>
-</table>
+      </div>
+      <div class="co-card-icons">
+      <?php
+
+        if(!empty($c['CoService']['service_url'])) {
+          print $this->Html->link('<em class="material-icons" aria-hidden="true">public</em>',
+            $c['CoService']['service_url'],
+            array(
+              'class' => 'co-card-link',
+              'escape' => false,
+              'title' => $c['CoService']['service_url']
+            ));
+        }
+        if(!empty($c['CoService']['contact_email'])) {
+          print $this->Html->link('<em class="material-icons" aria-hidden="true">email</em>',
+            'mailto:'.$c['CoService']['contact_email'],
+            array(
+              'class' => 'co-card-link',
+              'escape' => false,
+              'title' => 'mailto:'.$c['CoService']['contact_email']
+            ));
+        }
+
+      ?>
+      </div>
+    </div>
+  </div>
+  <?php endforeach; ?>
+
+</div>

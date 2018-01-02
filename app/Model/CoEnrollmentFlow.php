@@ -251,6 +251,11 @@ class CoEnrollmentFlow extends AppModel {
       'required' => false,
       'allowEmpty' => true
     ),
+    'redirect_on_finalize' => array(
+      'rule' => array('url', true),
+      'required' => false,
+      'allowEmpty' => true
+    ),
     'ignore_authoritative' => array(
       'rule' => array('boolean'),
       'required' => false,
@@ -733,6 +738,34 @@ class CoEnrollmentFlow extends AppModel {
     }
     
     return true;
+  }
+  
+  /**
+   * Perform a keyword search.
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Integer $coId CO ID to constrain search to
+   * @param  String  $q    String to search for
+   * @return Array Array of search results, as from find('all)
+   */
+  
+  public function search($coId, $q) {
+    // Tokenize $q on spaces
+    $tokens = explode(" ", $q);
+    
+    $args = array();
+    foreach($tokens as $t) {
+      $args['conditions']['AND'][] = array(
+        'OR' => array(
+          'LOWER(CoEnrollmentFlow.name) LIKE' => '%' . strtolower($t) . '%'
+        )
+      );
+    }
+    $args['conditions']['CoEnrollmentFlow.co_id'] = $coId;
+    $args['order'] = array('CoEnrollmentFlow.name');
+    $args['contain'] = false;
+    
+    return $this->find('all', $args);
   }
   
   /**

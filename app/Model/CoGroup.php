@@ -36,6 +36,18 @@ class CoGroup extends AppModel {
   public $hasMany = array(
     // A CoGroup has zero or more members
     "CoGroupMember" => array('dependent' => true),
+    "CoDepartmentAdministrativeCoGroup" => array(
+      'className' => 'CoDepartment',
+      'foreignKey' => 'administrative_co_group_id'
+    ),
+    "CoDepartmentLeadershipCoGroup" => array(
+      'className' => 'CoDepartment',
+      'foreignKey' => 'leadership_co_group_id'
+    ),
+    "CoDepartmentSupportCoGroup" => array(
+      'className' => 'CoDepartment',
+      'foreignKey' => 'support_co_group_id'
+    ),
     "CoEnrollmentFlowApproverCoGroup" => array(
       'className' => 'CoEnrollmentFlow',
       'foreignKey' => 'approver_co_group_id'
@@ -69,6 +81,18 @@ class CoGroup extends AppModel {
     "CoSettingSponsorCoGroup" => array(
       'className' => 'CoSetting',
       'foreignKey' => 'sponsor_co_group_id'
+    ),
+    "EmailListAdmin" => array(
+      'className' => 'CoEmailList',
+      'foreignKey' => 'admins_co_group_id'
+    ),
+    "EmailListMember" => array(
+      'className' => 'CoEmailList',
+      'foreignKey' => 'members_co_group_id'
+    ),
+    "EmailListModerator" => array(
+      'className' => 'CoEmailList',
+      'foreignKey' => 'moderators_co_group_id'
     ),
     "HistoryRecord"
   );
@@ -573,56 +597,6 @@ class CoGroup extends AppModel {
             && !empty($group['CoGroup']['cou_id']));
   }
   
-  /**
-   * Determine the current status of the provisioning targets for this CO Group.
-   *
-   * @since  COmanage Registry v0.8.2
-   * @param  Integer CO Group ID
-   * @return Array Current status of provisioning targets
-   * @throws RuntimeException
-   */
-  
-  public function provisioningStatus($coGroupId) {
-    // First, obtain the list of active provisioning targets for this group's CO.
-    
-    $args = array();
-    $args['joins'][0]['table'] = 'co_groups';
-    $args['joins'][0]['alias'] = 'CoGroup';
-    $args['joins'][0]['type'] = 'INNER';
-    $args['joins'][0]['conditions'][0] = 'CoGroup.co_id=CoProvisioningTarget.co_id';
-    $args['conditions']['CoGroup.id'] = $coGroupId;
-    $args['conditions']['CoProvisioningTarget.status !='] = ProvisionerStatusEnum::Disabled;
-    $args['contain'] = false;
-    
-    $targets = $this->Co->CoProvisioningTarget->find('all', $args);
-    
-    if(!empty($targets)) {
-      // Next, for each target ask the relevant plugin for the status for this group.
-      
-      // We may end up querying the same Plugin more than once, so maintain a cache.
-      $plugins = array();
-      
-      for($i = 0;$i < count($targets);$i++) {
-        $pluginModelName = $targets[$i]['CoProvisioningTarget']['plugin']
-                         . ".Co" . $targets[$i]['CoProvisioningTarget']['plugin'] . "Target";
-        
-        if(!isset($plugins[ $pluginModelName ])) {
-          $plugins[ $pluginModelName ] = ClassRegistry::init($pluginModelName, true);
-          
-          if(!$plugins[ $pluginModelName ]) {
-            throw new RuntimeException(_txt('er.plugin.fail', array($pluginModelName)));
-          }
-        }
-        
-        $targets[$i]['status'] = $plugins[ $pluginModelName ]->status($targets[$i]['CoProvisioningTarget']['id'],
-                                                                      null,
-                                                                      $coGroupId);
-      }
-    }
-    
-    return $targets;
-  }
-  
  /**
    * Determine if a CO Group is read only.
    *
@@ -734,5 +708,33 @@ class CoGroup extends AppModel {
     }
     
     return true;  
+  }
+  
+  /**
+   * Perform a keyword search.
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Integer $coId CO ID to constrain search to
+   * @param  String  $q    String to search for
+   * @return Array Array of search results, as from find('all)
+   */
+  
+  public function search($coId, $q) {
+    // Tokenize $q on spaces
+    $tokens = explode(" ", $q);
+    
+    $args = array();
+    foreach($tokens as $t) {
+      $args['conditions']['AND'][] = array(
+        'OR' => array(
+          'LOWER(CoGroup.name) LIKE' => '%' . strtolower($t) . '%'
+        )
+      );
+    }
+    $args['conditions']['CoGroup.co_id'] = $coId;
+    $args['order'] = array('CoGroup.name');
+    $args['contain'] = false;
+    
+    return $this->find('all', $args);
   }
 }

@@ -47,6 +47,9 @@ class CoGroupsController extends StandardController {
   );
   
   public $edit_contains = array(
+    'EmailListAdmin',
+    'EmailListMember',
+    'EmailListModerator'
   );
   
   public $view_contains = array(
@@ -498,6 +501,9 @@ class CoGroupsController extends StandardController {
       $args['contain'] = false;
       
       $this->set('co_group', $this->CoGroup->find('first', $args));
+      $this->set('title_for_layout',
+                 _txt('fd.prov.status.for',
+                      array(filter_var($this->viewVars['co_group']['CoGroup']['name'],FILTER_SANITIZE_SPECIAL_CHARS))));
     }
   }
   

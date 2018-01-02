@@ -58,8 +58,20 @@ if($this->action != "add") {
       array(
         'controller'    => 'history_records',
         'action'        => 'index',
-        'orgidentityid' => $org_identities[0]['OrgIdentity']['id'],
-        'co'            => ($pool_org_identities ? false : $cur_co['Co']['id'])
+        'orgidentityid' => $org_identities[0]['OrgIdentity']['id']
+      ),
+      array('class' => 'notebutton')
+    );
+  }
+  
+  if($permissions['jobhistory']) {
+    // Job History button
+    $params['topLinks'][] = $this->Html->link(
+      _txt('op.history.job'),
+      array(
+        'controller'    => 'co_job_history_records',
+        'action'        => 'index',
+        'orgidentityid' => $org_identities[0]['OrgIdentity']['id']
       ),
       array('class' => 'notebutton')
     );
@@ -108,7 +120,7 @@ if($this->action != "add") {
   <p>
     <?php print _txt('op.pipeline.rerun.form'); ?>
   </p>
-  <table class="ui-widget">
+  <table>
     <tbody>
       <tr>
         <th class="ui-widget-header">

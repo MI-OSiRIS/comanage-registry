@@ -34,7 +34,8 @@ class UsersController extends AppController {
                        "CoGroupMember",
                        "CoSetting",
                        "CoTermsAndConditions",
-                       "OrgIdentity");
+                       "OrgIdentity",
+                       "OrgIdentitySource");
 
   public $components = array(
     'Auth' => array(
@@ -45,6 +46,20 @@ class UsersController extends AppController {
     'RequestHandler',
     'Session'
   );
+
+  /**
+   * Callback before other controller methods are invoked or views are rendered.
+   *
+   * @since  COmanage Registry 3.1.0
+   */
+  
+  function beforeFilter() {
+    // Since we're overriding, we need to call the parent to run the authz check.
+    parent::beforeFilter();
+
+    // Allow logout to process without a login page.
+    $this->Auth->allow('logout');
+  }
   
   /**
    * Authorization for this Controller, called by Auth component
@@ -107,7 +122,7 @@ class UsersController extends AppController {
           $oargs['conditions']['Identifier.login'] = true;
           // Join on identifiers that aren't deleted (including if they have no status)
           $oargs['conditions']['OR'][] = 'Identifier.status IS NULL';
-          $oargs['conditions']['OR'][]['Identifier.status <>'] = StatusEnum::Deleted;
+          $oargs['conditions']['OR'][]['Identifier.status <>'] = SuspendableStatusEnum::Suspended;
           // As of v2.0.0, OrgIdentities have validity dates, so only accept valid dates (if specified)
           // Through the magic of containable behaviors, we can get all the associated
           $oargs['conditions']['AND'][] = array(
@@ -135,6 +150,7 @@ class UsersController extends AppController {
           $orgs = array();
           $cos = array();
           
+          // XXX deprecated as of 3.1.0, remove in 4.0.0
           // Determine if we are collecting authoritative attributes from $ENV
           // (the only support mechanism at the moment). If so, this will be an array
           // of those value. If not, false.
@@ -213,7 +229,8 @@ class UsersController extends AppController {
                 $params = array(
                   'conditions' => array(
                     'CoGroup.id' => $m['CoGroupMember']['co_group_id']
-                  )
+                  ),
+                  'contain' => false
                 );
                 $result = $this->CoGroup->find('first', $params);
                 
@@ -280,6 +297,11 @@ class UsersController extends AppController {
           // Record the login
           $this->AuthenticationEvent->record($u, AuthenticationEventEnum::RegistryLogin, $_SERVER['REMOTE_ADDR']);
           
+          // Update Org Identities associated with an Enrollment Source, if configured.
+          // Note we're performing CO specific work here, even though we're not in a CO context yet.
+          
+          $this->OrgIdentitySource->syncByIdentifier($u);
+          
           $this->redirect($this->Auth->redirectUrl());
         } else {
           // This is an API user. We don't do anything special at the moment, other
@@ -318,8 +340,17 @@ class UsersController extends AppController {
    */
   
   public function logout() {
-    $this->Session->delete('Auth.User');
-    // XXX should redirect to /auth/logout/index.php to trip external logout
-    $this->redirect("/");
+    $this->Session->delete('Auth');
+    
+    $redirect = "/";
+    
+    if($this->Session->check('Logout.redirect')) {
+      $redirect = $this->Session->read('Logout.redirect');
+      
+      // Clear the redirect so we don't use it again
+      $this->Session->delete('Logout.redirect');
+    }
+    
+    $this->redirect($redirect);
   }
 }

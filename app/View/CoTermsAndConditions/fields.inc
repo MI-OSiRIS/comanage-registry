@@ -49,27 +49,28 @@
 
   print $this->Form->hidden('co_id', array('default' => $cur_co['Co']['id'])) . "\n";
 ?>
-<table id="<?php print $this->action; ?>_co_terms_and_conditions" class="ui-widget">
-  <tbody>
-    <tr class="line1">
-      <td>
-        <strong class="fieldTitle">
+<ul id="<?php print $this->action; ?>_co_terms_and_conditions" class="fields form-list">
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('description', _txt('fd.desc')) : _txt('fd.desc')); ?>
-        </strong><span class="required">*</span>
-      </td>
-      <td>
+          <span class="required">*</span>
+        </div>
+      </div>
+      <div class="field-info">
         <?php print ($e
                      ? $this->Form->input('description', array('size' => '60','class' => 'focusFirst'))
                      : filter_var($co_terms_and_conditions[0]['CoTermsAndConditions']['description'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('status', _txt('fd.status')) : _txt('fd.status')); ?>
-        </strong><span class="required">*</span>
-      </td>
-      <td>
+          <span class="required">*</span>
+        </div>
+      </div>
+      <div class="field-info">
         <?php
           global $cm_lang, $cm_texts;
           $attrs['value'] = (isset($co_terms_and_conditions[0]['CoTermsAndConditions']['status'])
@@ -89,29 +90,30 @@
             print _txt('en.status', null, $co_terms_and_conditions[0]['CoTermsAndConditions']['status']);
           }
         ?>
-      </td>
-    </tr>
-    <tr class="line1">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('url', _txt('fd.url')) : _txt('fd.url')); ?>
-        </strong><span class="required">*</span><br />
-        <span class="descr"><?php print _txt('fd.tc.url.desc'); ?></span>
-      </td>
-      <td>
+          <span class="required">*</span>
+        </div>
+        <div class="field-desc"><?php print _txt('fd.tc.url.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e
                      ? $this->Form->input('url', array('size' => '60'))
                      : filter_var($co_terms_and_conditions[0]['CoTermsAndConditions']['url'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('cou_id', _txt('fd.cou')) : _txt('fd.cou')); ?>
-        </strong><br />
-        <span class="descr"><?php print _txt('fd.tc.cou.desc'); ?></span>
-      </td>
-      <td>
+        </div>
+        <div class="field-desc"><?php print _txt('fd.tc.cou.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php
           if(!empty($cous)) {
             $attrs = array();
@@ -133,19 +135,18 @@
             }
           }
         ?>
-      </td>
-    </tr>
+      </div>
+    </li>
 
-    <?php
-    if($e) {
-      print '<tr><td></td><td>';
-      print $this->Form->submit($submit_label, array('onClick' => 'on_submit()'));
-      print $this->Form->button(_txt('op.reset'), array('type'=>'reset'));
-      print '</td></tr>';
-    }
-    ?>
-  </tbody>
-</table>
+    <?php if($e): ?>
+      <li class="fields-submit">
+        <div class="field-name"></div>
+        <div class="field-info">
+          <?php print $this->Form->submit($submit_label, array('onClick' => 'on_submit()')); ?>
+        </div>
+      </li>
+    <?php endif; ?>
+</ul>
 
 <?php
   print $this->element("changelog");

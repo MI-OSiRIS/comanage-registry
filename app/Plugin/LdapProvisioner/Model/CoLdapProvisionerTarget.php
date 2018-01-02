@@ -386,6 +386,7 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
               case 'eduPersonPrincipalNamePrior':
               case 'eduPersonUniqueId':
               case 'employeeNumber':
+              case 'labeledURI':
               case 'mail':
               case 'uid':
                 // Map the attribute to the model and column
@@ -395,6 +396,7 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                   'eduPersonPrincipalNamePrior' => 'Identifier',
                   'eduPersonUniqueId' => 'Identifier',
                   'employeeNumber' => 'Identifier',
+                  'labeledURI' => 'Url',
                   'mail' => 'EmailAddress',
                   'uid' => 'Identifier'
                 );
@@ -405,6 +407,7 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                   'eduPersonPrincipalNamePrior' => 'identifier',
                   'eduPersonUniqueId' => 'identifier',
                   'employeeNumber' => 'identifier',
+                  'labeledURI' => 'url',
                   'mail' => 'mail',
                   'uid' => 'identifier'
                 );
@@ -478,7 +481,13 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                     if(empty($targetType) || ($targetType == $m['type'])) {
                       // And finally that the attribute itself is set
                       if(!empty($m[ $cols[$attr] ])) {
-                        $attributes[$attr][] = $m[ $cols[$attr] ] . $scope;
+                        if($attr == 'labeledURI' && !empty($m['description'])) {
+                          // Special case for labeledURI, which permits a description to be appended
+                          $attributes[$attr][] = $m[ $cols[$attr] ] . " " . $m['description'];
+                        } else {
+                          $attributes[$attr][] = $m[ $cols[$attr] ] . $scope;
+                        }
+                        
                         $found = true;
                       }
                     }
@@ -497,11 +506,33 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
                   $attributes[$attr] = array();
                 }
                 break;
+              // Authenticators
               case 'sshPublicKey':
                 foreach($provisioningData['SshKey'] as $sk) {
                   global $ssh_ti;
                   
                   $attributes[$attr][] = $ssh_ti[ $sk['type'] ] . " " . $sk['skey'] . " " . $sk['comment'];
+                }
+                break;
+              case 'userPassword':
+                if($modify) {
+                  // Start with an empty list in case no active passwords
+                  $attributes[$attr] = array();
+                }
+                foreach($provisioningData['Password'] as $up) {
+                  // Skip locked passwords
+                  if(!isset($up['AuthenticatorStatus']['locked']) || !$up['AuthenticatorStatus']['locked']) {
+                    // There's probably a better place for this (an enum somewhere?)
+                    switch($up['password_type']) {
+                      // XXX we can't use PasswordAuthenticator's enums in case the plugin isn't installed
+                      case 'CR':
+                        $attributes[$attr][] = '{CRYPT}' . $up['password'];
+                        break;
+                      default:
+                        // Silently ignore other types
+                        break;
+                    }
+                  }
                 }
                 break;
               // Attributes from models attached to CO Person Role
@@ -869,6 +900,7 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
         $add = false;
         $person = true;
         break;
+      case ProvisioningActionEnum::AuthenticatorUpdated:
       case ProvisioningActionEnum::CoPersonPetitionProvisioned:
       case ProvisioningActionEnum::CoPersonPipelineProvisioned:
       case ProvisioningActionEnum::CoPersonReprovisionRequested:
@@ -919,7 +951,8 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
         $add = true;
         break;
       default:
-        throw new RuntimeException("Not Implemented");
+        // Ignore all other actions
+        return true;
         break;
     }
     
@@ -1170,33 +1203,35 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
   }
   
   /**
-   * Determine the provisioning status of this target for a CO Person ID.
+   * Determine the provisioning status of this target.
    *
    * @since  COmanage Registry v0.8
-   * @param  Integer CO Provisioning Target ID
-   * @param  Integer CO Person ID (null if CO Group ID is specified)
-   * @param  Integer CO Group ID (null if CO Person ID is specified)
+   * @param  Integer $coProvisioningTargetId CO Provisioning Target ID
+   * @param  Model   $Model                  Model being queried for status (eg: CoPerson, CoGroup, CoEmailList)
+   * @param  Integer $id                     $Model ID to check status for
    * @return Array ProvisioningStatusEnum, Timestamp of last update in epoch seconds, Comment
-   * @throws InvalidArgumentException If $coPersonId not found
+   * @throws InvalidArgumentException If $id not found
    * @throws RuntimeException For other errors
    */
   
-  public function status($coProvisioningTargetId, $coPersonId, $coGroupId=null) {
+  public function status($coProvisioningTargetId, $Model, $id) {
+    // We currently only support CoPerson and CoGroup
+    
+    if($Model->name != 'CoPerson' && $Model->name != 'CoGroup') {
+      throw new InvalidArgumentException(_txt('er.notimpl'));
+    }
+    
     $ret = array(
       'status'    => ProvisioningStatusEnum::Unknown,
       'timestamp' => null,
       'comment'   => ""
     );
     
-    // Pull the DN for this person, if we have one. Cake appears to correctly interpret
-    // these conditions into a JOIN.
+    // Pull the DN for this person, if we have one.
+    // Cake appears to correctly figure out the join (because no contain?)
     $args = array();
+    $args['conditions']['CoLdapProvisionerDn.' . Inflector::underscore($Model->name) . '_id'] = $id;
     $args['conditions']['CoLdapProvisionerTarget.co_provisioning_target_id'] = $coProvisioningTargetId;
-    if($coPersonId) {
-      $args['conditions']['CoLdapProvisionerDn.co_person_id'] = $coPersonId;
-    } elseif($coGroupId) {
-      $args['conditions']['CoLdapProvisionerDn.co_group_id'] = $coGroupId;
-    }
     
     $dnRecord = $this->CoLdapProvisionerDn->find('first', $args);
     
@@ -1220,7 +1255,7 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
           }*/
           
           // Get the last provision time from the parent status function
-          $pstatus = parent::status($coProvisioningTargetId, $coPersonId, $coGroupId);
+          $pstatus = parent::status($coProvisioningTargetId, $Model, $id);
           
           if($pstatus['status'] == ProvisioningStatusEnum::Provisioned) {
             $ret['timestamp'] = $pstatus['timestamp'];
@@ -1285,6 +1320,10 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
 //            'multiple'    => true,
 //            'typekey'     => 'en.name.type',
 //            'defaulttype' => NameEnum::Official
+          ),
+          'userPassword' => array(
+            'required'    => false,
+            'multiple'    => true
           ),
           // This isn't actually defined in an object class, it's part of the
           // server internal schema (if supported), but we don't have a better
@@ -1371,6 +1410,12 @@ class CoLdapProvisionerTarget extends CoProvisionerPluginTarget {
           'o' => array(
             'required'    => false,
             'multiple'    => true
+          ),
+          'labeledURI' => array(
+            'required'    => false,
+            'multiple'    => true,
+            'extendedtype' => 'url_types',
+            'defaulttype' => UrlEnum::Official
           ),
           'mail' => array(
             'required'    => false,

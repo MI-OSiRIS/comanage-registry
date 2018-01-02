@@ -39,7 +39,8 @@ class CoService extends AppModel {
   // Association rules from this model to other models
   public $belongsTo = array(
     "Co",
-    "CoGroup"
+    "CoGroup",
+    "Cou"
   );
   
   // Default display field for cake generated views
@@ -51,6 +52,11 @@ class CoService extends AppModel {
       'rule' => 'numeric',
       'required' => true,
       'allowEmpty' => false
+    ),
+    'cou_id' => array(
+      'rule' => 'numeric',
+      'required' => false,
+      'allowEmpty' => true
     ),
     'name' => array(
       'rule' => array('validateInput'),
@@ -72,6 +78,11 @@ class CoService extends AppModel {
       'required' => false,
       'allowEmpty' => true
     ),
+    'service_label' => array(
+      'rule' => array('validateInput'),
+      'required' => false,
+      'allowEmpty' => true
+    ),
     'contact_email' => array(
       'rule' => array('email'),
       'required' => false,
@@ -82,36 +93,28 @@ class CoService extends AppModel {
       'required' => false,
       'allowEmpty' => true
     ),
+    'visibility' => array(
+      'rule' => array('inList', array(VisibilityEnum::CoAdmin,
+                                      VisibilityEnum::CoGroupMember,
+                                      VisibilityEnum::CoMember,
+                                      VisibilityEnum::Unauthenticated)),
+      'required' => true,
+      'allowEmpty' => false
+    ),
     'status' => array(
       'rule' => array('inList', array(SuspendableStatusEnum::Active,
                                       SuspendableStatusEnum::Suspended)),
       'required' => true,
-      'allowEmpty' => true
+      'allowEmpty' => false
     )
   );
   
-  /**
-   * Map a list of groups to the entitlements they are associated with.
-   *
-   * @since  COmanage Registry v2.0.0
-   * @param  Integer String CO ID
-   * @param  Array Array of CO Group IDs
-   * @return Array Array of entitlements, keyed on CO Service ID
-   */
+  // Enum type hints
   
-  public function mapCoGroupsToEntitlements($coId, $coGroupIds) {
-    $args = array();
-    $args['conditions']['CoService.co_id'] = $coId;
-    $args['conditions']['OR']['CoService.co_group_id'] = $coGroupIds;
-    $args['conditions']['OR'][] = 'CoService.co_group_id IS NULL';
-    $args['conditions']['CoService.status'] = SuspendableStatusEnum::Active;
-    $args['conditions'][] = 'CoService.entitlement_uri IS NOT NULL';
-    $args['conditions']['NOT']['CoService.entitlement_uri'] = '';
-    $args['fields'] = array('CoService.id', 'CoService.entitlement_uri');
-    $args['contain'] = false;
-    
-    return $this->find('list', $args);
-  }
+  public $cm_enum_types = array(
+    'status' => 'SuspendableStatusEnum',
+    'visibility' => 'VisibilityEnum'
+  );
   
   /**
    * Find CO Services visible to the specified CO Person.
@@ -120,12 +123,13 @@ class CoService extends AppModel {
    * @param  RoleComponent
    * @param  Integer $coId       CO ID
    * @param  Integer $coPersonId CO Person ID, or null for public services
+   * @param  Integer @couId      COU ID, null for CO level services, or false for all services within the CO
    * @return Array Array of CO Services
    */
   
-  public function findServicesByPerson($Role, $coId, $coPersonId=null) {
+  public function findServicesByPerson($Role, $coId, $coPersonId=null, $couId=null) {
     // First determine which visibilities to retrieve. Unlike most other cases,
-    // we do NOT treat admins specially. They can either look in the configuration
+    // we do NOT treat admins specially. They can look in the configuration
     // if they need to see the complete list.
     
     $visibility = array(VisibilityEnum::Unauthenticated);
@@ -153,9 +157,13 @@ class CoService extends AppModel {
     
     $args = array();
     $args['conditions']['CoService.co_id'] = $coId;
+    if($couId !== false) {
+      // COU ID does not constrain visibility, it's basically like having a COU level portal
+      $args['conditions']['CoService.cou_id'] = $couId;
+    }
     $args['conditions']['CoService.visibility'] = $visibility;
     $args['conditions']['CoService.status'] = SuspendableStatusEnum::Active;
-    $args['order'] = 'CoService.description';
+    $args['order'] = 'CoService.name';
     $args['contain'] = false;
     
     $services = $this->find('all', $args);
@@ -178,5 +186,95 @@ class CoService extends AppModel {
     }
     
     return $services;
+  }
+  
+  /**
+   * Map a list of groups to the entitlements they are associated with.
+   *
+   * @since  COmanage Registry v2.0.0
+   * @param  Integer String CO ID
+   * @param  Array Array of CO Group IDs
+   * @return Array Array of entitlements, keyed on CO Service ID
+   */
+  
+  public function mapCoGroupsToEntitlements($coId, $coGroupIds) {
+    $args = array();
+    $args['conditions']['CoService.co_id'] = $coId;
+    $args['conditions']['OR']['CoService.co_group_id'] = $coGroupIds;
+    $args['conditions']['OR'][] = 'CoService.co_group_id IS NULL';
+    $args['conditions']['CoService.status'] = SuspendableStatusEnum::Active;
+    $args['conditions'][] = 'CoService.entitlement_uri IS NOT NULL';
+    $args['conditions']['NOT']['CoService.entitlement_uri'] = '';
+    $args['fields'] = array('CoService.id', 'CoService.entitlement_uri');
+    $args['contain'] = false;
+    
+    return $this->find('list', $args);
+  }
+ 
+  /**
+   * Perform a keyword search.
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Integer $coId CO ID to constrain search to
+   * @param  String  $q    String to search for
+   * @return Array Array of search results, as from find('all)
+   */
+  
+  public function search($coId, $q) {
+    // Tokenize $q on spaces
+    $tokens = explode(" ", $q);
+    
+    $args = array();
+    foreach($tokens as $t) {
+      $args['conditions']['AND'][] = array(
+        'OR' => array(
+          'LOWER(CoService.name) LIKE' => '%' . strtolower($t) . '%'
+        )
+      );
+    }
+    $args['conditions']['CoService.co_id'] = $coId;
+    $args['order'] = array('CoService.name');
+    $args['contain'] = false;
+    
+    return $this->find('all', $args);
+  }
+  
+  /**
+   * Set a membership attribute for the group associated with the CO Service.
+   *
+   * @param  Integer $id              CO Service ID
+   * @param  RoleComponent $Role      RoleComponent
+   * @param  Integer $coPersonId      CO Person ID to set membership for
+   * @param  Integer $actorCoPersonId CO Person ID of requestor
+   * @param  String  $action          Action: "join" or "leave"
+   * @return Boolean True on success
+   * @throws InvalidArgumentException
+   * @throws RuntimeException
+   */
+  
+  public function setServiceGroupMembership($id, $Role, $coPersonId, $actorCoPersonId, $action="join") {
+    // First see if there is even a group associated with this service
+    
+    $coGroupId = $this->field('co_group_id', array('CoService.id' => $id));
+    
+    if(!$coGroupId) {
+      throw new InvalidArgumentException(_txt('er.svc.group.none'));
+    }
+    
+    // setMembership will take care of logical checks (open group, etc).
+    // Let any exception pass up the stack.
+    
+    $member = ($action == "join");
+    $owner = false;
+    
+    $this->CoGroup
+         ->CoGroupMember->setMembership($Role,
+                                        $coGroupId,
+                                        $coPersonId,
+                                        $member,
+                                        $owner,
+                                        $actorCoPersonId);
+         
+    return true;
   }
 }

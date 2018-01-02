@@ -42,51 +42,48 @@
   $this->Html->addCrumb($crumbTxt);
 
 ?>
-<div class="ui-state-highlight ui-corner-all co-info-topbox">
-  <p>
-    <span class="ui-icon ui-icon-info co-info"></span>
-    <strong><?php print _txt('ap.note.privs'); ?></strong>
-  </p>
+<div class="co-info-topbox">
+  <em class="material-icons">info</em>
+  <?php print _txt('ap.note.privs'); ?>
 </div>
-<table id="<?php print $this->action; ?>_api_users" class="ui-widget">
-  <tbody>
-    <tr class="line1">
-      <th>
-        <?php print ($e ? $this->Form->label('username', _txt('fd.username.api')) : _txt('fd.username.api')); ?><span class="required">*</span>
-      </th>
-      <td>
-        <?php print ($e
-                     ? $this->Form->input('username', array('class' => 'focusFirst'))
-                     : filter_var($api_users[0]['ApiUser']['username'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-      <td>
-        <span class="ui-icon ui-icon-info co-info"></span>
-        <span class="desc"><?php print _txt('ap.note.username'); ?></span>
-      </td>
-    </tr>
-    <tr class="line2">
-      <th>
-        <?php print ($e ? $this->Form->label('password', _txt('fd.password')) : _txt('fd.password')); ?><span class="required">*</span>
-      </th>
-      <td>
-        <?php print ($e
-                     ? $this->Form->password('password')
-                     : filter_var($api_users[0]['ApiUser']['password'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <em><span class="required"><?php print _txt('fd.req'); ?></span></em><br />
-      </td>
-      <td>
-        <?php
-          if($e) {
-            print $this->Form->submit($submit_label, array('onClick' => 'on_submit()'));
-            print $this->Form->button(_txt('op.reset'), 
-                                      array('type'=>'reset'));
-          }
-        ?>
-      </td>
-    </tr>
-  </tbody>
-</table>
+
+<ul id="<?php print $this->action; ?>_api_users" class="fields form-list">
+  <li>
+    <div class="field-name vtop">
+      <div class="field-title">
+        <?php print ($e ? $this->Form->label('username', _txt('fd.username.api')) : _txt('fd.username.api')); ?>
+        <span class="required">*</span>
+      </div>
+    </div>
+    <div class="field-info">
+      <?php print ($e
+        ? $this->Form->input('username', array('class' => 'focusFirst'))
+        : filter_var($api_users[0]['ApiUser']['username'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+      <span class="ui-icon ui-icon-info co-info"></span>
+      <span class="desc"><?php print _txt('ap.note.username'); ?></span>
+    </div>
+  </li>
+  <li>
+    <div class="field-name">
+      <div class="field-title">
+        <?php print ($e ? $this->Form->label('password', _txt('fd.password')) : _txt('fd.password')); ?>
+        <span class="required">*</span>
+      </div>
+    </div>
+    <div class="field-info">
+      <?php print ($e
+                   ? $this->Form->password('password')
+        : filter_var($api_users[0]['ApiUser']['password'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+    </div>
+  </li>
+  <?php if($e): ?>
+    <li class="fields-submit">
+      <div class="field-name">
+        <span class="required"><?php print _txt('fd.req'); ?></span>
+      </div>
+      <div class="field-info">
+        <?php print $this->Form->submit($submit_label, array('onClick' => 'on_submit()')); ?>
+      </div>
+    </li>
+  <?php endif; ?>
+</ul>

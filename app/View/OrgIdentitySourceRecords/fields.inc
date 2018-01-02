@@ -68,54 +68,73 @@
   $this->Html->addCrumb($org_identity_source_records[0]['OrgIdentitySourceRecord']['sorid']);
 ?>
 <?php if($this->action == 'view' && !empty($org_identity_source_records[0]['OrgIdentitySourceRecord']['id'])): ?>
-<div class="ui-state-highlight ui-corner-all co-info-topbox">
-  <p>
-    <span class="ui-icon ui-icon-info co-info"></span>
-    <strong><?php print _txt('in.orgid.oisr'); ?></strong>
-  </p>
-</div>
-<br />
+  <div class="co-info-topbox">
+    <em class="material-icons">info</em>
+    <?php print _txt('in.orgid.oisr'); ?>
+  </div>
 <?php endif; // view ?>
 
-<table id="<?php print $this->action; ?>_org_identity_source" class="ui-widget">
-  <tbody>
-    <tr class="line1">
-      <td>
-        <?php print _txt('ct.org_identity_sources.1'); ?>
-      </td>
-      <td>
-        <?php print filter_var($org_identity_source_records[0]['OrgIdentitySource']['description'],FILTER_SANITIZE_SPECIAL_CHARS); ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <?php print _txt('fd.sorid'); ?>
-      </td>
-      <td>
-        <?php print filter_var($org_identity_source_records[0]['OrgIdentitySourceRecord']['sorid'],FILTER_SANITIZE_SPECIAL_CHARS); ?>
-      </td>
-    </tr>
-    <tr class="line1">
-      <td>
-        <?php print _txt('fd.update.last'); ?>
-      </td>
-      <td>
-        <?php
-          print $this->Time->format($org_identity_source_records[0]['OrgIdentitySourceRecord']['last_update'], "%c $vv_tz", false, $vv_tz);
-        ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <?php print _txt('fd.ois.record'); ?>
-      </td>
-      <td>
-        <pre>
-          <?php print filter_var($org_identity_source_records[0]['OrgIdentitySourceRecord']['source_record'],FILTER_SANITIZE_SPECIAL_CHARS); ?>
-        </pre>
-      </td>
-    </tr>
-  </tbody>
-</table>
+<div class="table-container">
+  <table id="<?php print $this->action; ?>_org_identity_source">
+    <tbody>
+      <tr class="line1">
+        <td>
+          <?php print _txt('ct.org_identity_sources.1'); ?>
+        </td>
+        <td>
+          <?php print filter_var($org_identity_source_records[0]['OrgIdentitySource']['description'],FILTER_SANITIZE_SPECIAL_CHARS); ?>
+        </td>
+      </tr>
+      <tr class="line2">
+        <td>
+          <?php print _txt('fd.sorid'); ?>
+        </td>
+        <td>
+          <?php print filter_var($org_identity_source_records[0]['OrgIdentitySourceRecord']['sorid'],FILTER_SANITIZE_SPECIAL_CHARS); ?>
+        </td>
+      </tr>
+      <tr class="line1">
+        <td>
+          <?php print _txt('fd.update.last'); ?>
+        </td>
+        <td>
+          <?php
+            print $this->Time->format($org_identity_source_records[0]['OrgIdentitySourceRecord']['last_update'], "%c $vv_tz", false, $vv_tz);
+          ?>
+        </td>
+      </tr>
+      <tr class="line2">
+        <td>
+          <?php print _txt('fd.ois.record'); ?>
+        </td>
+        <td>
+          <pre>
+            <?php print filter_var($org_identity_source_records[0]['OrgIdentitySourceRecord']['source_record'],FILTER_SANITIZE_SPECIAL_CHARS); ?>
+          </pre>
+        </td>
+      </tr>
+      <tr class="line1">
+        <td>
+          <?php print _txt('ct.co_petitions.1'); ?>
+        </td>
+        <td>
+          <?php
+            if(!empty($org_identity_source_records[0]['CoPetition']['id'])) {
+              print $this->Html->link(
+                $org_identity_source_records[0]['CoPetition']['id'],
+                array(
+                  'controller' => 'co_petitions',
+                  'action'     => 'view',
+                  $org_identity_source_records[0]['CoPetition']['id']
+                )
+              );
+            }
+          ?>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
-<?php print $this->element("changelog"); ?>
+<?php
+  print $this->element("changelog"); 

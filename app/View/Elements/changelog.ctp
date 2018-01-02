@@ -40,14 +40,13 @@
 ?>
 <div id="changeLog">
   <a href="#tabs-changelog" class="fieldGroupNameCl">
-    <span class="ui-icon ui-icon-circlesmall-plus"></span>
+    <em class="material-icons">add_box</em>
     <?php print _txt('fd.changelog'); ?>
   </a>
-  <ul class="fields" style="display: none;">
+  <ul id="tabs-changelog" class="fields data-list data-table" style="display: none;">
     <li>
-      <div id="tabs-changelog" class="additionalinfo">
-
-        <table id="<?php print $this->action . "_" . $modelu . "_changelog"; ?>" class="ui-widget">
+      <div class="table-container">
+        <table id="<?php print $this->action . "_" . $modelu . "_changelog"; ?>">
           <tbody>
           <tr class="line<?php print ($l % 2);
                                print (${$modelpl}[0][$req]['deleted'] ? ' deleted' : '');
@@ -65,7 +64,17 @@
             </th>
             <td>
               <?php
-              print ${$modelpl}[0][$req]['revision'];
+                print ${$modelpl}[0][$req]['revision'];
+
+                $mkey = $modelu . '_id';
+
+                if(!empty(${$modelpl}[0][$req][$mkey])) {
+                  print "&nbsp;(" . _txt('er.archived') . ") " .
+                        $this->Html->link(_txt('op.view.current'),
+                                          array('controller' => $modelpl,
+                                                'action' => $this->action,
+                                                ${$modelpl}[0][$req][$mkey]));
+                }
               ?>
             </td>
           </tr>
@@ -105,16 +114,20 @@
       event.preventDefault();
       $(this).next(".fields").slideToggle("fast");
       // toggle the +/- icon:
-      if ($(this).find(".ui-icon").hasClass("ui-icon-circlesmall-minus")) {
-        $(this).find(".ui-icon").removeClass("ui-icon-circlesmall-minus").addClass("ui-icon-circlesmall-plus");
+      if ($(this).find(".material-icons").text() == "indeterminate_check_box") {
+        $(this).find(".material-icons").text("add_box");
       } else {
-        $(this).find(".ui-icon").removeClass("ui-icon-circlesmall-plus").addClass("ui-icon-circlesmall-minus");
+        $(this).find(".material-icons").text("indeterminate_check_box");
       }
     });
 
+    <?php if(!empty(${$modelpl}[0][$req][$mkey])): ?>
+    // Add "Archived" text next to page title, if we're looking at an archived entity
+    $(".pageTitle h1").append('<span class="archived"><?php print _txt('fd.archived'); ?></span>');
+    <?php endif ?>
     <?php if(${$modelpl}[0][$req]['deleted']): ?>
       // Add "Deleted" text next to page title, if we're looking at a deleted entity
-      $(".pageTitle h2").append('<span class="deleted"><?php print _txt('fd.deleted'); ?></span>');
+      $(".pageTitle h1").append('<span class="deleted"><?php print _txt('fd.deleted'); ?></span>');
     <?php endif ?>
   });
 </script>

@@ -40,5 +40,5 @@ $cm_homedir_provisioner_texts['en_US'] = array(
   'er.homedirprovisioner.attributes'     => 'Could not find all required attributes in provisioning data',
   
   // Plugin texts
-  'pl.homedirprovisioner.noconfig'       => 'This provisioner has no configurable options'
+  //'pl.homedirprovisioner.noconfig'       => 'This provisioner has no configurable options'
 );

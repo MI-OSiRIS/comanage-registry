@@ -82,27 +82,27 @@
     document.getElementById('CoIdentifierAssignmentEmailType').disabled = false;
   }
 </script>
-<table id="<?php print $this->action; ?>_co_identifier_assignment" class="ui-widget">
-  <tbody>
-    <tr class="line1">
-      <td>
-        <strong class="fieldTitle">
+
+<ul id="<?php print $this->action; ?>_co_identifier_assignment" class="fields form-list form-list-admin">
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('description', _txt('fd.desc')) : _txt('fd.desc')); ?>
-        </strong><br />
-      </td>
-      <td>
+        </div>
+      </div>
+      <div class="field-info">
         <?php print ($e
                      ? $this->Form->input('description', array('class' => 'focusFirst'))
                      : filter_var($co_identifier_assignments[0]['CoIdentifierAssignment']['description'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('identifier_type', _txt('fd.type')) :  _txt('fd.type')); ?>
-        </strong>
-      </td>
-      <td>
+        </div>
+      </div>
+      <div class="field-info">
         <?php
           $attrs = array();
           $attrs['value'] = (isset($co_identifier_assignments) ? $co_identifier_assignments[0]['CoIdentifierAssignment']['identifier_type'] : "");
@@ -121,16 +121,16 @@
             print filter_var($co_identifier_assignments[0]['CoIdentifierAssignment']['identifier_type'],FILTER_SANITIZE_SPECIAL_CHARS);
           }
         ?>
-      </td>
-    </tr>
-    <tr class="line1">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('email_type', _txt('fd.ia.type.email')) : _txt('fd.ia.type.email')); ?>
-        </strong><br />
-        <span class="descr"><?php print _txt('fd.ia.type.email.desc'); ?></span>
-      </td>
-      <td>
+        </div>
+        <div class="field-desc"><?php print _txt('fd.ia.type.email.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php
           global $cm_lang, $cm_texts;
           $attrs['value'] = (isset($co_identifier_assignments)
@@ -152,29 +152,29 @@
             print _txt('en.cpntact', null, $co_identifier_assignments[0]['CoIdentifierAssignment']['email_type']);
           }
         ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print _txt('fd.identifier.login'); ?>
-        </strong><br />
-        <span class="descr"><?php print _txt('fd.identifier.login.desc'); ?></span>
-      </td>
-      <td>
+        </div>
+        <div class="field-desc"><?php print _txt('fd.identifier.login.desc'); ?></div>
+      </div>
+      <div class="field-info checkbox">
         <?php print ($e
                      ? $this->Form->input('login') . ' ' . $this->Form->label('login', _txt('fd.identifier.login'))
                      : filter_var($co_identifier_assignments[0]['CoIdentifierAssignment']['login'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line1">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('algorithm', _txt('fd.ia.algorithm')) : _txt('fd.ia.algorithm')); ?>
-        </strong><br />
-        <span class="descr"><?php print _txt('fd.ia.algorithm.desc'); ?></span>
-      </td>
-      <td>
+        </div>
+        <div class="field-desc"><?php print _txt('fd.ia.algorithm.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php
           global $cm_lang, $cm_texts;
           $attrs['value'] = (isset($co_identifier_assignments)
@@ -195,39 +195,39 @@
             print _txt('en.ia.algorithm', null, $co_identifier_assignments[0]['CoIdentifierAssignment']['algorithm']);
           }
         ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name vtop">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('format', _txt('fd.ia.format')) : _txt('fd.ia.format')); ?>
-        </strong><br />
-        <span class="descr"><?php print _txt('fd.ia.format.desc'); ?></span>
-      </td>
-      <td>
+        </div>
+        <div class="field-desc"><?php print _txt('fd.ia.format.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e ? $this->Form->input('format') : filter_var($co_identifier_assignments[0]['CoIdentifierAssignment']['format'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
         <?php if($e): ?>
-        <br/><label for="CoIdentifierAssignmentPrefabricatedFormats"><?php print  _txt('fd.ia.format.pattern') . ': '; ?></label>
-        <select
-          id="CoIdentifierAssignmentPrefabricatedFormats"
-          onchange="javascript:document.getElementById('CoIdentifierAssignmentFormat').value=this.value">
-          <option value=""><?php print _txt('fd.ia.format.prefab'); ?></option>
-          <option value=""><?php print _txt('fd.ia.format.p0'); ?></option>
-          <option value="(g).(f)[1:.(#)]@myvo.org"><?php print _txt('fd.ia.format.p1'); ?></option>
-          <option value="(g)[1:.(m:1)].(f)[2:.(#)]@myvo.org"><?php print _txt('fd.ia.format.p2'); ?></option>
-          <option value="(g:1)(m:1)(f:1)(#)@myvo.org"><?php print _txt('fd.ia.format.p3'); ?></option>
-        </select>
+          <label for="CoIdentifierAssignmentPrefabricatedFormats"><?php print  _txt('fd.ia.format.pattern') . ': '; ?></label>
+          <select
+            id="CoIdentifierAssignmentPrefabricatedFormats"
+            onchange="javascript:document.getElementById('CoIdentifierAssignmentFormat').value=this.value">
+            <option value=""><?php print _txt('fd.ia.format.prefab'); ?></option>
+            <option value=""><?php print _txt('fd.ia.format.p0'); ?></option>
+            <option value="(g).(f)[1:.(#)]@myvo.org"><?php print _txt('fd.ia.format.p1'); ?></option>
+            <option value="(g)[1:.(m:1)].(f)[2:.(#)]@myvo.org"><?php print _txt('fd.ia.format.p2'); ?></option>
+            <option value="(g:1)(m:1)(f:1)(#)@myvo.org"><?php print _txt('fd.ia.format.p3'); ?></option>
+          </select>
         <?php endif; ?>
-      </td>
-    </tr>
-    <tr class="line1">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('permitted', _txt('fd.ia.permitted')) : _txt('fd.ia.permitted')); ?>
-        </strong><br />
-        <span class="descr"><?php print _txt('fd.ia.permitted.desc'); ?></span>
-      </td>
-      <td>
+        </div>
+        <div class="field-desc"><?php print _txt('fd.ia.permitted.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php
           global $cm_lang, $cm_texts;
           $attrs['value'] = (isset($co_identifier_assignments)
@@ -247,48 +247,46 @@
             print _txt('en.chars.permitted', null, $co_identifier_assignments[0]['CoIdentifierAssignment']['permitted']);
           }
         ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('minimum', _txt('fd.ia.minimum')) : _txt('fd.ia.minimum')); ?>
-        </strong><br />
-        <span class="descr"><?php print _txt('fd.ia.minimum.desc'); ?></span>
-      </td>
-      <td>
+        </div>
+        <div class="field-desc"><?php print _txt('fd.ia.minimum.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e ? $this->Form->input('minimum') : filter_var($co_identifier_assignments[0]['CoIdentifierAssignment']['minimum'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line1">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print ($e ? $this->Form->label('maximum', _txt('fd.ia.maximum')) : _txt('fd.ia.maximum')); ?>
-        </strong><br />
-        <span class="descr"><?php print _txt('fd.ia.maximum.desc'); ?></span>
-      </td>
-      <td>
+        </div>
+        <div class="field-desc"><?php print _txt('fd.ia.maximum.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e ? $this->Form->input('maximum') : filter_var($co_identifier_assignments[0]['CoIdentifierAssignment']['maximum'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <strong class="fieldTitle">
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
           <?php print _txt('fd.ia.exclusions'); ?>
-        </strong><br />
-        <span class="descr"><?php print _txt('fd.ia.exclusions.desc'); ?></span>
-      </td>
-      <td></td>
-    </tr>
+        </div>
+        <div class="field-desc"><?php print _txt('fd.ia.exclusions.desc'); ?></div>
+      </div>
+    </li>
 
-    <?php
-    if($e) {
-      print '<tr><td></td><td>';
-      print $this->Form->submit($submit_label, array('onClick' => 'on_submit()'));
-      print $this->Form->button(_txt('op.reset'), array('type'=>'reset'));
-      print '</td></tr>';
-    }
-    ?>
+    <?php if($e): ?>
+      <li class="fields-submit">
+        <div class="field-name"></div>
+        <div class="field-info">
+          <?php print $this->Form->submit($submit_label, array('onClick' => 'on_submit()')); ?>
+        </div>
+      </li>
+    <?php endif; ?>
 
-  </tbody>
-</table>
+</ul>

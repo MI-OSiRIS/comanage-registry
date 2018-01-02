@@ -44,11 +44,26 @@ $tabIndex = 1;
   }
 
   $(function() {
-    $( ".clearButton").button();
+    var searchFieldsAreOpen = (Cookies.get('comanage-top-search-fields-visible') === 'true');
+    if (searchFieldsAreOpen) {
+      $('#coPeopleSearch').addClass('open');
+      $('#top-search-fields').show();
+    }
+
+    $( "#top-search-toggle").click(function() {
+      $("#top-search-fields").toggle();
+      var searchFieldsAreOpen = $("#top-search-fields").is(':visible');
+      Cookies.set('comanage-top-search-fields-visible', searchFieldsAreOpen);
+      if (searchFieldsAreOpen) {
+        $("#coPeopleSearch").addClass('open');
+      } else {
+        $("#coPeopleSearch").removeClass('open');
+      }
+    });
   });
 </script>
 
-<div id="orgIdSearch" class="topSearch">
+<div id="orgIdSearch" class="top-search">
   <?php
     print $this->Form->create('OrgIdentity',array('url' => array('action'=>'search')));
     if(!empty($cur_co['Co']['id'])) {
@@ -56,103 +71,110 @@ $tabIndex = 1;
     }
   ?>
   <fieldset>
-  <legend><?php print _txt('op.search');?>:</legend>
-  <?php
-  $args = array();
-  $args['label'] = _txt('fd.name.given');
-  $args['placeholder'] = _txt('fd.name.given');
-  $args['tabindex'] = $tabIndex++;
-  $args['value'] = !empty($this->request->params['named']['Search.givenName']) ? $this->request->params['named']['Search.givenName'] : '';
-  print $this->Form->input('Search.givenName',$args);
-  ?>
-  <?php
-  $args = array();
-  $args['label'] = _txt('fd.name.family');
-  $args['placeholder'] = _txt('fd.name.family');
-  $args['tabindex'] = $tabIndex++;
-  $args['value'] = !empty($this->request->params['named']['Search.familyName']) ? $this->request->params['named']['Search.familyName'] : '';
-  print $this->Form->input('Search.familyName',$args);
-  ?>
-  <?php
-  $args = array();
-  $args['label'] = _txt('fd.email_address.mail');
-  $args['placeholder'] = _txt('fd.email_address.mail');
-  $args['tabindex'] = $tabIndex++;
-  $args['value'] = !empty($this->request->params['named']['Search.mail']) ? $this->request->params['named']['Search.mail'] : '';
-  print $this->Form->input('Search.mail', $args);
-  ?>
-  <?php
-  $args = array();
-  $args['label'] = _txt('fd.identifier.identifier');
-  $args['placeholder'] = _txt('fd.identifier.identifier');
-  $args['tabindex'] = $tabIndex++;
-  $args['value'] = !empty($this->request->params['named']['Search.identifier']) ? $this->request->params['named']['Search.identifier'] : '';
-  print $this->Form->input('Search.identifier', $args);
-  ?>
-  <?php
-  $args = array();
-  $args['label'] = _txt('fd.o');
-  $args['placeholder'] = _txt('fd.o');
-  $args['tabindex'] = $tabIndex++;
-  $args['value'] = !empty($this->request->params['named']['Search.organization']) ? $this->request->params['named']['Search.organization'] : '';
-  print $this->Form->input('Search.organization',$args);
-  ?>
-  <?php
-  if(!empty($vv_org_id_sources)) {
-    $formParams = array(
-      'options' => $vv_org_id_sources,
-      'type'    => 'select',
-      'empty'   => _txt('op.select.empty-a', array(_txt('ct.org_identity_sources.1'))),
-      'label'   => _txt('ct.org_identity_sources.1'),
-      'tabindex' => $tabIndex++,
-      'value'   => (!empty($this->request->params['named']['Search.orgIdentitySource'])
-                    ? $this->request->params['named']['Search.orgIdentitySource']
-                    : ''));
-    print $this->Form->input('Search.orgIdentitySource', $formParams);
-  }
-  ?>
-  <?php
-  $args = array();
-  $args['label'] = _txt('fd.ou');
-  $args['placeholder'] = _txt('fd.ou');
-  $args['tabindex'] = $tabIndex++;
-  $args['value'] = !empty($this->request->params['named']['Search.department']) ? $this->request->params['named']['Search.department'] : '';
-  print $this->Form->input('Search.department',$args);
-  ?>
-  <?php
-  $args = array();
-  $args['label'] = _txt('fd.title');
-  $args['placeholder'] = _txt('fd.title');
-  $args['tabindex'] = $tabIndex++;
-  $args['value'] = !empty($this->request->params['named']['Search.title']) ? $this->request->params['named']['Search.title'] : '';
-  print $this->Form->input('Search.title',$args);
-  ?>
-  <?php
-  $searchOptions = $cm_texts[ $cm_lang ]['en.org_identity.affiliation'];
-  $formParams = array('options' => $searchOptions,
-    'type'    => 'select',
-    'empty'   => _txt('fd.affiliation') . ' ' . _txt('op.select.empty'),
-    'label'   => _txt('fd.affiliation'),
-    'tabindex' => $tabIndex++,
-    'value'   => (!empty($this->request->params['named']['Search.affiliation']) ? $this->request->params['named']['Search.affiliation'] : ''));
-  print $this->Form->input('Search.affiliation', $formParams);
-  ?>
+    <legend>
+      <a href="#" id="top-search-toggle">
+        <em class="material-icons">search</em>
+        <?php print _txt('op.search');?>
+        <em class="material-icons drop-arrow">arrow_drop_down</em>
+      </a>
+    </legend>
 
-  <div class="topSearchSubmit">
-    <?php
-    $args = array();
-    $args['type'] = 'button';
-    $args['class'] = 'clearButton spin';
-    $args['onclick'] = 'clearSearch(this.form)';
-    // We need to be clever with $tabIndex to put these in the correct order
-    $args['tabindex'] = $tabIndex+1;
-    print $this->Form->button(_txt('op.clear.all'),$args);
-    $args = array();
-    $args['tabindex'] = $tabIndex;
-    print $this->Form->submit(_txt('op.search'),$args);
-    $tabIndex += 2;
-    ?>
-  </div>
+    <div id="top-search-fields">
+      <div class="search-field-subgroup">
+      <?php
+      $args = array();
+      $args['label'] = _txt('fd.name.given');
+      $args['placeholder'] = _txt('fd.name.given');
+      $args['value'] = !empty($this->request->params['named']['Search.givenName']) ? $this->request->params['named']['Search.givenName'] : '';
+      print $this->Form->input('Search.givenName',$args);
+      ?>
+      <?php
+      $args = array();
+      $args['label'] = _txt('fd.name.family');
+      $args['placeholder'] = _txt('fd.name.family');
+      $args['value'] = !empty($this->request->params['named']['Search.familyName']) ? $this->request->params['named']['Search.familyName'] : '';
+      print $this->Form->input('Search.familyName',$args);
+      ?>
+      <?php
+      $args = array();
+      $args['label'] = _txt('fd.email_address.mail');
+      $args['placeholder'] = _txt('fd.email_address.mail');
+      $args['value'] = !empty($this->request->params['named']['Search.mail']) ? $this->request->params['named']['Search.mail'] : '';
+      print $this->Form->input('Search.mail', $args);
+      ?>
+      <?php
+      $args = array();
+      $args['label'] = _txt('fd.identifier.identifier');
+      $args['placeholder'] = _txt('fd.identifier.identifier');
+      $args['value'] = !empty($this->request->params['named']['Search.identifier']) ? $this->request->params['named']['Search.identifier'] : '';
+      print $this->Form->input('Search.identifier', $args);
+      ?>
+      </div>
+
+      <div class="search-field-subgroup">
+      <?php
+      $args = array();
+      $args['label'] = _txt('fd.o');
+      $args['placeholder'] = _txt('fd.o');
+      $args['value'] = !empty($this->request->params['named']['Search.organization']) ? $this->request->params['named']['Search.organization'] : '';
+      print $this->Form->input('Search.organization',$args);
+      ?>
+      <?php
+      if(!empty($vv_org_id_sources)) {
+        $formParams = array(
+          'options' => $vv_org_id_sources,
+          'type'    => 'select',
+          'empty'   => _txt('op.select.empty-a', array(_txt('ct.org_identity_sources.1'))),
+          'label'   => _txt('ct.org_identity_sources.1'),
+          'value'   => (!empty($this->request->params['named']['Search.orgIdentitySource'])
+                        ? $this->request->params['named']['Search.orgIdentitySource']
+                        : ''));
+        print $this->Form->input('Search.orgIdentitySource', $formParams);
+      }
+      ?>
+      <?php
+      $args = array();
+      $args['label'] = _txt('fd.ou');
+      $args['placeholder'] = _txt('fd.ou');
+      $args['value'] = !empty($this->request->params['named']['Search.department']) ? $this->request->params['named']['Search.department'] : '';
+      print $this->Form->input('Search.department',$args);
+      ?>
+      <?php
+      $args = array();
+      $args['label'] = _txt('fd.title');
+      $args['placeholder'] = _txt('fd.title');
+      $args['value'] = !empty($this->request->params['named']['Search.title']) ? $this->request->params['named']['Search.title'] : '';
+      print $this->Form->input('Search.title',$args);
+      ?>
+      <?php
+      $searchOptions = $cm_texts[ $cm_lang ]['en.org_identity.affiliation'];
+      $formParams = array('options' => $searchOptions,
+        'type'    => 'select',
+        'empty'   => _txt('fd.affiliation') . ' ' . _txt('op.select.empty'),
+        'label'   => _txt('fd.affiliation'),
+        'value'   => (!empty($this->request->params['named']['Search.affiliation']) ? $this->request->params['named']['Search.affiliation'] : ''));
+      print $this->Form->input('Search.affiliation', $formParams);
+      ?>
+      </div>
+
+      <div class="topSearchSubmit">
+        <?php
+        $args = array();
+        //$args['type'] = 'button';
+
+        // search button (submit)
+        $args['aria-label'] = _txt('op.search');
+        $args['class'] = 'submit-button spin mdl-button mdl-js-button mdl-button--raised mdl-button--colored mdl-js-ripple-effect';
+        print $this->Form->submit(_txt('op.search'),$args);
+
+        // clear button
+        $args['class'] = 'clear-button spin mdl-button';
+        $args['aria-label'] = _txt('op.clear.all');
+        $args['onclick'] = 'clearSearch(this.form)';
+        print $this->Form->button(_txt('op.clear.all'),$args);
+        ?>
+      </div>
+    </div>
   </fieldset>
   <?php print $this->Form->end();?>
 </div>

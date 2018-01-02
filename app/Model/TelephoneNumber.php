@@ -40,6 +40,8 @@ class TelephoneNumber extends AppModel {
   
   // Association rules from this model to other models
   public $belongsTo = array(
+    // An email address may be attached to a CO Department
+    "CoDepartment",
     // A telephone number may be attached to a CO Person Role
     "CoPersonRole",
     // A telephone number may be attached to an Org Identity
@@ -101,6 +103,13 @@ class TelephoneNumber extends AppModel {
         'rule' => array('validateInput')
       )
     ),
+    'description' => array(
+      'content' => array(
+        'rule' => array('validateInput'),
+        'required' => false,
+        'allowEmpty' => true
+      )
+    ),
     'type' => array(
       'content' => array(
         'rule' => array('validateExtendedType',
@@ -127,6 +136,36 @@ class TelephoneNumber extends AppModel {
         'required' => false,
         'allowEmpty' => true
       )
+    ),
+    'co_department_id' => array(
+      'content' => array(
+        'rule' => 'numeric',
+        'required' => false,
+        'allowEmpty' => true
+      )
     )
   );
+  
+  /**
+   * Perform a keyword search.
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Integer $coId CO ID to constrain search to
+   * @param  String  $q    String to search for
+   * @return Array Array of search results, as from find('all)
+   */
+  
+  public function search($coId, $q) {
+    $args = array();
+    $args['joins'][1]['table'] = 'co_people';
+    $args['joins'][1]['alias'] = 'CoPerson';
+    $args['joins'][1]['type'] = 'INNER';
+    $args['joins'][1]['conditions'][0] = 'CoPerson.id=CoPersonRole.co_person_id';
+    $args['conditions']['TelephoneNumber.number'] = $q;
+    $args['conditions']['CoPerson.co_id'] = $coId;
+    $args['order'] = array('TelephoneNumber.number');
+    $args['contain']['CoPersonRole']['CoPerson'] = 'PrimaryName';
+    
+    return $this->find('all', $args);
+  }
 }

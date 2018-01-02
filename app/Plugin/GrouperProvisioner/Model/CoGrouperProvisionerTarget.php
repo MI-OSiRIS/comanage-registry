@@ -486,6 +486,11 @@ FROM
 
   public function provisionCoGroupReprovisionRequested($coProvisioningTargetData, $coGroup) {
     $provisionerGroup = $this->CoGrouperProvisionerGroup->findProvisionerGroup($coProvisioningTargetData, $coGroup);
+
+    if(!isset($provisionerGroup)) {
+      $provisionerGroup = $this->CoGrouperProvisionerGroup->addProvisionerGroup($coProvisioningTargetData, $coGroup);
+    } 
+
     $groupName = $this->CoGrouperProvisionerGroup->getGrouperGroupName($provisionerGroup);
     $groupDescription = $this->CoGrouperProvisionerGroup->getGrouperGroupDescription($provisionerGroup);
     $groupDisplayExtension = $this->CoGrouperProvisionerGroup->getGroupDisplayExtension($provisionerGroup);
@@ -643,6 +648,8 @@ FROM
           $groupDisplayExtension = $this->CoGrouperProvisionerGroup
                                         ->getGroupDisplayExtension($provisionerGroup);
           $registryGroups[] = $groupName;
+
+          // Synchronize if necessary.
           if(!(in_array($groupName, $grouperGroups))){
             try {
               if(!$grouper->groupExists($groupName)) {
@@ -656,11 +663,15 @@ FROM
               }
               
               $grouper->addManyMember($groupName, array($subject));
+
             } catch (GrouperRestClientException $e) {
               // Log the failure but go onto the next group.
               $this->log("GrouperProvisioner unable to add subject $subject to group $groupName");
             }
           }
+
+          // Update provisioner group table to record new modified time.
+          $this->CoGrouperProvisionerGroup->updateProvisionerGroup($provisionerGroup);     
         }
       }
     }
@@ -850,28 +861,34 @@ FROM
    * Determine the provisioning status of this target.
    *
    * @since  COmanage Registry v0.8.3
-   * @param  integer $coProvisioningTargetId CO provisioning target ID
-   * @param  integer $coPersonId CoPerson ID (null if CoGroup ID is specified)
-   * @param  integer $coGroupId CoGroup ID (null if CoPerson ID is specified)
-   * @return array ProvisioningStatusEnum, Timestamp of last update in epoch seconds, Comment
+   * @param  Integer $coProvisioningTargetId CO Provisioning Target ID
+   * @param  Model   $Model                  Model being queried for status (eg: CoPerson, CoGroup, CoEmailList)
+   * @param  Integer $id                     $Model ID to check status for
+   * @return Array ProvisioningStatusEnum, Timestamp of last update in epoch seconds, Comment
+   * @throws InvalidArgumentException If $id not found
+   * @throws RuntimeException For other errors
    */
   
-  public function status($coProvisioningTargetId, $coPersonId, $coGroupId=null) {
+  public function status($coProvisioningTargetId, $Model, $id) {
     $ret = array(
       'status'    => ProvisioningStatusEnum::Unknown,
       'timestamp' => null,
       'comment'   => ""
     );
 
-    if(!empty($coPersonId)) {
+    if($Model->name == 'CoPerson') {
       // For CO people we just return unknown.
       $ret['comment'] = 'see status for individual groups';
       return $ret;
     }
-
+    
+    if($Model->name != 'CoGroup') {
+      throw new InvalidArgumentException(_txt('er.notimpl'));
+    }
+    
     $args = array();
     $args['conditions']['CoGrouperProvisionerTarget.co_provisioning_target_id'] = $coProvisioningTargetId;
-    $args['conditions']['CoGrouperProvisionerGroup.co_group_id'] = $coGroupId;
+    $args['conditions']['CoGrouperProvisionerGroup.co_group_id'] = $id;
 
     $group = $this->CoGrouperProvisionerGroup->find('first', $args);
 
@@ -880,7 +897,7 @@ FROM
       $ret['timestamp'] = $group['CoGrouperProvisionerGroup']['modified'];
     }
 
-   return $ret;
+    return $ret;
   }
 
   /**

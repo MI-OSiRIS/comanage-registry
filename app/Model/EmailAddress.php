@@ -40,6 +40,8 @@ class EmailAddress extends AppModel {
   
   // Association rules from this model to other models
   public $belongsTo = array(
+    // An email address may be attached to a CO Department
+    "CoDepartment",
     // An email address may be attached to a CO Person
     "CoPerson",
     // An email address may be attached to an Org Identity
@@ -52,11 +54,7 @@ class EmailAddress extends AppModel {
   );
   
   public $hasOne = array(
-    "CoInvite",
-    "PipelineEmailAddress" => array(
-      'className' => 'EmailAddress',
-      'foreignKey' => 'source_email_address_id'
-    )
+    "CoInvite"
   );
   
   // Default display field for cake generated views
@@ -81,12 +79,20 @@ class EmailAddress extends AppModel {
                         array('filter' => FILTER_SANITIZE_EMAIL))
       )
     ),
+    'description' => array(
+      'content' => array(
+        'rule' => array('validateInput'),
+        'required' => false,
+        'allowEmpty' => true
+      )
+    ),
     'type' => array(
       'content' => array(
         'rule' => array('validateExtendedType',
                         array('attribute' => 'EmailAddress.type',
                               'default' => array(EmailAddressEnum::Delivery,
                                                  EmailAddressEnum::Forwarding,
+                                                 EmailAddressEnum::MailingList,
                                                  EmailAddressEnum::Official,
                                                  EmailAddressEnum::Personal,
                                                  EmailAddressEnum::Preferred,
@@ -108,6 +114,13 @@ class EmailAddress extends AppModel {
       )
     ),
     'org_identity_id' => array(
+      'content' => array(
+        'rule' => 'numeric',
+        'required' => false,
+        'allowEmpty' => true
+      )
+    ),
+    'co_department_id' => array(
       'content' => array(
         'rule' => 'numeric',
         'required' => false,
@@ -244,6 +257,25 @@ class EmailAddress extends AppModel {
     }
     
     return true;
+  }
+  
+  /**
+   * Perform a keyword search.
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Integer $coId CO ID to constrain search to
+   * @param  String  $q    String to search for
+   * @return Array Array of search results, as from find('all)
+   */
+  
+  public function search($coId, $q) {
+    $args = array();
+    $args['conditions']['LOWER(EmailAddress.mail)'] = strtolower($q);
+    $args['conditions']['CoPerson.co_id'] = $coId;
+    $args['order'] = array('EmailAddress.mail');
+    $args['contain']['CoPerson'] = 'PrimaryName';
+    
+    return $this->find('all', $args);
   }
   
   /**

@@ -82,7 +82,8 @@ class CoPetition extends AppModel {
     // A CO Petition has zero or more CO Petition Attributes
     "CoPetitionAttribute" => array('dependent' => true),
     // A CO Petition has zero or more CO Petition History Records
-    "CoPetitionHistoryRecord" => array('dependent' => true)
+    "CoPetitionHistoryRecord" => array('dependent' => true),
+    "OrgIdentitySourceRecord"
   );
   
   // Default display field for cake generated views
@@ -995,11 +996,12 @@ class CoPetition extends AppModel {
    * @param  Integer Enrollment Flow ID
    * @param  Integer CO ID to attach the petition to
    * @param  Integer CO Person ID of the petitioner
+   * @param  String  URL to redirect to after enrollment, decoded
    * @return Integer ID of newly created Petition
    * @throws RunTimeException
    */
   
-  public function initialize($enrollmentFlowID, $coId, $petitionerId=null) {
+  public function initialize($enrollmentFlowID, $coId, $petitionerId=null, $returnUrl=null) {
     $this->CoEnrollmentFlow->id = $enrollmentFlowID;
     $efName = $this->CoEnrollmentFlow->field('name');
     
@@ -1007,6 +1009,7 @@ class CoPetition extends AppModel {
     $coPetitionData['CoPetition']['co_enrollment_flow_id'] = $enrollmentFlowID;
     $coPetitionData['CoPetition']['co_id'] = $coId;
     $coPetitionData['CoPetition']['status'] = PetitionStatusEnum::Created;
+    $coPetitionData['CoPetition']['return_url'] = $returnUrl;
     
     // If we don't have a petitioner, generate a token for use in linking pages
     
@@ -1044,6 +1047,7 @@ class CoPetition extends AppModel {
    * Link an existing CO Person to a CO Petition.
    *
    * @since  COmanage Registry v0.9.4
+   * @param  Integer Enrollment Flow ID
    * @param  Integer CO Petition ID
    * @param  Integer CO Person ID to link
    * @param  Integer CO Person ID of the petitioner
@@ -1051,12 +1055,15 @@ class CoPetition extends AppModel {
    * @throws RunTimeException
    */
   
-  public function linkCoPerson($coPetitionId, $coPersonId, $petitionerId) {
+  public function linkCoPerson($enrollmentFlowID, $coPetitionId, $coPersonId, $petitionerId) {
     $this->id = $coPetitionId;
     
     if(!$this->saveField('enrollee_co_person_id', $coPersonId)) {
       throw new RuntimeException(_txt('er.db.save'));
     }
+    
+    // Pull the enrollment flow name
+    $efName = $this->CoEnrollmentFlow->field('name', array('CoEnrollmentFlow.id' => $enrollmentFlowID));
     
     // Create a Petition History Record
     
@@ -1065,6 +1072,16 @@ class CoPetition extends AppModel {
                                              $petitionerId,
                                              PetitionActionEnum::IdentityLinked,
                                              _txt('rs.pt.link.cop', array($coPersonId)));
+      
+      // Also create a regular History Record to make it easier to see petitions
+      // for existing records
+      
+      $this->EnrolleeCoPerson->HistoryRecord->record($coPersonId,
+                                                     null,
+                                                     null,
+                                                     $petitionerId,
+                                                     ActionEnum::CoPetitionUpdated,
+                                                     _txt('rs.pt.link', array($efName)));
     }
     catch(Exception $e) {
       throw new RuntimeException(_txt('er.db.save'));
@@ -1078,6 +1095,7 @@ class CoPetition extends AppModel {
    * Link an existing Org Identity to a CO Petition.
    *
    * @since  COmanage Registry v2.0.0
+   * @param  Integer Enrollment Flow ID
    * @param  Integer CO Petition ID
    * @param  Integer Org Identity ID to link
    * @param  Integer CO Person ID of the petitioner
@@ -1085,12 +1103,15 @@ class CoPetition extends AppModel {
    * @throws RunTimeException
    */
   
-  public function linkOrgIdentity($coPetitionId, $orgIdentityId, $petitionerId) {
+  public function linkOrgIdentity($enrollmentFlowID, $coPetitionId, $orgIdentityId, $petitionerId) {
     $this->id = $coPetitionId;
     
     if(!$this->saveField('enrollee_org_identity_id', $orgIdentityId)) {
       throw new RuntimeException(_txt('er.db.save'));
     }
+    
+    // Pull the enrollment flow name
+    $efName = $this->CoEnrollmentFlow->field('name', array('CoEnrollmentFlow.id' => $enrollmentFlowID));
     
     // Create a Petition History Record
     
@@ -1099,6 +1120,16 @@ class CoPetition extends AppModel {
                                              $petitionerId,
                                              PetitionActionEnum::IdentityLinked,
                                              _txt('rs.pt.link.org', array($orgIdentityId)));
+      
+      // Also create a regular History Record to make it easier to see petitions
+      // for existing records
+      
+      $this->EnrolleeCoPerson->HistoryRecord->record(null,
+                                                     null,
+                                                     $orgIdentityId,
+                                                     $petitionerId,
+                                                     ActionEnum::CoPetitionUpdated,
+                                                     _txt('rs.pt.link', array($efName)));
     }
     catch(Exception $e) {
       throw new RuntimeException(_txt('er.db.save'));
@@ -1872,6 +1903,56 @@ class CoPetition extends AppModel {
           $dbc->rollback();
           throw new RuntimeException(_txt('er.db.save-a', array('CoTermsAndConditions')));
         }
+      }
+    }
+
+    if($createLink && $coPersonId) {
+      // If we created a new CO Person, check to see if we also created any
+      // Org Identities via Org Identity (Enrollment) Sources. If so, create
+      // links to those as well.
+      
+      $args = array();
+      $args['conditions']['OrgIdentitySourceRecord.co_petition_id'] = $id;
+      $args['fields'] = array('id', 'org_identity_id');
+      $args['contain'] = false;
+      
+      $pOrgIds = $this->EnrolleeOrgIdentity
+                      ->OrgIdentitySourceRecord
+                      ->find('list', $args);
+      
+      foreach($pOrgIds as $pid => $porgid) {
+        // Create a CO Org Identity Link, if we haven't already
+        
+        if($porgid == $orgIdentityId) {
+          continue;
+        }
+        
+        $coOrgLink = array();
+        $coOrgLink['CoOrgIdentityLink']['org_identity_id'] = $porgid;
+        $coOrgLink['CoOrgIdentityLink']['co_person_id'] = $coPersonId;
+        
+        // CoOrgIdentityLink is not currently provisioner-enabled, but we'll disable
+        // provisioning just in case that changes in the future.
+        
+        $this->EnrolleeCoPerson->CoOrgIdentityLink->clear();
+        
+        if($this->EnrolleeCoPerson->CoOrgIdentityLink->save($coOrgLink, array("provision" => false))) {
+          // Create a history record
+          try {
+            $this->EnrolleeCoPerson->HistoryRecord->record($coPersonId,
+                                                           $coPersonRoleId,
+                                                           $porgid,
+                                                           $petitionerId,
+                                                           ActionEnum::CoPersonOrgIdLinked);
+          }
+          catch(Exception $e) {
+            $dbc->rollback();
+            throw new RuntimeException($e->getMessage());
+          }
+        } else {
+          $dbc->rollback();
+          throw new RuntimeException(_txt('er.db.save-a', array('CoOrgIdentityLink')));
+        }        
       }
     }
     

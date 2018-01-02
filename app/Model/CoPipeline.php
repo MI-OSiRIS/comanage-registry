@@ -175,7 +175,8 @@ class CoPipeline extends AppModel {
       'TelephoneNumber',
       'OrgIdentitySourceRecord',
       // These will pull associated models that were created via the Pipeline
-      'PipelineCoPersonRole'
+      'PipelineCoPersonRole',
+      'Url'
     );
     
     $orgIdentity = $this->Co->OrgIdentity->find('first', $args);
@@ -554,6 +555,9 @@ class CoPipeline extends AppModel {
       
       $this->Co->CoPerson->Name->clear();
       
+      // We need to inject the CO so extended types can be saved
+      $this->Co->CoPerson->Name->validate['type']['content']['rule'][1]['coid'] = $orgIdentity['OrgIdentity']['co_id'];
+      
       if(!$this->Co->CoPerson->Name->save($name, array("provision" => false))) {
         throw new RuntimeException(_txt('er.db.save-a', array('Name')));
       }
@@ -657,6 +661,9 @@ class CoPipeline extends AppModel {
         
         $this->Co->CoPerson->CoPersonRole->clear();
         
+        // We need to inject the CO so extended types can be saved
+        $this->Co->CoPerson->CoPersonRole->validate['affiliation']['content']['rule'][1]['coid'] = $orgIdentity['OrgIdentity']['co_id'];
+        
         if(!$this->Co->CoPerson->CoPersonRole->save($newCoPersonRole, array("provision" => false))) {
           throw new RuntimeException(_txt('er.db.save-a', array('CoPersonRole')));
         }
@@ -681,11 +688,12 @@ class CoPipeline extends AppModel {
     
     // Supported associated models and their parent relation
     $models = array(
-      'Address'      => 'co_person_role_id',
-      'EmailAddress' => 'co_person_id',
-      'Identifier'   => 'co_person_id',
-      'Name'         => 'co_person_id',
-      'TelephoneNumber' => 'co_person_role_id'
+      'Address'         => 'co_person_role_id',
+      'EmailAddress'    => 'co_person_id',
+      'Identifier'      => 'co_person_id',
+      'Name'            => 'co_person_id',
+      'TelephoneNumber' => 'co_person_role_id',
+      'Url'             => 'co_person_id'
     );
     
     foreach($models as $m => $pkey) {
@@ -859,6 +867,9 @@ class CoPipeline extends AppModel {
       foreach($newRecords as $srcid => $nr) {
         $model->clear();
         
+        // We need to inject the CO so extended types can be saved
+        $model->validate['type']['content']['rule'][1]['coid'] = $orgIdentity['OrgIdentity']['co_id'];
+        
         // For identifiers and email addresses, we want to skip availability checking
         // since we might be writing multiple versions of the same attribute (from
         // different org identity sources). For email addresses, we also want to honor
@@ -867,7 +878,9 @@ class CoPipeline extends AppModel {
         if(!$model->save($nr, array("provision" => false,
                                     "skipAvailability" => true,
                                     "trustVerified" => true))) {
-          throw new RuntimeException(_txt('er.db.save-a', array($m)));
+          
+          throw new RuntimeException(_txt('er.db.save-a',
+                                          array($m . " (" . join(',', array_keys($model->validationErrors)). ")")));
         }
         
         $doProvision = true;

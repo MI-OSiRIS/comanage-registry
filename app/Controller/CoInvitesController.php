@@ -439,6 +439,14 @@ class CoInvitesController extends AppController {
         }
       }
       
+      // Record that the invitee clicked the link
+      $this->CoInvite->CoPerson->HistoryRecord->record($invitee['CoPerson']['id'],
+                                                       null,
+                                                       null,
+                                                       // For now we just assume it's the CO Person?
+                                                       $invitee['CoPerson']['id'],
+                                                       ActionEnum::InvitationViewed);
+      
       // We also want to pull the enrollment flow and petition attributes, if appropriate
       
       if(isset($invite['CoPetition']['id'])) {
@@ -454,6 +462,11 @@ class CoInvitesController extends AppController {
         $args['contain'][] = 'CoEnrollmentAttribute';
         
         $enrollmentFlow = $this->CoInvite->CoPetition->CoEnrollmentFlow->find('first', $args);
+        
+        // Record the view to the petition history as well
+        $this->CoInvite->CoPetition->CoPetitionHistoryRecord->record($invite['CoPetition']['id'],
+                                                                     $invitee['CoPerson']['id'],
+                                                                     PetitionActionEnum::InviteViewed);
         
         // Before we do anything else, check the verification mode. If it's Automatic,
         // we simply redirect into confirm or authconfirm as appropriate. Otherwise,
@@ -473,6 +486,31 @@ class CoInvitesController extends AppController {
         // Not in Automatic mode, so prep for the view to render
         
         $this->set('co_enrollment_flow', $enrollmentFlow);
+        
+        $plugins = $this->loadAvailablePlugins('confirmer', 'simple');
+        
+        // Make sure $plugins is in alphabetical order so we have some sort of order.
+        sort($plugins);
+        
+        if(!empty($plugins)) {
+          // Walk through the identified plugins until one decides it wants to handle the request.
+          
+          foreach($plugins as $plugin) {
+            if($this->$plugin->willHandle((!empty($invitee['Co']['id']) ? $invitee['Co']['id'] : null),
+                                   (!empty($invite['CoInvite']['id']) ? $invite['CoInvite'] : null),
+                                   (!empty($invite['CoPetition']['id']) ? $invite['CoPetition'] : null))) {
+              // Issue a redirect into the plugin
+              
+              $target = array();
+              $target['plugin'] = Inflector::underscore($plugin);
+              $target['controller'] = Inflector::tableize($plugin);
+              $target['action'] = 'reply';
+              $target[] = $inviteid;
+              
+              $this->redirect($target);
+            }
+          }
+        }
         
         $enrollmentAttributes = $this->CoInvite
                                      ->CoPetition

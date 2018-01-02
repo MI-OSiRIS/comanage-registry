@@ -40,6 +40,8 @@ class Address extends AppModel {
   
   // Association rules from this model to other models
   public $belongsTo = array(
+    // An email address may be attached to a CO Department
+    "CoDepartment",
     // An address may be attached to a CO person role
     "CoPersonRole",
     // An address may be attached to an Org identity
@@ -118,6 +120,13 @@ class Address extends AppModel {
         'rule' => array('validateInput')
       )
     ),
+    'description' => array(
+      'content' => array(
+        'rule' => array('validateInput'),
+        'required' => false,
+        'allowEmpty' => true
+      )
+    ),
     'type' => array(
       'content' => array(
         'rule' => array('validateExtendedType',
@@ -145,6 +154,13 @@ class Address extends AppModel {
       )
     ),
     'org_identity_id' => array(
+      'content' => array(
+        'rule' => 'numeric',
+        'required' => false,
+        'allowEmpty' => true
+      )
+    ),
+    'co_department_id' => array(
       'content' => array(
         'rule' => 'numeric',
         'required' => false,
@@ -191,6 +207,41 @@ class Address extends AppModel {
     }
     
     return true;
+  }
+  
+  /**
+   * Perform a keyword search.
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Integer $coId CO ID to constrain search to
+   * @param  String  $q    String to search for
+   * @return Array Array of search results, as from find('all)
+   */
+  
+  public function search($coId, $q) {
+    // Tokenize $q on spaces
+    $tokens = explode(" ", $q);
+    
+    $args = array();
+    $args['joins'][1]['table'] = 'co_people';
+    $args['joins'][1]['alias'] = 'CoPerson';
+    $args['joins'][1]['type'] = 'INNER';
+    $args['joins'][1]['conditions'][0] = 'CoPerson.id=CoPersonRole.co_person_id';
+    
+    foreach($tokens as $t) {
+      $args['conditions']['AND'][] = array(
+        'OR' => array(
+          'LOWER(Address.street) LIKE' => '%' . strtolower($t) . '%'
+        )
+      );
+    }
+    
+    $args['conditions']['LOWER(Address.street) LIKE'] = '%' . strtolower($q) . '%';
+    $args['conditions']['CoPerson.co_id'] = $coId;
+    $args['order'] = array('Address.street');
+    $args['contain']['CoPersonRole']['CoPerson'] = 'PrimaryName';
+    
+    return $this->find('all', $args);
   }
   
   /**

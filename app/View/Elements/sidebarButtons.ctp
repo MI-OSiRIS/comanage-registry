@@ -26,11 +26,15 @@
  * @license       Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
  */
 ?>
-<div class="sidebar">
+<div class="sidebar-content">
   <ul id="menu">
     <?php
     foreach($sidebarButtons as $button => $link){
-      print '<li>';
+      if(gettype($link['url']) == 'string') {
+        print '<li>'; // don't show spinner for dialog boxes
+      } else {
+        print '<li class="spin">'; // 'url' is otherwise an array
+      }
       // Clean data
       $icontitle = '<span class="ui-icon ui-icon-'
         . $link['icon']

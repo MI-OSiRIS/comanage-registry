@@ -49,11 +49,9 @@
     maybe_enable_submit();
   }
 </script>
-<div class="ui-state-highlight ui-corner-all co-info-topbox">
-  <p>
-    <span class="ui-icon ui-icon-info co-info"></span>
-    <strong><?php print _txt('op.relink.confirm'); ?></strong>
-  </p>
+<div class="co-info-topbox">
+  <em class="material-icons">info</em>
+  <?php print _txt('op.relink.confirm'); ?>
 </div>
 <div class="innerContent">
   <ul>

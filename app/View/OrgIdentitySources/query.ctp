@@ -64,131 +64,139 @@
   
   $this->Html->addCrumb(_txt('ct.org_identity_sources.pl'), $args);
   $this->Html->addCrumb($title_for_layout);
+  
+  $options = array(
+    'url' => array(
+      'action' => 'query',
+      $vv_org_identity_source['id']
+    )
+  );
+  
+  print $this->Form->create('OrgIdentitySource', $options);
+  
+  if(!empty($this->request->params['named']['copetitionid'])) {
+    print $this->Form->hidden('copetitionid', array('default' => filter_var($this->request->params['named']['copetitionid'],FILTER_SANITIZE_SPECIAL_CHARS)));
+  }
+  
+  $index = 1;
 ?>
-<?php if(!empty($vv_search_results)): ?>
-<p><?php print _txt('rs.found.cnt', array(count($vv_search_results))); ?></p>
-<?php endif; ?>
 
-<div id="sourceSearch" class="topSearch">
-  <p><?php print _txt('op.search');?>:</p>
-  <fieldset>
-    <?php
-      $options = array(
-        'url' => array(
-          'action' => 'query',
-          $vv_org_identity_source['id']
-        )
-      );
+<ul id="<?php print $this->action; ?>_ois_query" class="fields form-list">
+<?php if(empty($vv_search_attrs)): ?>
+    <div class="co-info-topbox">
+      <em class="material-icons">info</em>
+      <?php print _txt('in.ois.nosearch'); ?>
+    </div>
+<?php else: // vv_search_attrs ?>
+<?php
+    foreach($vv_search_attrs as $field => $label) {
+      $args = array();
+      $args['label'] = false;
+      $args['placeholder'] = $label;
+      $args['tabindex'] = $index++;
+      $args['value'] = (!empty($this->request->params['named']['Search.' . $field])
+                        ? filter_var($this->request->params['named']['Search.' . $field],FILTER_SANITIZE_SPECIAL_CHARS) : '');
       
-      print $this->Form->create('OrgIdentitySource', $options);
-      
-      if(!empty($this->request->params['named']['copetitionid'])) {
-        print $this->Form->hidden('copetitionid', array('default' => filter_var($this->request->params['named']['copetitionid'],FILTER_SANITIZE_SPECIAL_CHARS)));
-      }
-      
-      $index = 1;
-      
-      foreach($vv_search_attrs as $field => $label) {
-        $args = array();
-        $args['label'] = $label;
-        $args['placeholder'] = $label;
-        $args['tabindex'] = $index++;
-        $args['value'] = (!empty($this->request->params['named']['Search.' . $field])
-                          ? filter_var($this->request->params['named']['Search.' . $field],FILTER_SANITIZE_SPECIAL_CHARS) : '');
-        
-        print $this->Form->input('Search.' . $field, $args);
-      }
-    ?>
-    <div class="topSearchSubmit">
+      print '
+    <li>
+      <div class="field-name">
+        <div class="field-title">' . filter_var($label,FILTER_SANITIZE_SPECIAL_CHARS) . '</div>
+      </div>
+      <div class="field-info">'. $this->Form->input('Search.' . $field, $args) . '</div>
+    </li>';
+    }
+?>
+  <li class="fields-submit">
+    <div class="field-name">
+    </div>
+    <div class="field-info">
       <?php
-        $args = array();
-        $args['type'] = 'button';
-        $args['class'] = 'clearButton spin';
-        $args['onclick'] = 'clearSearch(this.form)';
-        $args['tabindex'] = $index+1;
-        print $this->Form->button(_txt('op.clear.all'),$args);
-        
         $args = array();
         $args['tabindex'] = $index;
         print $this->Form->submit(_txt('op.search'),$args);
       ?>
     </div>
-    <?php print $this->Form->end();?>
-  </fieldset>
-</div>
+  </li>
+</ul>
+<?php endif; // vv_search_attrs ?>
+<?php print $this->Form->end();?>
 
 <?php if(!empty($vv_search_results)): ?>
-<table id="org_identity_source_results" class="ui-widget">
-  <thead>
-    <tr class="ui-widget-header">
-      <th><?php print _txt('fd.name'); ?></th>
-      <th><?php print _txt('fd.email_address.mail'); ?></th>
-      <th><?php print _txt('fd.actions'); ?></th>
-    </tr>
-  </thead>
-  
-  <tbody>
-    <?php $i = 0; ?>
-    <?php foreach($vv_search_results as $k => $o): ?>
-    <tr class="line<?php print ($i % 2)+1; ?>">
-      <td>
-        <?php
-          $retrieveUrl = array(
-            'controller' => 'org_identity_sources',
-            'action' => 'retrieve',
-            $vv_org_identity_source['id'],
-            'key' => $k
-          );
-          
-          if(!empty($this->request->params['named']['copetitionid'])) {
-            $retrieveUrl['copetitionid'] = filter_var($this->request->params['named']['copetitionid'],FILTER_SANITIZE_SPECIAL_CHARS);
-          }
-          
-          // We could walk the set of names to look for primary, but it's easier
-          // to just pick the first (and that will be sufficient in almost all cases).
-          print $this->Html->link(
-            generateCn($o['Name'][0]),
-            $retrieveUrl
-          );
-        ?>
-      </td>
-      <td>
-        <?php
-          if(!empty($o['EmailAddress'][0]['mail'])) {
-            print $o['EmailAddress'][0]['mail'];
-          }
-        ?>
-      </td>
-      <td>
-        <?php
-          if($permissions['retrieve']) {
+<p><b></b><?php print _txt('rs.found.cnt', array(count($vv_search_results))); ?></b></p>
+
+<div class="table-container">
+  <table id="org_identity_source_results">
+    <thead>
+      <tr>
+        <th><?php print _txt('fd.name'); ?></th>
+        <th><?php print _txt('fd.email_address.mail'); ?></th>
+        <th><?php print _txt('fd.actions'); ?></th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <?php $i = 0; ?>
+      <?php foreach($vv_search_results as $k => $o): ?>
+      <tr class="line<?php print ($i % 2)+1; ?>">
+        <td>
+          <?php
+            $retrieveUrl = array(
+              'controller' => 'org_identity_sources',
+              'action' => 'retrieve',
+              $vv_org_identity_source['id'],
+              'key' => $k
+            );
+
+            if(!empty($this->request->params['named']['copetitionid'])) {
+              $retrieveUrl['copetitionid'] = filter_var($this->request->params['named']['copetitionid'],FILTER_SANITIZE_SPECIAL_CHARS);
+            }
+
+            // We could walk the set of names to look for primary, but it's easier
+            // to just pick the first (and that will be sufficient in almost all cases).
             print $this->Html->link(
-              _txt('op.view'),
-              $retrieveUrl,
-              array('class' => 'viewbutton')
-            ). "\n";
-          }
-        ?>
-      </td>
-    </tr>
-    <?php $i++; ?>
-    <?php endforeach; // $vv_search_results ?>
-  </tbody>
-  
-  <tfoot>
-    <tr class="ui-widget-header">
-      <th colspan="3">
-        <?php /*print $this->element("pagination");*/ ?>
-      </th>
-    </tr>
-  </tfoot>
-</table>
-<?php elseif(!empty($vv_search_query)): ?>
-  <tbody>
-    <tr>
-      <td>
-        <?php print _txt('rs.search.none'); ?>
-      </td>
-    </tr>
-  </tbody>
-<?php endif; // vv_search_results/query ?>
+              generateCn($o['Name'][0]),
+              $retrieveUrl
+            );
+          ?>
+        </td>
+        <td>
+          <?php
+            if(!empty($o['EmailAddress'][0]['mail'])) {
+              print $o['EmailAddress'][0]['mail'];
+            }
+          ?>
+        </td>
+        <td>
+          <?php
+            if($permissions['retrieve']) {
+              print $this->Html->link(
+                _txt('op.view'),
+                $retrieveUrl,
+                array('class' => 'viewbutton')
+              ). "\n";
+            }
+          ?>
+        </td>
+      </tr>
+      <?php $i++; ?>
+      <?php endforeach; // $vv_search_results ?>
+    </tbody>
+
+    <tfoot>
+      <tr>
+        <th colspan="3">
+          <?php /*print $this->element("pagination");*/ ?>
+        </th>
+      </tr>
+    </tfoot>
+    <?php elseif(!empty($vv_search_query)): ?>
+      <tbody>
+        <tr>
+          <td>
+            <?php print _txt('rs.search.none'); ?>
+          </td>
+        </tr>
+      </tbody>
+    <?php endif; // vv_search_results/query ?>
+  </table>
+</div>

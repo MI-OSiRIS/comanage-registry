@@ -36,35 +36,10 @@
   if(!$e && !$permissions['view'])
     return(false);
 
-  $idForBreadcrumbs = '';
-  $idType = null;
-  
-  // Migrate the target person from a named argument to a form field
-  if($this->action == 'add' && isset($this->request->params['named']['copersonid'])) {
-    $idForBreadcrumbs = filter_var($this->request->params['named']['copersonid'],FILTER_SANITIZE_SPECIAL_CHARS);
-    $idType = 'person';
-  } elseif(isset($this->request->data['EmailAddress']['co_person_id'])) {
-    $idForBreadcrumbs = filter_var($this->request->data['EmailAddress']['co_person_id'],FILTER_SANITIZE_SPECIAL_CHARS);
-    $idType = 'person';
-  } elseif(!empty($email_addresses[0]['EmailAddress']['co_person_id'])) {
-    $idForBreadcrumbs = filter_var($email_addresses[0]['EmailAddress']['co_person_id'],FILTER_SANITIZE_SPECIAL_CHARS);
-    $idType = 'person';
-  } elseif($this->action == 'add' && isset($this->request->params['named']['orgidentityid'])) {
-    $idForBreadcrumbs = filter_var($this->request->params['named']['orgidentityid'],FILTER_SANITIZE_SPECIAL_CHARS);
-    $idType = 'org';
-  } elseif(isset($this->request->data['EmailAddress']['org_identity_id'])) {
-    $idForBreadcrumbs = filter_var($this->request->data['EmailAddress']['org_identity_id'],FILTER_SANITIZE_SPECIAL_CHARS);
-    $idType = 'org';
-  } elseif(!empty($email_addresses[0]['EmailAddress']['org_identity_id'])) {
-    $idForBreadcrumbs = filter_var($email_addresses[0]['EmailAddress']['org_identity_id'],FILTER_SANITIZE_SPECIAL_CHARS);
-    $idType = 'org';
-  }
-
-  if($idType == 'org') {
-    print $this->Form->hidden('org_identity_id', array('default' => $idForBreadcrumbs)) . "\n";
-  } elseif($idType == 'person') {
-    print $this->Form->hidden('co_person_id', array('default' => $idForBreadcrumbs)) . "\n";
-  }
+  // We can emit all attributes because the ones we don't want should be null
+  print $this->Form->hidden('co_department_id', array('default' => $vv_pid['codeptid'])) . "\n";
+  print $this->Form->hidden('org_identity_id', array('default' => $vv_pid['orgidentityid'])) . "\n";
+  print $this->Form->hidden('co_person_id', array('default' => $vv_pid['copersonid'])) . "\n";
   
   if(isset($cur_co))
     print $this->Form->hidden('co_id', array('default' => $cur_co['Co']['id'])) . "\n";
@@ -74,135 +49,105 @@
                   && $email_addresses[0]['EmailAddress']['verified']);
 
   // Add breadcrumbs
-  print $this->element("coCrumb");
-  if($idType == 'person') {
-    // CO Person History
-    $args = array();
-    $args['plugin'] = null;
-    $args['controller'] = 'co_people';
-    $args['action'] = 'index';
-    $args['co'] = $cur_co['Co']['id'];
-    $this->Html->addCrumb(_txt('me.population'), $args);
-
-    $args = array(
-      'controller' => 'co_people',
-      'action' => 'canvas',
-      $idForBreadcrumbs);
-    $this->Html->addCrumb(_txt('ct.co_people.1'), $args);
-  } elseif($idType == 'org') {
-    // Org ID History
-    $args = array();
-    $args['plugin'] = null;
-    $args['controller'] = 'org_identities';
-    $args['action'] = 'index';
-    if(!$pool_org_identities) {
-      $args['co'] = $cur_co['Co']['id'];
-    }
-    $this->Html->addCrumb(_txt('ct.org_identities.pl'), $args);
-
-    $args = array(
-      'controller' => 'orgIdentities',
-      'action' => 'edit',
-      $idForBreadcrumbs);
-    $this->Html->addCrumb(_txt('ct.org_identities.1'), $args);
-  }
-  $crumbTxt = _txt('op.' . $this->action . '-a', array(_txt('ct.email_addresses.1')));
-  $this->Html->addCrumb($crumbTxt);
-
-  $l = 1;
+  print $this->element("coCrumb", array('mvpa' => 'email_addresses'));
 ?>
-<table id="<?php print $this->action; ?>_email_address" class="ui-widget">
-  <tbody>
-    <tr class="line<?php print $l % 2;$l++; ?>">
-      <td>
-        <?php
-          if($e) {
-            print $this->Form->label('mail', _txt('fd.email_address.mail'));
-          } else {
-            print _txt('fd.email_address.mail');
-          }
-        ?>
-      </td>
-      <td>
-        <?php print ($e ? $this->Form->input('mail', array('class' => 'focusFirst')) : filter_var($email_addresses[0]['EmailAddress']['mail'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
+<ul id="<?php print $this->action; ?>_email_address" class="fields form-list">
+  <li>
+    <span class="field-name">
+      <?php
+        if($e) {
+          print $this->Form->label('mail', _txt('fd.email_address.mail'));
+        } else {
+          print _txt('fd.email_address.mail');
+        }
+      ?>
+    </span>
+    <span class="field-info">
+      <?php print ($e ? $this->Form->input('mail', array('class' => 'focusFirst')) : filter_var($email_addresses[0]['EmailAddress']['mail'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
       <?php if($e && $isVerified): ?>
-      <td>
         <span class="ui-icon ui-icon-info co-info"></span>
         <em><?php print _txt('fd.email_address.verified.warn'); ?></em>
-      </td>
       <?php endif; ?>
-    </tr>
-    <tr class="line<?php print $l % 2;$l++; ?>">
-      <td>
-        <?php
-          if($e) {
-            print $this->Form->label('type', _txt('fd.type'));
-          } else {
-            print _txt('fd.type');
+    </span>
+  </li>
+  <li>
+    <div class="field-name">
+      <?php print $this->Form->label('description',_txt('fd.desc')); ?>
+    </div>
+    <div class="field-info">
+      <?php print ($e ? $this->Form->input('description') : filter_var($email_addresses[0]['EmailAddress']['description'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+    </div>
+  </li>
+  <li>
+    <span class="field-name">
+      <?php
+        if($e) {
+          print $this->Form->label('type', _txt('fd.type'));
+        } else {
+          print _txt('fd.type');
+        }
+      ?>
+    </span>
+    <span class="field-info">
+      <?php
+        $attrs['value'] = (isset($email_addresses) ? $email_addresses[0]['EmailAddress']['type'] : "");
+        $attrs['empty'] = false;
+
+        if($e) {
+          print $this->Form->select('type',
+                                    $vv_available_types,
+                                    $attrs);
+
+          if($this->Form->isFieldError('type')) {
+            print $this->Form->error('type');
           }
-        ?>
-      </td>
-      <td>
-        <?php
-          $attrs['value'] = (isset($email_addresses) ? $email_addresses[0]['EmailAddress']['type'] : "");
-          $attrs['empty'] = false;
-          
-          if($e) {
-            print $this->Form->select('type',
-                                      $vv_available_types,
-                                      $attrs);
-            
-            if($this->Form->isFieldError('type')) {
-              print $this->Form->error('type');
-            }
-          } else {
-            print _txt('en.email_address.type', null, filter_var($email_addresses[0]['EmailAddress']['type'],FILTER_SANITIZE_SPECIAL_CHARS));
-          }
-        ?>
-      </td>
-    </tr>
-    <tr class="line<?php print $l % 2;$l++; ?>">
-      <td>
-        <?php print _txt('fd.email_address.verified'); ?>
-      </td>
-      <td>
-        <?php
-          // For an add, verified is by definition no and can't (currently, anyway) be set manually.
-          // This will be caught by $email_addresses being null.
-          
-          if($this->action != 'add') {
-            $url = array(
-              'controller' => 'co_invites',
-              'action' => 'verifyEmailAddress',
-              'email_address_id' => $email_addresses[0]['EmailAddress']['id']
-            );
-          }
-          
-          print ($isVerified ? _txt('fd.yes') : _txt('fd.no')) . "\n";
-          
-          if(!$isVerified && $permissions['verifyEmailAddress']) {
-            print '<button class="checkbutton" title="' . _txt('op.verify')
-              . '" type="button" onclick="javascript:js_confirm_generic(\''
-              . _txt('js.confirm.verify') . '\',\''   // dialog body text
-              . $this->Html->url($url) . '\',\''      // redirect URL
-              . _txt('op.verify') . '\',\''           // dialog confirm button
-              . _txt('op.cancel') . '\',\''           // dialog cancel button
-              . _txt('op.verify') . '\',[\''          // dialog title
-              . filter_var(_jtxt($email_addresses[0]['EmailAddress']['mail']),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
-              . '\']);">'
-              . _txt('op.verify')
-              . '</button>' . "\n";
-          }
-        ?>
-      </td>
-    </tr>
-    <?php if(!empty($email_addresses[0]['SourceEmailAddress']['id'])): ?>
-    <tr class="line<?php print $l % 2;$l++; ?>">
-      <td>
+        } else {
+          print _txt('en.email_address.type', null, filter_var($email_addresses[0]['EmailAddress']['type'],FILTER_SANITIZE_SPECIAL_CHARS));
+        }
+      ?>
+    </span>
+  </li>
+  <li>
+    <span class="field-name">
+      <?php print _txt('fd.email_address.verified'); ?>
+    </span>
+    <span class="field-info">
+      <?php
+        // For an add, verified is by definition no and can't (currently, anyway) be set manually.
+        // This will be caught by $email_addresses being null.
+
+        if($this->action != 'add') {
+          $url = array(
+            'controller' => 'co_invites',
+            'action' => 'verifyEmailAddress',
+            'email_address_id' => $email_addresses[0]['EmailAddress']['id']
+          );
+        }
+
+        print ($isVerified ? _txt('fd.yes') : _txt('fd.no')) . "\n";
+
+        if(!$isVerified && $permissions['verifyEmailAddress']) {
+          print '<button class="checkbutton" title="' . _txt('op.verify')
+            . '" type="button" onclick="javascript:js_confirm_generic(\''
+            . _txt('js.confirm.verify') . '\',\''   // dialog body text
+            . $this->Html->url($url) . '\',\''      // redirect URL
+            . _txt('op.verify') . '\',\''           // dialog confirm button
+            . _txt('op.cancel') . '\',\''           // dialog cancel button
+            . _txt('op.verify') . '\',[\''          // dialog title
+            . filter_var(_jtxt($email_addresses[0]['EmailAddress']['mail']),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
+            . '\']);">'
+            . _txt('op.verify')
+            . '</button>' . "\n";
+        }
+      ?>
+    </span>
+  </li>
+  <?php if(!empty($email_addresses[0]['SourceEmailAddress']['id'])): ?>
+    <li>
+      <span class="field-name">
         <?php print _txt('fd.source'); ?><br />
-      </td>
-      <td>
+      </span>
+      <span class="field-info">
         <?php print $this->Html->link(_txt('ct.email_addresses.1'),
                                       array('controller' => 'email_addresses',
                                             'action'     => 'view',
@@ -213,24 +158,20 @@
                                             'action'     => 'view',
                                             $email_addresses[0]['SourceEmailAddress']['org_identity_id']));
         ?>
-      </td>
-    </tr>
-    <?php endif; // source id ?>
-    <tr>
-      <td>
-        <em><span class="required"><?php print _txt('fd.req'); ?></span></em><br />
-      </td>
-      <td>
-        <?php
-          if($e) {
-            print $this->Form->submit($submit_label);
-            print $this->Form->button(_txt('op.reset'), 
-                                      array('type'=>'reset'));
-          }
-        ?>
-      </td>
-    </tr>
-  </tbody>
-</table>
+      </span>
+    </li>
+  <?php endif; // source id ?>
+
+  <?php if($e): ?>
+    <li class="fields-submit">
+      <span class="field-name">
+        <span class="required"><?php print _txt('fd.req'); ?></span>
+      </span>
+      <span class="field-info">
+        <?php print $this->Form->submit($submit_label); ?>
+      </span>
+    </li>
+  <?php endif; ?>
+</ul>
 <?php
   print $this->element("changelog");

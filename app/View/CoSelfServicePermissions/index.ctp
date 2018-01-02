@@ -52,92 +52,86 @@
 
 ?>
 
-<div class="ui-state-highlight ui-corner-all co-info-topbox">
-  <p>
-    <span class="ui-icon ui-icon-info co-info"></span>
-    <strong><?php print _txt('fd.ssp.default'); ?></strong>
-  </p>
+<div class="co-info-topbox">
+  <em class="material-icons">info</em>
+  <?php print _txt('fd.ssp.default'); ?>
 </div>
-<br />
 
-<table id="co_self_service_permissions" class="ui-widget">
-  <thead>
-    <tr class="ui-widget-header">
-      <th><?php print $this->Paginator->sort('model', _txt('fd.model')); ?></th>
-      <th><?php print $this->Paginator->sort('type', _txt('fd.type')); ?></th>
-      <th><?php print $this->Paginator->sort('permission', _txt('fd.perm')); ?></th>
-      <th><?php print _txt('fd.actions'); ?></th>
-    </tr>
-  </thead>
-  
-  <tbody>
-    <?php $i = 0; ?>
-    <?php foreach ($co_self_service_permissions as $c): ?>
-    <tr class="line<?php print ($i % 2)+1; ?>">
-      <td>
-        <?php
-          print $this->Html->link($c['CoSelfServicePermission']['model'],
-                                  array('controller' => 'co_self_service_permissions',
-                                        'action' => ($permissions['edit'] ? 'edit' : ($permissions['view'] ? 'view' : '')),
-                                        $c['CoSelfServicePermission']['id']));
-        ?>
-      </td>
-      <td>
-        <?php
-          if(!empty($c['CoSelfServicePermission']['type'])) {
-            print $types[ $c['CoSelfServicePermission']['model'] ][ $c['CoSelfServicePermission']['type'] ];
-          }
-        ?>
-      </td>
-      <td>
-        <?php
-          if(!empty($c['CoSelfServicePermission']['permission'])) {
-            print _txt('en.permission', null, $c['CoSelfServicePermission']['permission']);
-          }
-        ?>
-      </td>
-      <td>
-        <?php
-          if($permissions['edit']) {
-            print $this->Html->link(_txt('op.edit'),
-                array('controller' => 'co_self_service_permissions',
-                  'action' => 'edit',
-                  $c['CoSelfServicePermission']['id']),
-                array('class' => 'editbutton')) . "\n";
-          }
+<div class="table-container">
+  <table id="co_self_service_permissions">
+    <thead>
+      <tr>
+        <th><?php print $this->Paginator->sort('model', _txt('fd.model')); ?></th>
+        <th><?php print $this->Paginator->sort('type', _txt('fd.type')); ?></th>
+        <th><?php print $this->Paginator->sort('permission', _txt('fd.perm')); ?></th>
+        <th><?php print _txt('fd.actions'); ?></th>
+      </tr>
+    </thead>
 
-          if($permissions['delete']) {
-            print '<button type="button" class="deletebutton" title="' . _txt('op.delete')
-              . '" onclick="javascript:js_confirm_generic(\''
-              . _txt('js.remove') . '\',\''    // dialog body text
-              . $this->Html->url(              // dialog confirm URL
-                array(
-                  'controller' => 'co_self_service_permissions',
-                  'action' => 'delete',
-                  $c['CoSelfServicePermission']['id']
-                )
-              ) . '\',\''
-              . _txt('op.remove') . '\',\''    // dialog confirm button
-              . _txt('op.cancel') . '\',\''    // dialog cancel button
-              . _txt('op.remove') . '\',[\''   // dialog title
-              . filter_var(_jtxt($c['CoSelfServicePermission']['model']),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
-              . '\']);">'
-              . _txt('op.delete')
-              . '</button>';
-          }
-        ?>
-        <?php ; ?>
-      </td>
-    </tr>
-    <?php $i++; ?>
-    <?php endforeach; ?>
-  </tbody>
+    <tbody>
+      <?php $i = 0; ?>
+      <?php foreach ($co_self_service_permissions as $c): ?>
+      <tr class="line<?php print ($i % 2)+1; ?>">
+        <td>
+          <?php
+            print $this->Html->link(_txt('ct.'.Inflector::tableize($c['CoSelfServicePermission']['model']).'.1'),
+                                    array('controller' => 'co_self_service_permissions',
+                                          'action' => ($permissions['edit'] ? 'edit' : ($permissions['view'] ? 'view' : '')),
+                                          $c['CoSelfServicePermission']['id']));
+          ?>
+        </td>
+        <td>
+          <?php
+            if(!empty($c['CoSelfServicePermission']['type'])) {
+              print $types[ $c['CoSelfServicePermission']['model'] ][ $c['CoSelfServicePermission']['type'] ];
+            }
+          ?>
+        </td>
+        <td>
+          <?php
+            if(!empty($c['CoSelfServicePermission']['permission'])) {
+              print _txt('en.permission', null, $c['CoSelfServicePermission']['permission']);
+            }
+          ?>
+        </td>
+        <td>
+          <?php
+            if($permissions['edit']) {
+              print $this->Html->link(_txt('op.edit'),
+                  array('controller' => 'co_self_service_permissions',
+                    'action' => 'edit',
+                    $c['CoSelfServicePermission']['id']),
+                  array('class' => 'editbutton')) . "\n";
+            }
+
+            if($permissions['delete']) {
+              print '<button type="button" class="deletebutton" title="' . _txt('op.delete')
+                . '" onclick="javascript:js_confirm_generic(\''
+                . _txt('js.remove') . '\',\''    // dialog body text
+                . $this->Html->url(              // dialog confirm URL
+                  array(
+                    'controller' => 'co_self_service_permissions',
+                    'action' => 'delete',
+                    $c['CoSelfServicePermission']['id']
+                  )
+                ) . '\',\''
+                . _txt('op.remove') . '\',\''    // dialog confirm button
+                . _txt('op.cancel') . '\',\''    // dialog cancel button
+                . _txt('op.remove') . '\',[\''   // dialog title
+                . filter_var(_jtxt($c['CoSelfServicePermission']['model']),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
+                . '\']);">'
+                . _txt('op.delete')
+                . '</button>';
+            }
+          ?>
+          <?php ; ?>
+        </td>
+      </tr>
+      <?php $i++; ?>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+</div>
   
-  <tfoot>
-    <tr class="ui-widget-header">
-      <th colspan="4">
-        <?php print $this->element("pagination"); ?>
-      </th>
-    </tr>
-  </tfoot>
-</table>
+<?php
+  print $this->element("pagination");

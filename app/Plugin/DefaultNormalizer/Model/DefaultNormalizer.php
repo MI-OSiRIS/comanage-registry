@@ -62,6 +62,13 @@ class DefaultNormalizer extends AppModel {
         'mixCase' => array('title', 'o', 'ou'),
         'trimWhitespace' => array('title', 'o', 'ou')
       ),
+      // We get passed the alias, not the model name during enrollment.
+      // There's not an obvious generic way to figure the out, but for now this
+      // only happens here, so we simply duplicate the rules. (CO-1550)
+      'EnrolleeCoPersonRole' => array(
+        'mixCase' => array('title', 'o', 'ou'),
+        'trimWhitespace' => array('title', 'o', 'ou')
+      ),
       'EmailAddress' => array(
         // Note cake validation will likely prevent this from being called
         'trimWhitespace' => array('mail')
@@ -80,6 +87,12 @@ class DefaultNormalizer extends AppModel {
         'punctuationToSpace' => array('country_code', 'area_code', 'number', 'extension'),
         'trimWhitespace' => array('country_code', 'area_code', 'number', 'extension')
       ),
+      'Url' => array(
+        // We don't normalize an http:// prefix because cake validation will prevent
+        // a URL from being submitted without a prefix (and we wouldn't know the
+        // protocol anyway).
+        'trimWhitespace' => array('url')
+      )
     );
     
     // In order for this to work, Co#PersonExtendedAttribute has to be after CoPersonRole

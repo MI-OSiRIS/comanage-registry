@@ -1,7 +1,7 @@
 <?php
 
 /**
-  @version   v5.20.4  30-Mar-2016
+  @version   v5.20.9  21-Dec-2016
   @copyright (c) 2000-2013 John Lim (jlim#natsoft.com). All rights reserved.
   @copyright (c) 2014      Damien Regad, Mark Newnham and the ADOdb community
   Released under both BSD license and Lesser GPL library license.
@@ -995,34 +995,33 @@ class ADODB_DataDict {
 			}
 			$flds = $holdflds;
 		}
-
-
-		// already exists, alter table instead
-		list($lines,$pkey,$idxs) = $this->_GenFields($flds);
-		// genfields can return FALSE at times
-		if ($lines == null) $lines = array();
-		$alter = 'ALTER TABLE ' . $this->TableName($tablename);
-		$sql = array();
-
-		foreach ( $lines as $id => $v ) {
-			if ( isset($cols[$id]) && is_object($cols[$id]) ) {
-
-				$flds = Lens_ParseArgs($v,',');
-
-				//  We are trying to change the size of the field, if not allowed, simply ignore the request.
-				// $flds[1] holds the type, $flds[2] holds the size -postnuke addition
-				if ($flds && in_array(strtoupper(substr($flds[0][1],0,4)),$this->invalidResizeTypes4)
-				 && (isset($flds[0][2]) && is_numeric($flds[0][2]))) {
-					if ($this->debug) ADOConnection::outp(sprintf("<h3>%s cannot be changed to %s currently</h3>", $flds[0][0], $flds[0][1]));
-					#echo "<h3>$this->alterCol cannot be changed to $flds currently</h3>";
-					continue;
-	 			}
-				$sql[] = $alter . $this->alterCol . ' ' . $v;
-			} else {
-				$sql[] = $alter . $this->addCol . ' ' . $v;
-			}
-		}
-
+ 
+    // already exists, alter table instead
+    list($lines,$pkey,$idxs) = $this->_GenFields($flds);
+    // genfields can return FALSE at times
+    if ($lines == null) $lines = array();
+    $alter = 'ALTER TABLE ' . $this->TableName($tablename);
+    $sql = array();
+ 
+    foreach ( $lines as $id => $v ) {
+            if ( isset($cols[$id]) && is_object($cols[$id]) ) {
+ 
+                    $flds = Lens_ParseArgs($v,',');
+ 
+                    //  We are trying to change the size of the field, if not allowed, simply ignore the request.
+                    // $flds[1] holds the type, $flds[2] holds the size -postnuke addition
+                    if ($flds && in_array(strtoupper(substr($flds[0][1],0,4)),$this->invalidResizeTypes4)
+                     && (isset($flds[0][2]) && is_numeric($flds[0][2]))) {
+                            if ($this->debug) ADOConnection::outp(sprintf("<h3>%s cannot be changed to %s currently</h3>", $flds[0][0], $flds[0][1]));
+                            #echo "<h3>$this->alterCol cannot be changed to $flds currently</h3>";
+                            continue;
+                    }
+                    $sql[] = $alter . $this->alterCol . ' ' . $v;
+            } else {
+                    $sql[] = $alter . $this->addCol . ' ' . $v;
+            }
+    }	
+		
 		if ($dropOldFlds) {
 			foreach ( $cols as $id => $v )
 			    if ( !isset($lines[$id]) )

@@ -37,38 +37,63 @@
   if(!$e && !$permissions['view'])
     return false;
   
+  // Add breadcrumbs
+  print $this->element("coCrumb");
+
+  $args = array();
+  $args['plugin'] = null;
+  $args['controller'] = 'org_identity_sources';
+  $args['action'] = 'index';
+  $args['co'] = $cur_co['Co']['id'];
+  $this->Html->addCrumb(_txt('ct.org_identity_sources.pl'), $args);
+
+  $args = array();
+  $args['plugin'] = null;
+  $args['controller'] = 'org_identity_sources';
+  $args['action'] = 'edit';
+  $args[] = $vv_oisid;
+  $this->Html->addCrumb($file_sources[0]['OrgIdentitySource']['description'], $args);
+
+  $crumbTxt = _txt('op.config');
+  $this->Html->addCrumb($crumbTxt);
+  
   print $this->Form->hidden('org_identity_source_id', array('default' => $vv_oisid)) . "\n";
 ?>
-<div class="ui-state-highlight ui-corner-all" style="margin-top: 20px; padding: 0 .7em;"> 
-  <p>
-    <span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>
-    <strong><?php print _txt('pl.filesource.info'); ?></strong>
-  </p>
+<div class="co-info-topbox">
+  <i class="material-icons">info</i>
+  <?php print _txt('pl.filesource.info'); ?>
 </div>
-<br />
-<table id="<?php print $this->action; ?>_file_source_target" class="ui-widget">
-  <tbody>
-    <tr class="line1">
-      <td style="width:50%">
-        <strong class="fieldTitle"><?php print _txt('pl.filesource.filepath'); ?></strong><font class="required">*</font>
-      </td>
-      <td>
-        <?php print ($e ? $this->Form->input('filepath', array('size' => 50)) : filter_var($ldap_sources[0]['FileSource']['filepath'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <i><font class="required"><?php print _txt('fd.req'); ?></font></i><br />
-      </td>
-      <td>
-        <?php
-          if($e) {
-            print $this->Form->submit($submit_label);
-            print $this->Form->button(_txt('op.reset'), 
-                                      array('type'=>'reset'));
-          }
-        ?>
-      </td>
-    </tr>
-  </tbody>
-</table>
+<ul id="<?php print $this->action; ?>_file_source_target" class="fields form-list form-list-admin">
+  <li>
+    <div class="field-name">
+      <div class="field-title">
+        <?php print _txt('pl.filesource.filepath'); ?>
+        <span class="required">*</span>
+      </div>
+    </div>
+    <div class="field-info">
+      <?php print ($e ? $this->Form->input('filepath', array('size' => 50)) : filter_var($file_sources[0]['FileSource']['filepath'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+    </div>
+  </li>
+  <li>
+    <div class="field-name">
+      <div class="field-title">
+        <?php print _txt('pl.filesource.archivedir'); ?>
+      </div>
+      <div class="field-desc"><?php print _txt('pl.filesource.archivedir.desc'); ?></div>
+    </div>
+    <div class="field-info">
+      <?php print ($e ? $this->Form->input('archivedir', array('size' => 50)) : filter_var($file_sources[0]['FileSource']['archivedir'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+    </div>
+  </li>
+  <?php if($e): ?>
+    <li class="fields-submit">
+      <div class="field-name">
+        <span class="required"><?php print _txt('fd.req'); ?></span>
+      </div>
+      <div class="field-info">
+        <?php print $this->Form->submit($submit_label); ?>
+      </div>
+    </li>
+  <?php endif; ?>
+</ul>

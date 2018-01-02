@@ -62,7 +62,8 @@ class CoJob extends AppModel {
       'allowEmpty' => true
     ),
     'status' => array(
-      'rule' => array('inList', array(JobStatusEnum::Complete,
+      'rule' => array('inList', array(JobStatusEnum::Canceled,
+                                      JobStatusEnum::Complete,
                                       JobStatusEnum::Failed,
                                       JobStatusEnum::InProgress,
                                       JobStatusEnum::Queued)),
@@ -102,59 +103,176 @@ class CoJob extends AppModel {
   );
   
   /**
+   * Request a job to be canceled. This flags the job as canceled, but it is up to the Job itself
+   * to detect the status change and stop processing.
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Integer $id    Job ID
+   * @param  String  $actor Login Identifier of actor who requested cancelation
+   * @return Boolean True on success
+   * @throws InvalidArgumentException
+   */
+  
+  public function cancel($id, $actor) {
+    // Make sure the job is in a cancelable status
+    
+    $curStatus = $this->field('status', array('CoJob.id' => $id));
+    
+    if(!$curStatus) {
+      throw new InvalidArgumentException(_txt('er.notfound', array(_txt('ct.co_jobs.1'), $id)));
+    }
+    
+    // This array corresponds to View/CoJob/fields.inc
+    if(!in_array($curStatus, array(JobStatusEnum::InProgress, JobStatusEnum::Queued))) {
+      throw new InvalidArgumentException(_txt('er.jb.cxl.status', array(_txt('en.status.job', null, $curStatus))));
+    }
+    
+    // Finally update the status
+    
+    return $this->finish($id, _txt('rs.jb.cxld.by', array($actor)), JobStatusEnum::Canceled);
+  }
+  
+  /**
+   * Determine if a job has been canceled.
+   *
+   * @since  COmanage Registry  v3.1.0
+   * @param  Integer $id    Job ID
+   * @return Boolean True on success
+   * @throws InvalidArgumentException
+   */
+  
+  public function canceled($id) {
+    $curStatus = $this->field('status', array('CoJob.id' => $id));
+    
+    if(!$curStatus) {
+      throw new InvalidArgumentException(_txt('er.notfound', array(_txt('ct.co_jobs.1'), $id)));
+    }
+    
+    return ($curStatus == JobStatusEnum::Canceled);
+  }
+  
+  /**
    * Update a job as completed.
    *
    * @since  COmanage Registry v2.0.0
-   * @param  Integer $id         Job ID
-   * @param  String  $summary    Summary
-   * @param  Boolean $successful Whether the job was successfully completed
+   * @param  Integer       $id         Job ID
+   * @param  String        $summary    Summary
+   * @param  JobStatusEnum $result Job Result
+   * @return Boolean True on success
    * @throws RuntimeException
    */
   
-  public function finish($id, $summary="", $successful=true) {
+  public function finish($id, $summary="", $result=JobStatusEnum::Complete) {
     // There's not really an elegant way to update more than 1 but less than all fields...
     
     $this->id = $id;
-    $this->saveField('status', ($successful ? JobStatusEnum::Complete : JobStatusEnum::Failed));
+    $this->saveField('status', $result);
     $this->saveField('complete_time', date('Y-m-d H:i:s', time()));
     
     // Make sure $summary fits in the available space
     $limit = $this->validate['finish_summary']['rule'][1];
     $this->saveField('finish_summary', substr($summary, 0, $limit));
+    
+    return true;
+  }
+  
+  /**
+   * Determine the last start time for a successfully completed Job.
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Integer     $coId       CO ID
+   * @param  JobTypeEnum $jobType    Job Type
+   * @param  Integer     $jobTypeFk  Foreign key suitable for $jobType (eg: cm_org_identity_sources:id)
+   * @return Integer                 Timestamp, or 0 if no previous run was found
+   */
+  
+  public function lastStart($coId, $jobType, $jobTypeFk=null) {
+    $args = array();
+    $args['conditions']['CoJob.co_id'] = $coId;
+    $args['conditions']['CoJob.job_type'] = $jobType;
+    $args['conditions']['CoJob.job_type_fk'] = $jobTypeFk;
+    $args['conditions']['CoJob.status'] = JobStatusEnum::Complete;
+    $args['order'] = array('CoJob.start_time DESC');
+    $args['contain'] = false;
+    
+    $job = $this->find('first', $args);
+    
+    if(empty($job)) {
+      return 0;
+    } else {
+      return strtotime($job['CoJob']['start_time']);
+    }
   }
   
   /**
    * Register a job.
    *
    * @since  COmanage Registry v2.0.0
-   * @param  Integer     $coId      CO ID
-   * @param  JobTypeEnum $jobType   Job Type
-   * @param  Integer     $jobTypeFk Foreign key suitable for $jobType (eg: cm_org_identity_sources:id)
-   * @param  String      $jobMode   Job Mode
-   * @param  String      $summary   Summary
-   * @param  Boolean     $queued    Whether the job is queued (true) or started (false)
-   * @return Integer                Job ID
+   * @param  Integer     $coId       CO ID
+   * @param  JobTypeEnum $jobType    Job Type
+   * @param  Integer     $jobTypeFk  Foreign key suitable for $jobType (eg: cm_org_identity_sources:id)
+   * @param  String      $jobMode    Job Mode
+   * @param  String      $summary    Summary
+   * @param  Boolean     $queued     Whether the job is queued (true) or started (false)
+   * @param  Boolean     $concurrent Whether multiple instances of this job (coid+jobtype+jobtypefk) are permitted to run concurrently
+   * @return Integer                 Job ID
    * @throws RuntimeException
    */
   
-  public function register($coId, $jobType, $jobTypeFk=null, $jobMode="", $summary="", $queued=false) {
+  public function register($coId, $jobType, $jobTypeFk=null, $jobMode="", $summary="", $queued=false, $concurrent=false) {
+    $dbc = $this->getDataSource();
+    $dbc->begin();
+    
+    $jobs = array();
+    
+    if(!$concurrent) {
+      // First make sure there is no current job running
+      
+      $args = array();
+      $args['conditions']['CoJob.co_id'] = $coId;
+      $args['conditions']['CoJob.job_type'] = $jobType;
+      $args['conditions']['CoJob.job_type_fk'] = $jobTypeFk;
+      $args['conditions']['CoJob.status'] = array(JobStatusEnum::Queued, JobStatusEnum::InProgress);
+      $args['fields'] = array();
+      
+      $jobs = $this->findForUpdate($args['conditions'], $args['fields']);
+      
+      // In order to present the error via the UI, we still want to insert a job record,
+      // so we don't rollback.
+    }
+    
+    // Make sure $summary fits in the available space
+    $limit = $this->validate['register_summary']['rule'][1];
+    
     $coJob = array();
     $coJob['CoJob']['co_id'] = $coId;
     $coJob['CoJob']['job_type'] = $jobType;
     $coJob['CoJob']['job_type_fk'] = $jobTypeFk;
     $coJob['CoJob']['job_mode'] = $jobMode;
-    $coJob['CoJob']['status'] = ($queued ? JobStatusEnum::Queued : JobStatusEnum::InProgress);
     $coJob['CoJob']['queue_time'] = date('Y-m-d H:i:s', time());
-
-    // Make sure $summary fits in the available space
-    $limit = $this->validate['register_summary']['rule'][1];
-    $coJob['CoJob']['register_summary'] = substr($summary, 0, $limit);
+    if(!empty($jobs)) {
+      $coJob['CoJob']['status'] = JobStatusEnum::Failed;
+      $coJob['CoJob']['complete_time'] = $coJob['CoJob']['queue_time'];
+      $coJob['CoJob']['register_summary'] = substr(_txt('er.jb.concurrent', array($jobs[0]['CoJob']['id'])), 0, $limit);
+      $coJob['CoJob']['finish_summary'] = $coJob['CoJob']['register_summary'];
+    } else {
+      $coJob['CoJob']['status'] = ($queued ? JobStatusEnum::Queued : JobStatusEnum::InProgress);
+      $coJob['CoJob']['register_summary'] = substr($summary, 0, $limit);
+    }
     
     // Call create since we might have multiple records written in a transaction
     $this->create();
     
     if(!$this->save($coJob)) {
+      $dbc->rollback();
       throw new RuntimeException(_txt('er.db.save-a', array('CoJob')));
+    }
+    
+    $dbc->commit();
+    
+    if(!empty($jobs)) {
+      // Now throw the exception
+      throw new RuntimeException($coJob['CoJob']['register_summary']);
     }
     
     return $this->id;
@@ -172,12 +290,32 @@ class CoJob extends AppModel {
   public function start($id, $summary="") {
     // There's not really an elegant way to update more than 1 but less than all fields...
     
+    $this->clear();
     $this->id = $id;
-    $this->saveField('status', JobStatusEnum::Started);
+    $this->saveField('status', JobStatusEnum::InProgress);
     $this->saveField('start_time', date('Y-m-d H:i:s', time()));
     
     // Make sure $summary fits in the available space
-    $limit = $this->validate['finish_summary']['rule'][1];
-    $coJob['CoJob']['finish_summary'] = substr($summary, 0, $limit);
+    $limit = $this->validate['start_summary']['rule'][1];
+    $this->saveField('start_summary', substr($summary, 0, $limit));
+  }
+  
+  /**
+   * Determine the start time for the specified job.
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Integer $id Job ID
+   * @return Integer     Timestamp
+   * @throws InvalidArgumentException
+   */
+  
+  public function startTime($id) {
+    $start = $this->field('start_time', array('CoJob.id' => $id));
+    
+    if(!$start) {
+      throw new InvalidArgumentException(_txt('er.notfound', array(_txt('ct.co_jobs.1'), $id)));
+    }
+    
+    return strtotime($start);
   }
 }

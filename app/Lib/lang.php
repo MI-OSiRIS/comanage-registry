@@ -39,8 +39,9 @@ $cm_texts['en_US'] = array(
   'lang' => 'en',
 
   // Application name
-  'coordinate' =>     'COmanage Registry',
-  
+  'coordinate'         => 'COmanage Registry',
+  'coordinate.version' => 'Version',
+
   // What a CO is called (abbreviated)
   'co' =>             'CO',
   'cos' =>            'COs',
@@ -72,8 +73,14 @@ $cm_texts['en_US'] = array(
   'ct.attribute_enumerations.pl' => 'Attribute Enumerations',
   'ct.authentication_events.1'  => 'Authentication Event',
   'ct.authentication_events.pl' => 'Authentication Events',
+  'ct.authenticators.1'  =>     'Authenticator',
+  'ct.authenticators.pl' =>     'Authenticators',
   'ct.cmp_enrollment_configurations.1'  => 'CMP Enrollment Configuration',
   'ct.cmp_enrollment_configurations.pl' => 'CMP Enrollment Configurations',
+  'ct.co_departments.1' =>      'Department',
+  'ct.co_departments.pl' =>     'Departments',
+  'ct.co_email_lists.1' =>      'Email List',
+  'ct.co_email_lists.pl' =>     'Email Lists',
   'ct.co_enrollment_attributes.1'  => 'Enrollment Attribute',
   'ct.co_enrollment_attributes.pl' => 'Enrollment Attributes',
   'ct.co_enrollment_flows.1'  => 'Enrollment Flow',
@@ -100,6 +107,10 @@ $cm_texts['en_US'] = array(
   'ct.co_all_groups' =>         'All Groups',
   'ct.co_invites.1' =>          'Invite',
   'ct.co_invites.pl' =>         'Invites',
+  'ct.co_job_history_records.1' => 'Job History Record',
+  'ct.co_job_history_records.pl' => 'Job History Records',
+  'ct.co_jobs.1' =>             'Job',
+  'ct.co_jobs.pl' =>            'Jobs',
   'ct.co_localizations.1' =>    'Localization',
   'ct.co_localizations.pl' =>   'Localizations',
   'ct.co_message_templates.1' => 'Message Template',
@@ -167,6 +178,8 @@ $cm_texts['en_US'] = array(
   'ct.ssh_keys.pl' =>           'SSH Keys',
   'ct.telephone_numbers.1' =>   'Telephone Number',
   'ct.telephone_numbers.pl' =>  'Telephone Numbers',
+  'ct.urls.1' =>                'URL',
+  'ct.urls.pl' =>               'URLs',
   
   // Embedded Discovery Service
   
@@ -201,13 +214,13 @@ $cm_texts['en_US'] = array(
   'em.expiration.body'       => 'Placeholder expiration body',
   'em.invite.subject'        => 'Invitation to join %1$s',
   'em.invite.subject.ef'     => 'Invitation to join (@CO_NAME)',
-  'em.invite.subject.ver'    => 'Please confirm your email address (@CO_NAME)',
+  'em.invite.subject.ver'    => 'Please confirm your email address',
   'em.invite.body'           => 'You have been invited to join %1$s.  Please click the link below to accept or decline.',
   'em.invite.body.ef'        => 'You have been invited to join (@CO_NAME).
 Please click the link below to accept or decline.
 
 (@INVITE_URL)',
-  'em.invite.body.ver'       => 'You or an administrator for @CO_NAME has added or updated an email address.
+  'em.invite.body.ver'       => 'You or an administrator for (@CO_NAME) has added or updated an email address.
 Please click the link below to confirm that this is a valid request.
 
 (@INVITE_URL)
@@ -236,14 +249,24 @@ original notification at
   // Enumerations, corresponding to enum.php
   // Default history comments
   'en.action' =>   array(
+    ActionEnum::AuthenticatorDeleted        => 'Authenticator Deleted',
+    ActionEnum::AuthenticatorEdited         => 'Authenticator Edited',
+    ActionEnum::AuthenticatorStatusEdited   => 'Authenticator Status Edited',
+    ActionEnum::CoEmailListAdded            => 'CO Email List Added',
+    ActionEnum::CoEmailListDeleted          => 'CO Email List Deleted',
+    ActionEnum::CoEmailListEdited           => 'CO Email List Edited',
+    ActionEnum::CoEmailListManuallyProvisioned => 'CO Email List Provisioned (Manual)',
+    ActionEnum::CoEmailListProvisioned      => 'CO Email List Provisioned',
     ActionEnum::CoGroupAdded                => 'CO Group Added',
     ActionEnum::CoGroupDeleted              => 'CO Group Deleted',
     ActionEnum::CoGroupEdited               => 'CO Group Edited',
+    ActionEnum::CoGroupManuallyProvisioned  => 'CO Group Provisioned (Manual)',
     ActionEnum::CoGroupMemberAdded          => 'CO Group Member Added',
     ActionEnum::CoGroupMemberAddedPipeline  => 'CO Group Member Added (Pipeline)',
     ActionEnum::CoGroupMemberEdited         => 'CO Group Member Edited',
     ActionEnum::CoGroupMemberDeleted        => 'CO Group Member Deleted',
     ActionEnum::CoGroupMemberDeletedPipeline => 'CO Group Member Deleted (Pipeline)',
+    ActionEnum::CoGroupProvisioned          => 'CO Group Provisioned',
     ActionEnum::CoPersonAddedManual         => 'CO Person Created (Manual)',
     ActionEnum::CoPersonAddedPetition       => 'CO Person Created (Petition)',
     ActionEnum::CoPersonAddedPipeline       => 'CO Person Created (Pipeline)',
@@ -280,6 +303,7 @@ original notification at
     ActionEnum::InvitationDeclined          => 'Invitation Declined',
     ActionEnum::InvitationExpired           => 'Invitation Expired',
     ActionEnum::InvitationSent              => 'Invitation Sent',
+    ActionEnum::InvitationViewed            => 'Invitation Viewed',
     ActionEnum::NotificationAcknowledged    => 'Notification Acknowledged',
     ActionEnum::NotificationCanceled        => 'Notification Canceled',
     ActionEnum::NotificationDelivered       => 'Notification Delivered',
@@ -317,7 +341,10 @@ original notification at
     PetitionActionEnum::IdentityRelinked    => 'Identity Relinked',
     PetitionActionEnum::InviteConfirmed     => 'Invitation Confirmed',
     PetitionActionEnum::InviteSent          => 'Invitation Sent',
+    PetitionActionEnum::InviteViewed        => 'Invitation Viewed',
     PetitionActionEnum::NotificationSent    => 'Notification Sent',
+    PetitionActionEnum::OrgIdentitySourced  => 'Org Identity Created From Source',
+    PetitionActionEnum::StepFailed          => 'Step Failed',
     PetitionActionEnum::TCExplicitAgreement => 'Terms and Conditions Explicit Agreement',
     PetitionActionEnum::TCImpliedAgreement  => 'Terms and Conditions Implied Agreement'
   ),
@@ -413,6 +440,7 @@ original notification at
   'en.email_address.type' => array(
     EmailAddressEnum::Delivery => 'Delivery',
     EmailAddressEnum::Forwarding => 'Forwarding',
+    EmailAddressEnum::MailingList => 'Mailing List',
     EmailAddressEnum::Official => 'Official',
     EmailAddressEnum::Personal => 'Personal',
     EmailAddressEnum::Preferred => 'Preferred',
@@ -448,6 +476,7 @@ original notification at
   'en.enrollment.orgid' => array(
     EnrollmentOrgIdentityModeEnum::OISAuthenticate    => 'Authenticate',
     EnrollmentOrgIdentityModeEnum::OISClaim           => 'Claim',
+    EnrollmentOrgIdentityModeEnum::OISIdentify        => 'Identify',
     EnrollmentOrgIdentityModeEnum::OISSearch          => 'Search',
     EnrollmentOrgIdentityModeEnum::OISSearchRequired  => 'Search, Required',
     EnrollmentOrgIdentityModeEnum::OISSelect          => 'Select',
@@ -481,14 +510,21 @@ original notification at
                                  IdentifierEnum::Enterprise => 'Enterprise',
                                  IdentifierEnum::ePPN => 'ePPN',
                                  IdentifierEnum::ePTID => 'ePTID',
+                                 IdentifierEnum::ePUID => 'ePUID',
                                  IdentifierEnum::Mail => 'Mail',
                                  IdentifierEnum::National => 'National',
                                  IdentifierEnum::Network => 'Network',
                                  IdentifierEnum::OpenID => 'OpenID',
                                  IdentifierEnum::ORCID => 'ORCID iD',
+                                 IdentifierEnum::ProvisioningTarget => 'Provisioning Target',
                                  IdentifierEnum::Reference => 'Match Reference',
                                  IdentifierEnum::SORID => 'System of Record ID',
                                  IdentifierEnum::UID => 'UID'),
+  
+  'en.job.type' => array(
+    JobTypeEnum::Expiration      => 'Expiration',
+    JobTypeEnum::OrgIdentitySync => 'Org Identity Sync'
+  ),
   
   // As a moderately arbitrary decision, the languages listed here those with at least
   // 100m speakers per Ethnologue (by way of wikipedia)
@@ -625,9 +661,11 @@ original notification at
                                     SponsorEligibilityEnum::None          => 'Disable Sponsors'),
 
   'en.sshkey.type' => array(
-    SshKeyTypeEnum::DSA  => 'DSA',
-    SshKeyTypeEnum::RSA  => 'RSA',
-    SshKeyTypeEnum::RSA1 => 'RSA1'
+    SshKeyTypeEnum::DSA      => 'DSA',
+    SshKeyTypeEnum::ECDSA    => 'ECDSA',
+    SshKeyTypeEnum::ED25519  => 'ed25519',
+    SshKeyTypeEnum::RSA      => 'RSA',
+    SshKeyTypeEnum::RSA1     => 'RSA1'
   ),
   
   'en.status' =>      array(StatusEnum::Active              => 'Active',
@@ -645,10 +683,26 @@ original notification at
                             StatusEnum::PendingConfirmation => 'Pending Confirmation',
                             StatusEnum::Suspended           => 'Suspended'),
   
+  'en.status.authr' => array(
+    AuthenticatorStatusEnum::Active               => 'Active',
+    AuthenticatorStatusEnum::Expired              => 'Expired',
+    AuthenticatorStatusEnum::Locked               => 'Locked',
+    AuthenticatorStatusEnum::NotSet               => 'Not Set'
+  ),
+  
   'en.status.ef' => array(
     EnrollmentFlowStatusEnum::Active              => 'Active',
     EnrollmentFlowStatusEnum::Suspended           => 'Suspended',
     EnrollmentFlowStatusEnum::Template            => 'Template'
+  ),
+  
+  'en.status.job' => array(
+    JobStatusEnum::Canceled   => 'Canceled',
+    JobStatusEnum::Complete   => 'Complete',
+    JobStatusEnum::Failed     => 'Failed',
+    JobStatusEnum::InProgress => 'In Progress',
+    JobStatusEnum::Notice     => 'Notice',
+    JobStatusEnum::Queued     => 'Queued'
   ),
   
   'en.status.not' => array(
@@ -736,6 +790,12 @@ original notification at
                                       ContactEnum::Mobile => 'Mobile',
                                       ContactEnum::Office => 'Office'),
   
+  // Extended type, key must be en.model.attribute
+  'en.url.type' => array(
+    UrlEnum::Official => 'Official',
+    UrlEnum::Personal => 'Personal',
+  ),
+  
   'en.visibility' => array(
     VisibilityEnum::CoAdmin         => 'CO Admin',
     VisibilityEnum::CoGroupMember   => 'CO Group Member',
@@ -751,6 +811,8 @@ original notification at
   'er.auth.empty' =>  'Found empty username at login. Please contact an administrator for assistance.',
   'er.auth.org' =>    'The identifier "%1$s" is not registered. If your request for enrollment is still being processed, you will not be able to login until it is approved. Please contact an administrator for assistance.',
   'er.auth.roles' =>  'You do not have any current roles. If your request for enrollment is still being processed, you will not be able to login until it is approved. Please contact an administrator for assistance.',
+  // authr = Authenticator (model), vs Authentication (login)
+  'er.authr.unlocked' => 'Authenticator is already unlocked',
   'er.changelog.model.load' => 'Failed to load model "%1$s"',
   'er.co.cm.edit' =>  'Cannot edit COmanage CO',
   'er.co.cm.rm' =>    'Cannot remove COmanage CO',
@@ -802,6 +864,7 @@ original notification at
   'er.ef.authz.gr' => 'A group must be specified for authorization type "%1$s"',
   'er.ef.template' => 'A %1$s must be selected for use with %2$s',
   'er.efcf.init' =>   'Failed to set up initial CMP Enrollment Configuration',
+  'er.el.exists' =>   'A mailing list with the name "%1$s" already exists',
   'er.es.exists'=>    'An Enrollment Source already exists using that Org Identity Source in that mode',
   'er.et.default' =>  'Failed to add default types',
   'er.et.exists' =>   'An extended type named "%1$s" already exists',
@@ -840,10 +903,15 @@ original notification at
   'er.id.format-a' => 'The identifier "%1$s" does not meet the required format (%2$s)',
   'er.id.unk' =>      'Unknown Identifier',
   'er.id.unk-a' =>    'Unknown Identifier "%1$s"',
+  'er.input.blank' => 'Value cannot consist of only blank characters',
   'er.input.invalid' => 'Invalid character found',
+  'er.input.range' => 'Value not in permitted range',
   'er.inv.exp' =>     'Invitation Expired',
   'er.inv.exp.use' => 'Processing of invitation failed due to invitation expiration',
   'er.inv.nf' =>      'Invitation Not Found',
+  'er.jb.concurrent' => 'A Job of this type is already registered (id=%1$s)',
+  'er.jb.cxl.status' => 'Job is not in a cancelable status (%1$s)',
+  'er.linked' =>      'The requested CO Person and Org Identity are already linked',
   'er.loc.exists' =>  'A localization already exists for the key "%1$s" and language "%2$s"',
   'er.multiple' =>    'Unexpectedly found multiple results',
   'er.nd.already'  => 'NSF Demographic data already exists for this person',
@@ -874,7 +942,7 @@ original notification at
   'er.perm.status' => 'Permission Denied: Status is %1$s',
   'er.permission' =>  'Permission Denied',
   'er.person.noex' => 'Person does not exist',
-  'er.person.none' => 'No CO Person, CO Person Role, or Org Identity specified',
+  'er.person.none' => 'No CO Person, CO Person Role, Org Identity, or CO Department specified',
   'er.pi.match.multi' => 'Canonical %1$s match type found more than one matching record',
   'er.plugin.fail' => 'Failed to load plugin "%1$s"',
   'er.plugin.none' => 'There are no suitable plugins available. No %1$s can be added.',
@@ -899,6 +967,8 @@ original notification at
   'er.ssh.private' => 'Uploaded file appears to be a private key',
   'er.ssh.rfc4716' => 'RFC4716 format public keys are not currently supported',
   'er.ssh.type' =>    'Unknown SSH key type "%1$s"',
+  'er.status.already' => 'Status is already %1$s',
+  'er.svc.group.none' => 'No group is attached to this service',
   'er.timeout' =>     'Your session has expired. Please login again.',
   'er.token' =>       'Invalid token',
   'er.ug.blocked' =>  'Cannot automatically upgrade past version %1$s. Please upgrade to that version first.',
@@ -920,6 +990,7 @@ original notification at
   'fd.address' =>     'Address',
   // The next set must be named fd.model.validation-field
   'fd.address.country' => 'Country',
+  'fd.address.description' => 'Description',
   'fd.address.language' => 'Language',
   'fd.address.locality' => 'City',
   'fd.address.street' => 'Street',
@@ -936,6 +1007,7 @@ original notification at
   'fd.all' =>         'All',
   'fd.an.desc' =>     'Alphanumeric characters only',
   'fd.approver' =>    'Approver',
+  'fd.archived' =>    'Archived',
   'fd.attribute' =>   'Attribute',
   'fd.attr.env' =>    'Environment Variable Name',
   'fd.attr.ldap' =>   'LDAP Name',
@@ -975,14 +1047,26 @@ original notification at
   'fd.de.disab'   =>  'Disability',
   'fd.de.enable'  =>  'Enable NSF Demographics',
   'fd.default'    =>  'Default',
+  'fd.dp.group.admin' => 'Administrative Group',
+  'fd.dp.group.admin.desc' => 'Group containing the Department administrators',
+  'fd.dp.group.leader' => 'Leadership Group',
+  'fd.dp.group.leader.desc' => 'Group containing the Department leadership (Chair/s, PI/s, VP/s, etc)',
+  'fd.dp.group.support' => 'Support Group',
+  'fd.dp.group.support.desc' => 'Group containing the Department support personnel',
+  'fd.dp.intro' =>    'Introduction',
+  'fd.dp.intro.desc' => 'A short introductory text describing the purpose or other information about the department',
   'fd.desc' =>        'Description',
+  // fd.description is for default field mapping in AppModel::ChangesForModel
+  'fd.description' => 'Description',
   'fd.directory' =>   'Directory',
   'fd.domain' =>      'Domain',
   // Enrollment configuration fields
   'fd.ea.attr.copy2cop' => 'Copy this attribute to the CO Person record',
   'fd.ea.ignauth' =>  'Ignore Authoritative Values',
-  'fd.ea.ignauth.flow.desc' => 'Ignore authoritative values for attributes attached to this flow, such as those provided via environment variables, SAML, or LDAP',
+  'fd.ea.ignauth.flow.desc' => 'Ignore authoritative values for attributes attached to this flow, such as those provided via environment variables, SAML, or LDAP (CMP Enrollment Attributes only, setting does not apply to Enrollment Sources)',
   'fd.ea.ignauth.desc' => 'Ignore authoritative values for this attribute, such as those provided via environment variables, SAML, or LDAP',
+  'fd.ea.default_env' => 'Environment Variable For Default Value',
+  'fd.ea.default_env.desc' => 'If populated, the value of this environment variable will be used as the default value for this attribute (See also <a href="https://spaces.internet2.edu/x/mA39Bg#ConsumingExternalAttributesviaWebServerEnvironmentVariables-PopulatingDefaultValuesDuringEnrollment">this documentation</a>)',
   'fd.ea.desc'    =>  'Description',
   'fd.ea.desc.desc' => 'Descriptive text to be displayed when prompting for this attribute (like this text you\'re reading now)',
   'fd.ea.label'   =>  'Label',
@@ -1066,6 +1150,8 @@ original notification at
   'fd.ef.px.desc' =>  'Executable to call to initiate user provisioning',
   'fd.ef.rd.confirm' => 'Confirmation Redirect URL',
   'fd.ef.rd.confirm.desc' => 'URL to redirect to after the email address associated with the Petition is confirmed. Leave blank for account linking enrollment.',
+  'fd.ef.rd.finalize' => 'Finalization Redirect URL',
+  'fd.ef.rd.finalize.desc' => 'URL to redirect to after processing of the enrollment has completed.',
   'fd.ef.rd.submit' => 'Submission Redirect URL',
   'fd.ef.rd.submit.desc' => 'URL to redirect to after Petition is submitted by someone who is not already in the CO.',
   'fd.ef.saml' =>     'Enable SAML Attribute Extraction',
@@ -1080,6 +1166,8 @@ original notification at
   'fd.ef.vmt.desc' => 'Message template used for email sent as part of verification step',
   'fd.ef.vsub' =>     'Subject For Verification Email',
   'fd.ef.vsub.desc' => 'Subject line for email message sent as part of verification step.',
+  'fd.ef.whitelist' => 'Return URL Whitelist',
+  'fd.ef.whitelist.desc' => 'Permitted regular expressions (one per line) for <i>return</i> parameter, which if specified overrides Finalization Redirect URL',
   // (End enrollment configuration fields)
   // Enrollment Flow Template Names
   'fd.ef.tmpl.arl' => 'Additional Role (Template)',
@@ -1087,7 +1175,15 @@ original notification at
   'fd.ef.tmpl.inv' => 'Invitation (Template)',
   'fd.ef.tmpl.lnk' => 'Account Linking (Template)',
   'fd.ef.tmpl.ssu' => 'Self Signup With Approval (Template)',
+  'fd.el.gr.admins' => 'Administrators Group',
+  'fd.el.gr.admins.desc' => 'Members of this group will be provisioned as administrators of the list, if supported by the mailing list service',
+  'fd.el.gr.members' => 'Members Group',
+  'fd.el.gr.members.desc' => 'Members of this group will be provisioned as recipients of messages to the list',
+  'fd.el.gr.moderators' =>  'Moderators Group',
+  'fd.el.gr.moderators.desc' => 'Members of this group will be provisioned as moderators of the list, if supported by the mailing list service',
+  'fd.el.name.desc' => 'List name may only consist of alphanumeric characters, dot, dash, and underscore. Although the list name may be changed here, not all Provisioning Targets may support renaming a list.',
   // This must be named fd.model.validation-field
+  'fd.email_address.description' => 'Description',
   'fd.email_address.mail' => 'Email',
   'fd.email_address.verified' => 'Verified',
   'fd.email_address.unverified' => 'Unverified',
@@ -1138,6 +1234,7 @@ original notification at
   // fd.id.seq should be used only for database internal column IDs
   'fd.id.seq' =>      'ID',
   // The next set must be named fd.model.validation-field
+  'fd.identifier.description' => 'Description',
   'fd.identifier.identifier' => 'Identifier',
   'fd.identifier.login' => 'Login',
   'fd.identifier.login.desc' =>  'Allow this identifier to login to Registry',
@@ -1148,6 +1245,14 @@ original notification at
   'fd.inv.for' =>     'Invitation for %1$s',
   'fd.inv.to' =>      'Invitation to %1$s',
   'fd.ip' =>          'IP Address',
+  'fd.job.complete_time' => 'Finished',
+  'fd.job.finish_summary' => 'Finish Summary',
+  'fd.job.mode' =>    'Job Mode',
+  'fd.job.queue_time' => 'Queued',
+  'fd.job.register_summary' => 'Register Summary',
+  'fd.job.start_summary' => 'Start Summary',
+  'fd.job.start_time' => 'Started',
+  'fd.job.type' =>    'Job Type',
   'fd.key' =>         'Key',
   'fd.language' =>    'Language',
   'fd.lan.desc' =>    'Lowercase alphanumeric characters only',
@@ -1198,15 +1303,21 @@ original notification at
   'fd.ois.eppn.type.desc' => 'If set, use the identifier of this type to construct an ePPN',
   'fd.ois.gr.map' =>  'Target Group',
   'fd.ois.gr.map.desc' => 'When the above conditions are matched, a membership will be created in this group',
+  'fd.ois.pattern.desc' => 'For regular expressions, including leading and trailing slashes (eg: /foo.*/)',
   'fd.ois.record' =>  'Source Record',
   'fd.ois.record.desc' => 'If the source record is empty, it likely indicates this record is no longer available from the datasource',
   'fd.ois.record.count' => '%1$s: %2$s records currently synced',
+  'fd.ois.record.hash' => 'Hash Source Records',
+  'fd.ois.record.hash.desc' => 'Store a hashed version of the cached source record used by Registry to detect changes',
+  'fd.ois.record.hashed' => 'Source Record (hashed)',
   'fd.ois.search.mail' => 'Please enter the email address associated with the Organizational Identity you would like to use to enroll',
   'fd.ois.search.select' => 'Please select the identity you would like to use from the following matches for "%1$s"',
   'fd.ois.search.select.disabled' => 'Disabled options are already attached to an Org Identity and so cannot be selected',
   'fd.ois.search.token' => 'An email has been sent to "%1$s". Please check your mail and enter the token you received. (NOT IMPLEMENTED -- ENTER ANY TOKEN)',
   'fd.ois.sync.disable' => 'Disable Org Identity Source Sync',
   'fd.ois.sync.disable.desc' => 'Disable automatic (scheduled) syncing of Organizational Identity Sources<br />This setting does not impact manual syncing',
+  'fd.ois.sync.loginquery' => 'Sync on Login',
+  'fd.ois.sync.loginquery.desc' => 'If set, when a person logs into Registry and has a record from this source, the record will be resynced during the login process',
   'fd.ois.sync.mode' => 'Sync Mode',
   'fd.ois.sync.mismatch' => 'Email Mismatch Mode',
   'fd.ois.sync.mismatch.desc' => 'If a returned record has a different email address than the one that was searched, how the record should be handled',
@@ -1256,6 +1367,7 @@ original notification at
   'fd.prov.status.for' => 'Provisioning Status for %1$s',
   'fd.pt.archived' => 'The definition of this attribute changed after the creation of this petition',
   'fd.pt.deleted' =>  'This attribute was deleted after the creation of this petition',
+  'fd.pt.identities' => 'Attached Identities',
   'fd.pt.textfield' => 'Text Field (Petition Use Only)',
   'fd.pt.required' => '&dagger; denotes required fields if you populate this section',
   'fd.recipient' =>   'Recipient',
@@ -1269,7 +1381,10 @@ original notification at
   'fd.revision' =>    'Revision',
   'fd.roles' =>       'Roles',
   'fd.room' =>        'Room',
+  'fd.search.all' =>  'Search All Fields',
   'fd.searchbase' =>  'Search Base',
+  'fd.set' =>         'Set',
+  'fd.set.not' =>     'Not Set',
   'fd.sshkey.comment' => 'Comment',
   'fd.sshkey.skey' => 'Key',
   'fd.sshkey.type' => 'Key Type',
@@ -1281,17 +1396,21 @@ original notification at
   'fd.sponsor.inel' => 'The current sponsor is no longer eligible to act as a sponsor',
   'fd.sponsor.mode' => 'Sponsor Eligibility Mode',
   'fd.sponsor.mode.desc' => 'Which CO People are eligible to sponsor CO Person Roles',
-  'fd.ssp.default' => 'If permission is not explicitly granted here for a supported model, then self service updates are not permitted for that model. The permission will be Read Only. Default Read Write permission is required to add new values.',
+  'fd.ssp.default' => 'If permission is not explicitly granted here for a supported model, then self service updates are not permitted for that model. The permission will be Read Only.',
   'fd.ssp.type.desc' => '"Default" applies this permission to all types not otherwise specified',
   'fd.status' =>      'Status',
+  'fd.status.filters' => 'Status filters',
   'fd.status.ae.desc' => 'Making an Attribute Enumeration inactive will not affect existing records using it',
   'fd.status.change' => 'Manually changing the status of a CO Person when there is a Petition in progress will not change the status of the Petition',
   'fd.status.et.desc' => 'An Extended Type that is in use cannot be made inactive',
   'fd.subject' =>     'Subject',
+  'fd.svc.cou.desc' => 'COU this Service is attached to, for Service Portal rendering',
   'fd.svc.euri' =>    'Entitlement URI',
   'fd.svc.euri.desc' => 'Entitlement URI, as specified by <a href="http://software.internet2.edu/eduperson/internet2-mace-dir-eduperson-201602.html">eduPerson</a>',
   'fd.svc.group' =>   'Service Group',
   'fd.svc.group.desc' => 'Access to this Service requires membership in this Group',
+  'fd.svc.label' =>   'Service Label',
+  'fd.svc.label.desc' => 'Protocol specific service label, eg SAML Entity ID or OIDC Client ID',
   'fd.svc.mail' =>    'Service Contact Email',
   'fd.svc.mail.desc' => 'Email contact address for assistance with this Service',
   'fd.svc.portal' =>  'Service Portal',
@@ -1315,6 +1434,7 @@ original notification at
   'fd.telephone_number.area_code' => 'Area Code',
   'fd.telephone_number.number' => 'Number',
   'fd.telephone_number.extension' => 'Extension',
+  'fd.telephone_number.description' => 'Description',
   // This one is for rendering into a telephone number string (eg: 555 1212 x279)
   'fd.telephone.ext' => 'x',
   'fd.text' =>        'Text',
@@ -1335,10 +1455,15 @@ original notification at
   'fd.type' =>        'Type',
   'fd.type.warn' =>   'After an extended attribute is created, its type may not be changed',
   'fd.timezone' =>    'Timezone',
+  'fd.timezone.desc' => 'By default, browser detection is used to select a timezone. Only set a timezone here to force a particular selection.',
   'fd.timezone.change' => 'A change to your preferred timezone will take effect after your next login',
   'fd.update.last' => 'Last Updated',
   'fd.unresolved' =>  'Unresolved',
   'fd.untitled' =>    'Untitled',
+  // This must be named fd.model.validation-field
+  'fd.url.description' => 'Description',
+  'fd.url.url' =>     'URL',
+  'fd.url.url.desc' => 'URL, including protocol (ie: http://myvo.org, not just myvo.org)',
   'fd.url' =>         'URL',
   'fd.username.api' => 'API User Name',
   'fd.valid_from' =>  'Valid From',
@@ -1389,8 +1514,11 @@ original notification at
 
   // Informational messages
   'in.groupmember.select' => 'This change will not take effect until the person becomes active.',
+  'in.id.prov'         => 'This identifier was created by the %1$s Provisioning Target. Editing it may cause operational inconsistencies if the change is not coordinated with the target.',
   'in.idval.plugins'   => 'There are no Identifier Validator plugins currently installed.',
   'in.login.last'      => 'Your last login as %1$s was at %2$s from %3$s',
+  'in.ois.noinventory' => 'This Organizational Identity Source does not support viewing inventory.',
+  'in.ois.nosearch'    => 'This Organizational Identity Source cannot be searched.',
   'in.orgidentities'   => 'Organizational Identities represent a person\'s identity as asserted by a "home" institution, such as their University or a social identity provider.  Reading the documentation before editing them is advised.',
   'in.orgid.co'        => 'An Organizational Identity already attached to a CO Person within the CO cannot be re-invited or linked.',
   'in.orgid.email'     => 'An Organizational Identity must have an email address defined in order to be invited.',
@@ -1400,7 +1528,8 @@ original notification at
   'in.orgid.pi.role'   => 'CO Person Role created from this Org Identity via Pipeline',
   'in.orgid.pi.group'  => '%1$s Group Membership created from this Org Identity via Pipeline',
   'in.pagination.format' =>  'Page {:page} of {:pages}, Viewing {:start}-{:end} of {:count}',
-
+  'in.pl.noconfig'     => 'This provisioner has no configurable options',
+  
   // Menu
   'me.account'         => 'My Account',
   'me.changepassword'  => 'Change Password',
@@ -1420,13 +1549,15 @@ original notification at
   // Alphabet menu (for co_people filter by first letter of family name)
   // Can be changed to a static array of internationalized characters, for example:
   //'me.alpha' => array('a','ä','b','c'),
-  'me.alpha' => range('a','z'),
+  'me.alpha'       => range('a','z'),
+  'me.alpha.label' => 'filter people by first letter of family name',
   
   // Job related messages
   'jb.ois.sync.full.finish' => 'Sync of new org identities from source complete',
   'jb.ois.sync.full.start' => 'Beginning sync of new org identities from source (%1$s in source; %2$s already known, %3$s new)',
   'jb.ois.sync.query.finish' => 'Query for matching org identities from source complete',
   'jb.ois.sync.query.start' => 'Beginning query for matching org identities from source (%1$s email addresses to query of %2$s known)',
+  'jb.ois.sync.update.changed' => '%1$s known record(s) changed, of %2$s reported by source',
   'jb.ois.sync.update.finish' => 'Sync of existing org identities from source complete',
   'jb.ois.sync.update.start' => 'Beginning sync of existing org identities from source (%1$s current total)',
 
@@ -1434,10 +1565,15 @@ original notification at
   // Can include token replacements in the form of {0}, {1}, {2}, etc.
   // Pass a replacements array as the last parameter to js_confirm_generic() in default.ctp
   // NOTE: these strings should escape all quotes using &quot; (or \x22) and &apos; (or \x27)
+  'js.auth.lock'      =>  'Please confirm locking \x22{0}\x22 for {1}.',
+  'js.auth.reset'     =>  'Please confirm resetting \x22{0}\x22 for {1}.',
+  'js.auth.unlock'    =>  'Please confirm unlocking \x22{0}\x22 for {1}.',
   'js.ois.inventory'  =>  'Are you sure you wish to retrieve the full inventory from this backend? This may be slow and result in a large page load.',
   'js.remove'         =>  'Are you sure you wish to remove \x22{0}\x22?  This action cannot be undone.',
+  'js.remove.id.prov' =>  'The identifier \x22{0}\x22 was created by the provisioning target, and removing it may cause operational problems. Are you sure you wish to remove it? This action cannot be undone.',
   'js.remove.member'  =>  'Are you sure you wish to remove this member from group \x22{0}\x22?  This action cannot be undone.',
   'js.reinvite'       =>  'Are you sure you wish to resend an invitation to {0}?  Any previous invitation will be invalidated.',
+  'js.cancel.job'     =>  'Are you sure you wish to cancel this job? Cancelation may not be immediate.',
   'js.confirm.verify' =>  'Are you sure you wish to send a verification request to {0}? Any previous request will be invalidated.',
 
   // Operations
@@ -1452,19 +1588,23 @@ original notification at
   'op.begin' =>       'Begin',
   'op.cancel' =>      'Cancel',
   'op.clear.all' =>   'Clear',
+  'op.clear.search' =>   'Clear search',
   'op.compare' =>     'Compare',
   'op.config' =>      'Configure',
   'op.confirm' =>     'Confirm',
   'op.cont' =>        'Continue',
   'op.confirm.box' => 'Check the box to confirm',
-  'op.dashboard.select' => 'Welcome to %1$s. Please select an action from the menus, above.',
+  'op.dashboard.configuration' => 'Configuration for %1$s',
+  'op.dashboard.select' => 'Welcome to %1$s. Please select an action from the menus.',
   'op.db.ok' =>       'Database schema update successful',
-  'op.db.schema' =>   'Loading schema from file %1$s...',
+  'op.db.schema' =>   'Loading schema from file %1$s...' . "\nThis make take a few minutes for large datasets, please do not interrupt.",
   'op.decline' =>     'Decline',
   'op.delete' =>      'Delete',
+  'op.delete-a' =>    'Delete %1$s',
   'op.delete.consfdemographics' => 'this NSF demographic entry',
   'op.delete.ok' =>   'Are you sure you wish to remove "%1$s"? This action cannot be undone.',
   'op.deny' =>        'Deny',
+  'op.display.qr.for' => 'Display QR code for %1$s',
   'op.done' =>        'Done',
   'op.dupe' =>        'Duplicate',
   'op.edit' =>        'Edit',
@@ -1499,10 +1639,12 @@ original notification at
   'op.gr.reconcile.wait' => 'Requesting reconcilation, please wait...',
   'op.grm.edit' =>    'Edit Members of %1$s Group %2$s',
   'op.grm.manage' =>  'Manage My Group Memberships',
+  'op.grm.manage.all' =>  'Manage Groups',
   'op.grm.my.groups' => 'My Groups',
   'op.grm.title' =>   '%1$s %2$s Membership For %3$s',
   'op.history' =>     'View History',
-  'op.home.login' =>  'Welcome to %1$s. Please login.',
+  'op.history.job' => 'View Job History',
+  'op.home.login' =>  'Welcome to %1$s.',
   'op.home.select' => 'Welcome to %1$s. Please select a collaboration.',
   'op.home.collabs' => 'Available Collaborations',
   'op.home.collabs.summary' => 'All collaborations in which user may participate',
@@ -1529,9 +1671,12 @@ original notification at
   'op.link.petition' => 'There is a petition %1$s (%2$s) attached to the Organizational Identity. You may wish to approve or deny this petition before linking.',
   'op.link.select' => 'Please select the CO Person you would like to attach the Organizational Identity "%1$s" (%2$s) to by clicking the associated link button.',
   'op.link.to.co' =>  'Link to %1$s CO Person',
+  'op.lock' =>        'Lock',
   'op.login' =>       'Login',
   'op.logins.view' => 'View Login History',
   'op.logout' =>      'Logout',
+  'op.manage' =>      'Manage',
+  'op.manage-a' =>    'Manage %1$s',
   'op.next' =>        'Next',
   'op.ois.conf.gr' => 'Configure Group Mapping',
   'op.ois.inventory' => 'View %1$s Inventory',
@@ -1574,32 +1719,41 @@ original notification at
   'op.remove' =>      'Remove',
   'op.reorder' =>     'Reorder',
   'op.reorder-a' =>   'Reorder %1$s',
-  'op.reset' =>       'Reset Form',
+  'op.reset' =>       'Reset',
   'op.restore.ef' =>  'Add/Restore Default Templates',
   'op.restore.types' => 'Add/Restore Default Types',
   'op.run' =>         'Run',
   'op.save' =>        'Save',
   'op.search' =>      'Search',
   'op.search-a' =>    'Search %1$s',
+  'op.search.global' => 'Global Search',
   'op.search.restore' =>  'Restore default listing',
-  'op.see.notifications' =>  'View full notifications list...',
+  'op.see.notifications' =>  'View all notifications',
+  'op.see.notification.num' =>  'notification #%1$s',
   'op.select' =>      'Select',
   'op.select-a' =>    'Select %1$s',
   'op.select.select' => 'Please select the CO Person you would like to attach to this Petition by clicking the associated select button.',
   'op.select.empty' => '(select...)',
   'op.select.empty-a' => '%1$s (select...)',
   'op.submit' =>      'Submit',
+  'op.svc.join' =>    'Join',
+  'op.svc.leave' =>   'Leave',
+  // Not really an op but it belongs with the other three (join/request/leave)
+  'op.svc.member' =>  'Member',
+  'op.svc.request' => 'Request Access',
   'op.tc.agree' =>    'Agree to Terms and Conditions',
   'op.tc.agree.i' =>  'I Agree',
   'op.tc.review' =>   'Review Terms and Conditions',
   'op.tc.review.pt' => 'Review All Agreed To Terms and Conditions',
   'op.unlink' =>      'Unlink',
   'op.unlink.confirm' => 'Are you sure you wish to unlink this identity?',
+  'op.unlock' =>      'Unlock',
   'op.upload' =>      'Upload',
   'op.upload.new' =>  'Upload a New %1$s',
   'op.verify' =>      'Verify',
   'op.view' =>        'View',
   'op.view.all' =>    'View All',
+  'op.view.current' => 'View Current',
   'op.view.pending' => 'View Pending',
   'op.view.source' => 'View Source',
   'op.view-a' =>      'View %1$s',
@@ -1610,6 +1764,10 @@ original notification at
   'rs.added-a' =>     '"%1$s" Added',
   'rs.added-a2' =>    '%1$s "%2$s" Added',
   'rs.added-a3' =>    '%1$s Added',
+  'rs.authr.locked' => 'Authenticator "%1$s" locked',
+  'rs.authr.reset' => 'Authenticator "%1$s" reset',
+  'rs.authr.status' => 'Authenticator "%1$s" status changed from %2$s to %3$s',
+  'rs.authr.unlocked' => 'Authenticator "%1$s" unlocked',
   'rs.cop.recalc' =>  'CO Person status recalculated to %1$s',
   'rs.copr.mod' =>    'CO Person Role status changed from %1$s to %2$s',
   'rs.copy-a1' =>     '%1$s Copied',
@@ -1640,6 +1798,8 @@ original notification at
   'rs.inv.dec' =>     'Invitation Declined',
   'rs.inv.dec-a' =>   'Invitation to %1$s declined',
   'rs.inv.sent' =>    'Invitation sent to %1$s',
+  'rs.jb.cxld' =>     'Job flagged as canceled, actual termination may not be immediate',
+  'rs.jb.cxld.by' =>  'Job canceled by %1$s',
   'rs.mail.verified' => 'Email Address "%1$s" verified',
   'rs.match.possible' => 'Possible Matches',
   'rs.moved.copr' =>  'CO Person Role "%1$s" (%2$s) moved from %3$s (%4$s) to %5$s (%6$s)',
@@ -1654,8 +1814,10 @@ original notification at
   'rs.nt.expunge' =>  'Notification %1$s %2$s removed as part of CO Person expunge',
   'rs.nt.resd-a' =>   'Notification resolved: "%1$s"',
   'rs.nt.sent' =>     'Approval notification sent to %1$s',
+  'rs.ois.sync.login' => 'Org Identity resynced on login',
   'rs.org.src.link' => 'CO Person and Org Identity Linked via Org Identity Source "%1$s" (%2$s)',
   'rs.org.src.new' => 'Org Identity created from Source "%1$s" (%2$s)',
+  'rs.org.src.new.pet' => 'Org Identity created from Source "%1$s" (%2$s) (Petition)',
   'rs.org.src.removed' => 'Source record is no longer available, Org Identity has been flagged as removed',
   'rs.org.src.rm'  => 'Org Identity removed from Source "%1$s" (%2$s)',
   'rs.org.src.sync' => 'Org Identity synced from Source "%1$s" (%2$s)',
@@ -1683,6 +1845,7 @@ original notification at
   'rs.pt.id.attached' => 'Authenticated identifier "%1$s" attached to organizational identity',
   'rs.pt.id.auth' =>  'Identifier "%1$s" authenticated',
   'rs.pt.id.login' => 'Identifier "%1$s" flagged for login',
+  'rs.pt.link' =>     'Linked to Petition from Enrollment Flow "%1$s"',
   'rs.pt.link.cop' => 'Linked existing CO Person (%1$s) to Petition',
   'rs.pt.link.org' => 'Linked existing Org Identity (%1$s) to Petition',
   'rs.pt.login' =>    'Petition Created. You have been logged out, and an activation URL has been sent to your email address. Please click the link in that email to continue.',
@@ -1695,8 +1858,11 @@ original notification at
   'rs.pt.status.h' => 'Petition changed status from %1$s to %2$s',
   'rs.pt.tc.explicit' => 'Explicit agreement to Terms and Conditions "%1$s"',
   'rs.pt.tc.implied' => 'Implied agreement to Terms and Conditions "%1$s"',
+  'rs.search.1' =>    'Exact match for "%1$s" found (%2$s)',
   'rs.search.none' => 'No results found',
+  'rs.search.noquery' => 'No search query was submitted.  Please enter a search query above.',
   'rs.saved' =>       'Saved',
+  'rs.svc.grmem' =>   'Group membership successfully updated',
   'rs.tc.agree' =>    'Terms and Conditions "%1$s" agreed to',
   'rs.tc.agree.behalf' => 'Terms and Conditions "%1$s" agreed to on behalf of',
   'rs.tc.agree.ok' => 'Agreement to Terms and Conditions recorded',
@@ -1774,6 +1940,7 @@ original notification at
   'sh.ug.110.ef' =>       'Migrating enrollment flow configurations',
   'sh.ug.110.gr' =>       'Renaming and reconciling automatic groups (please wait, this may take some time)',
   'sh.ug.110.is' =>       'Updating inactive identifier status',
+  'sh.ug.310.url' =>      'Instantiating default URL Extended Types',
 );
 
 // Make a copy of the original texts, since CoLocalizations can override them
@@ -1796,6 +1963,10 @@ function _txt($key, $vars=null, $index=null)
   // XXX need to figure out how to pass arbitrary # of args to sprintf
   
   $s = (isset($index) ? $cm_texts[ $cm_lang ][$key][$index] : $cm_texts[ $cm_lang ][$key]);
+  
+  if(!$vars) {
+    return $s;
+  }
   
   switch(count($vars))
   {

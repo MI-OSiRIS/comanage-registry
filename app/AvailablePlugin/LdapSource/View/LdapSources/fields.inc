@@ -37,103 +37,123 @@
   if(!$e && !$permissions['view'])
     return false;
   
+  // Add breadcrumbs
+  print $this->element("coCrumb");
+
+  $args = array();
+  $args['plugin'] = null;
+  $args['controller'] = 'org_identity_sources';
+  $args['action'] = 'index';
+  $args['co'] = $cur_co['Co']['id'];
+  $this->Html->addCrumb(_txt('ct.org_identity_sources.pl'), $args);
+
+  $args = array();
+  $args['plugin'] = null;
+  $args['controller'] = 'org_identity_sources';
+  $args['action'] = 'edit';
+  $args[] = $vv_oisid;
+  $this->Html->addCrumb($ldap_sources[0]['OrgIdentitySource']['description'], $args);
+
+  $crumbTxt = _txt('op.config');
+  $this->Html->addCrumb($crumbTxt);
+  
   print $this->Form->hidden('org_identity_source_id', array('default' => $vv_oisid)) . "\n";
 
 ?>
-<div class="ui-state-highlight ui-corner-all" style="margin-top: 20px; padding: 0 .7em;"> 
-  <p>
-    <span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>
-    <strong><?php print _txt('pl.ldapsource.info'); ?></strong>
-  </p>
+<div class="co-info-topbox">
+  <i class="material-icons">info</i>
+  <?php print _txt('pl.ldapsource.info'); ?>
 </div>
-<br />
-<table id="<?php print $this->action; ?>_ldap_source_target" class="ui-widget">
-  <tbody>
-    <tr class="line1">
-      <td style="width:50%">
-        <strong class="fieldTitle"><?php print _txt('pl.ldapsource.serverurl'); ?></strong><font class="required">*</font><br />
-        <font class="desc"><?php print _txt('pl.ldapsource.serverurl.desc'); ?></font>
-      </td>
-      <td>
+<ul id="<?php print $this->action; ?>_ldap_source_target" class="fields form-list form-list-admin">
+    <li>
+      <div class="field-name">
+        <div class="field-title">
+          <?php print _txt('pl.ldapsource.serverurl'); ?> 
+          <span class="required">*</span>
+        </div>
+        <div class="field-desc"><?php print _txt('pl.ldapsource.serverurl.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e ? $this->Form->input('serverurl', array('size' => 50)) : filter_var($ldap_sources[0]['LdapSource']['serverurl'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <strong class="fieldTitle"><?php print _txt('pl.ldapsource.binddn'); ?></strong><br />
-        <font class="desc"><?php print _txt('pl.ldapsource.binddn.desc'); ?></font>
-      </td>
-      <td>
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title"><?php print _txt('pl.ldapsource.binddn'); ?></div>
+        <div class="field-desc"><?php print _txt('pl.ldapsource.binddn.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e ? $this->Form->input('binddn', array('size' => 50)) : filter_var($ldap_sources[0]['LdapSource']['binddn'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line1">
-      <td>
-        <strong class="fieldTitle"><?php print _txt('pl.ldapsource.password'); ?></strong><br />
-        <font class="desc"><?php print _txt('pl.ldapsource.password.desc'); ?></font>
-      </td>
-      <td>
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title"><?php print _txt('pl.ldapsource.password'); ?></div>
+        <div class="field-desc"><?php print _txt('pl.ldapsource.password.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e ? $this->Form->input('password') : filter_var($ldap_sources[0]['LdapSource']['password'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <strong class="fieldTitle"><?php print _txt('pl.ldapsource.basedn'); ?></strong><font class="required">*</font><br />
-        <font class="desc"><?php print _txt('pl.ldapsource.basedn.desc'); ?></font>
-      </td>
-      <td>
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
+          <?php print _txt('pl.ldapsource.basedn'); ?>
+          <span class="required">*</span>
+        </div>
+        <div class="field-desc"><?php print _txt('pl.ldapsource.basedn.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e ? $this->Form->input('basedn', array('size' => 50)) : filter_var($ldap_sources[0]['LdapSource']['basedn'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line1">
-      <td>
-        <strong class="fieldTitle"><?php print _txt('pl.ldapsource.key_attribute'); ?></strong></strong><font class="required">*</font><br />
-        <font class="desc"><?php print _txt('pl.ldapsource.key_attribute.desc'); ?></font>
-      </td>
-      <td>
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title">
+          <?php print _txt('pl.ldapsource.key_attribute'); ?>
+          <span class="required">*</span>
+        </div>
+        <div class="field-desc"><?php print _txt('pl.ldapsource.key_attribute.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e ? $this->Form->input('key_attribute') : filter_var($ldap_sources[0]['LdapSource']['key_attribute'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <strong class="fieldTitle"><?php print _txt('pl.ldapsource.search_filter'); ?></strong><br />
-        <font class="desc"><?php print _txt('pl.ldapsource.search_filter.desc'); ?></font>
-      </td>
-      <td>
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title"><?php print _txt('pl.ldapsource.search_filter'); ?></div>
+        <div class="field-desc"><?php print _txt('pl.ldapsource.search_filter.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e ? $this->Form->input('search_filter', array('size' => 50)) : filter_var($ldap_sources[0]['LdapSource']['search_filter'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line1">
-      <td>
-        <strong class="fieldTitle"><?php print _txt('pl.ldapsource.uidattr'); ?></strong><br />
-        <font class="desc"><?php print _txt('pl.ldapsource.uidattr.desc'); ?></font>
-      </td>
-      <td>
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title"><?php print _txt('pl.ldapsource.uidattr'); ?></div>
+        <div class="field-desc"><?php print _txt('pl.ldapsource.uidattr.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e ? $this->Form->input('uid_attr', array('size' => 50)) : filter_var($ldap_sources[0]['LdapSource']['uid_attr'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <td>
-        <strong class="fieldTitle"><?php print _txt('pl.ldapsource.uidattr_login'); ?></strong><br />
-        <font class="desc"><?php print _txt('pl.ldapsource.uidattr_login.desc'); ?></font>
-      </td>
-      <td>
+      </div>
+    </li>
+    <li>
+      <div class="field-name">
+        <div class="field-title"><?php print _txt('pl.ldapsource.uidattr_login'); ?></div>
+        <div class="field-desc"><?php print _txt('pl.ldapsource.uidattr_login.desc'); ?></div>
+      </div>
+      <div class="field-info">
         <?php print ($e ? $this->Form->input('uid_attr_login') : _txt($ldap_sources[0]['LdapSource']['uid_attr'] ? 'fd.yes' : 'fd.no')); ?>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <i><font class="required"><?php print _txt('fd.req'); ?></font></i><br />
-      </td>
-      <td>
-        <?php
-          if($e) {
-            print $this->Form->submit($submit_label);
-            print $this->Form->button(_txt('op.reset'), 
-                                      array('type'=>'reset'));
-          }
-        ?>
-      </td>
-    </tr>
-  </tbody>
-</table>
+      </div>
+    </li>
+    <?php if($e): ?>
+      <li class="fields-submit">
+        <div class="field-name">
+          <span class="required"><?php print _txt('fd.req'); ?></span>
+        </div>
+        <div class="field-info">
+          <?php print $this->Form->submit($submit_label); ?>
+        </div>
+      </li>
+    <?php endif; ?>
+</ul>

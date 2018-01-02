@@ -84,67 +84,66 @@
         event.preventDefault();
         $(this).next(".fields").slideToggle("fast");
         // toggle the +/- icon:
-        if ($(this).find(".ui-icon").hasClass("ui-icon-circlesmall-minus")) {
-          $(this).find(".ui-icon").removeClass("ui-icon-circlesmall-minus").addClass("ui-icon-circlesmall-plus");
+        if ($(this).find(".material-icons").text() == "indeterminate_check_box") {
+          $(this).find(".material-icons").text("add_box");
         } else {
-          $(this).find(".ui-icon").removeClass("ui-icon-circlesmall-plus").addClass("ui-icon-circlesmall-minus");
+          $(this).find(".material-icons").text("indeterminate_check_box");
         }
       });
     });
   </script>
 
-  <div id="<?php print $this->action; ?>_co_person" class="explorerContainer">
-    <div id="petition" class="personExplorer">
-      <ul class="topList">
+  <div id="<?php print $this->action; ?>_role_attributes" class="explorerContainer">
+    <div id="role-attributes" class="personExplorer">
+      <ul>
 
         <li id="fields-role" class="fieldGroup">
 
           <a href="#tabs-role" class="fieldGroupName">
-            <span class="ui-icon ui-icon-circlesmall-minus"></span>
+            <em class="material-icons">indeterminate_check_box</em>
             <?php print _txt('fd.attrs.copr'); ?>
           </a>
 
-          <table id="<?php print $this->action; ?>_co_person_role" class="ui-widget fields">
-            <tbody>
-              <?php if(!empty($co_person_roles[0]['CoPersonRole']['source_org_identity_id'])): ?>
-                <tr class="line<?php print ($l % 2); $l++; ?>">
-                  <td>
-                    <?php print _txt('fd.source'); ?>
-                  </td>
-                  <td>
-                    <?php
-                      $args = array(
-                        'controller' => 'org_identities',
-                        'action'     => 'view',
-                        $co_person_roles[0]['CoPersonRole']['source_org_identity_id']
-                      );
-                      
-                      print $this->Html->link(_txt('ct.org_identities.1'), $args);
-                    ?>
-                  </td>
-                </tr>
-              <?php endif; ?>
-              <?php if(!empty($permissions['cous'])): ?>
-                <tr class="line<?php print ($l % 2); $l++; ?>">
-                  <td>
-                    <?php
-                      $label = _txt('fd.cou-a', array(filter_var($cur_co['Co']['name'],FILTER_SANITIZE_SPECIAL_CHARS)));
-                      
-                      if($e && !$es) {
-                        print $this->Form->label('cou_id', $label);
-                        print ' <span class="required">*</span>';
-                      } else {
-                        print $label;
-                      }
-                    ?>
-                  </td>
-                  <td>
-                    <?php
+          <ul id="<?php print $this->action; ?>_co_person_role" class="fields form-list">
+            <?php if(!empty($co_person_roles[0]['CoPersonRole']['source_org_identity_id'])): ?>
+              <li>
+                <div class="field-name">
+                  <?php print _txt('fd.source'); ?>
+                </div>
+                <div class="field-info">
+                  <?php
+                    $args = array(
+                      'controller' => 'org_identities',
+                      'action'     => 'view',
+                      $co_person_roles[0]['CoPersonRole']['source_org_identity_id']
+                    );
+
+                    print $this->Html->link(_txt('ct.org_identities.1'), $args);
+                  ?>
+                </div>
+              </li>
+            <?php endif; ?>
+            <?php if(!empty($permissions['cous'])): ?>
+              <li>
+                <div class="field-name">
+                  <?php
+                    $label = _txt('fd.cou-a', array(filter_var($cur_co['Co']['name'],FILTER_SANITIZE_SPECIAL_CHARS)));
+
+                    if($e && !$es) {
+                      print $this->Form->label('cou_id', $label);
+                      print ' <span class="required">*</span>';
+                    } else {
+                      print $label;
+                    }
+                  ?>
+                </div>
+                <div class="field-info">
+                  <?php
                     $attrs['value'] = (isset($co_person_roles[0]['CoPersonRole']['cou_id'])
                       ? $co_person_roles[0]['CoPersonRole']['cou_id']
                       : 0);
                     $attrs['empty'] = false;
-                    
+
                     if($e && !$es) {
                       print $this->Form->select('cou_id',
                         $permissions['cous'],
@@ -156,25 +155,25 @@
                     } else {
                       print filter_var($co_person_roles[0]['Cou']['name'],FILTER_SANITIZE_SPECIAL_CHARS);
                     }
-                    ?>
-                  </td>
-                </tr>
-              <?php endif; ?>
-              <tr class="line<?php print ($l % 2); $l++; ?>">
-                <td>
-                  <?php
-                    $label = _txt('fd.affil-a', array(filter_var($cur_co['Co']['name'],FILTER_SANITIZE_SPECIAL_CHARS)));
-                    
-                    if($e && !$es) {
-                      print $this->Form->label('affiliation', $label);
-                      print ' <span class="required">*</span>';
-                    } else {
-                      print $label;
-                    }
                   ?>
-                </td>
-                <td>
-                  <?php
+                </div>
+              </li>
+            <?php endif; ?>
+            <li>
+              <div class="field-name">
+                <?php
+                  $label = _txt('fd.affil-a', array(filter_var($cur_co['Co']['name'],FILTER_SANITIZE_SPECIAL_CHARS)));
+
+                  if($e && !$es) {
+                    print $this->Form->label('affiliation', $label);
+                    print ' <span class="required">*</span>';
+                  } else {
+                    print $label;
+                  }
+                ?>
+              </div>
+              <div class="field-info">
+                <?php
                   global $cm_lang, $cm_texts;
                   $attrs = array();
                   $attrs['value'] = (isset($co_person_roles[0]['CoPersonRole']['affiliation'])
@@ -193,329 +192,328 @@
                   } elseif(!empty($co_person_roles[0]['CoPersonRole']['affiliation'])) {
                     print $vv_copr_affiliation_types[ $co_person_roles[0]['CoPersonRole']['affiliation'] ];
                   }
-                  ?>
-                </td>
-              </tr>
-              <tr class="line<?php print ($l % 2); $l++; ?>">
-                <td>
-                  <?php
-                    if($e && !$es) {
-                      print $this->Form->label('status', _txt('fd.status'));
-                      print '<span class="required">*</span>';
-                    } else {
-                      print _txt('fd.status');
-                    }
-                  ?>
-                </td>
-                <td>
-                  <?php
-                  global $cm_lang, $cm_texts;
-                  $attrs = array();
-                  $attrs['value'] = (isset($co_person_roles[0]['CoPersonRole']['status'])
-                    ? $co_person_roles[0]['CoPersonRole']['status']
-                    : StatusEnum::Active);
-                  $attrs['empty'] = false;
+                ?>
+              </div>
+            </li>
+            <li>
+              <div class="field-name vtop">
+                <?php
+                  if($e && !$es) {
+                    print $this->Form->label('status', _txt('fd.status'));
+                    print '<span class="required">*</span>';
+                  } else {
+                    print _txt('fd.status');
+                  }
+                ?>
+              </div>
+              <div class="field-info">
+                <?php
+                global $cm_lang, $cm_texts;
+                $attrs = array();
+                $attrs['value'] = (isset($co_person_roles[0]['CoPersonRole']['status'])
+                  ? $co_person_roles[0]['CoPersonRole']['status']
+                  : StatusEnum::Active);
+                $attrs['empty'] = false;
+
+                if($e && !$es) {
+                  print $this->Form->select('status',
+                    $cm_texts[ $cm_lang ]['en.status'],
+                    $attrs);
+
+                  if($this->Form->isFieldError('status')) {
+                    print $this->Form->error('status');
+                  }
+                } else {
+                  if(!empty($co_person_roles[0]['CoPersonRole']['status'])) {
+                    print _txt('en.status', null, $co_person_roles[0]['CoPersonRole']['status']);
+                  }
+                }
+                ?>
+                <?php if($e && !$es
+                  && !empty($co_person_roles[0]['CoPersonRole']['status'])
+                  && ($co_person_roles[0]['CoPersonRole']['status'] == StatusEnum::PendingApproval
+                    || $co_person_roles[0]['CoPersonRole']['status'] == StatusEnum::PendingConfirmation)): ?>
+                  <div class="field-desc">
+                    <span class="ui-icon ui-icon-info co-info"></span>
+                    <?php print _txt('fd.status.change'); ?>
+                  </div>
+                <?php endif; ?>
+              </div>
+            </li>
+            <li>
+              <div class="field-name">
+                <?php
+                  $label = _txt('fd.title-a', array(filter_var($cur_co['Co']['name'],FILTER_SANITIZE_SPECIAL_CHARS)));
 
                   if($e && !$es) {
-                    print $this->Form->select('status',
-                      $cm_texts[ $cm_lang ]['en.status'],
-                      $attrs);
+                    print $this->Form->label('title', $label);
+                  } else {
+                    print $label;
+                  }
+                ?>
+              </div>
+              <div class="field-info">
+                <?php
+                  if($e && !$es) {
+                    if(!empty($vv_enums_title)) {
+                      // Attribute enumerations defined
 
-                    if($this->Form->isFieldError('status')) {
-                      print $this->Form->error('status');
+                      if(!empty($co_person_roles[0]['CoPersonRole']['title'])
+                        && !array_search($co_person_roles[0]['CoPersonRole']['title'], $vv_enums_title)) {
+                        print filter_var($co_person_roles[0]['CoPersonRole']['title'],FILTER_SANITIZE_SPECIAL_CHARS);
+
+                        print '<div class="field-desc">
+                                 <span class="ui-icon ui-icon-info co-info"></span>
+                                 <em>' . _txt('er.ae.val.inv') . '</em>
+                               </div>';
+                      }
+
+                      $attrs = array();
+                      $attrs['empty'] = true;
+
+                      print $this->Form->select('title', $vv_enums_title, $attrs);
+
+                      if($this->Form->isFieldError('title')) {
+                        print $this->Form->error('title');
+                      }
+                    } else {
+                      // No attribute enumerations defined
+                      print $this->Form->input('title', array('size' => 60, 'class' => 'focusFirst'));
                     }
                   } else {
-                    if(!empty($co_person_roles[0]['CoPersonRole']['status'])) {
-                      print _txt('en.status', null, $co_person_roles[0]['CoPersonRole']['status']);
+                    print filter_var($co_person_roles[0]['CoPersonRole']['title'],FILTER_SANITIZE_SPECIAL_CHARS);
+                  }
+                ?>
+              </div>
+            </li>
+            <li>
+              <div class="field-name">
+                <?php
+                  if ($e && !$es) {
+                    print $this->Form->label('o', _txt('fd.o'));
+                  } else {
+                    print _txt('fd.o');
+                  }
+                ?>
+              </div>
+              <div class="field-info">
+                <?php
+                  if($e && !$es) {
+                    if(!empty($vv_enums_o)) {
+                      // Attribute enumerations defined
+
+                      if(!empty($co_person_roles[0]['CoPersonRole']['o'])
+                        && !array_search($co_person_roles[0]['CoPersonRole']['o'], $vv_enums_o)) {
+                        print filter_var($co_person_roles[0]['CoPersonRole']['o'],FILTER_SANITIZE_SPECIAL_CHARS);
+
+                        print '<div class="field-desc">
+                                 <span class="ui-icon ui-icon-info co-info"></span>
+                                 <em>' . _txt('er.ae.val.inv') . '</em>
+                               </div>';
+                      }
+
+                      $attrs = array();
+                      $attrs['empty'] = true;
+
+                      print $this->Form->select('o', $vv_enums_o, $attrs);
+
+                      if($this->Form->isFieldError('o')) {
+                        print $this->Form->error('o');
+                      }
+                    } else {
+                      // No attribute enumerations defined
+                      $args = array(
+                        'size' => 60
+                      );
+
+                      if($this->action == 'add') {
+                        $args['default'] = filter_var($cur_co['Co']['name'],FILTER_SANITIZE_SPECIAL_CHARS);
+                      }
+
+                      print $this->Form->input('o', $args);
+                    }
+                  } else {
+                    print filter_var($co_person_roles[0]['CoPersonRole']['o'],FILTER_SANITIZE_SPECIAL_CHARS);
+                  }
+                ?>
+              </div>
+            </li>
+            <li>
+              <div class="field-name">
+                <?php
+                  if ($e && !$es) {
+                    print $this->Form->label('ou', _txt('fd.ou'));
+                  } else {
+                    print _txt('fd.ou');
+                  }
+                ?>
+              </div>
+              <div class="field-info">
+                <?php
+                  if($e && !$es) {
+                    if(!empty($vv_enums_ou)) {
+                      // Attribute enumerations defined
+
+                      if(!empty($co_person_roles[0]['CoPersonRole']['ou'])
+                         && !array_search($co_person_roles[0]['CoPersonRole']['ou'], $vv_enums_ou)) {
+                        print filter_var($co_person_roles[0]['CoPersonRole']['ou'],FILTER_SANITIZE_SPECIAL_CHARS);
+
+                        print '<div class="field-desc">
+                                 <span class="ui-icon ui-icon-info co-info"></span>
+                                 <em>' . _txt('er.ae.val.inv') . '</em>
+                               </div>';
+                      }
+
+                      $attrs = array();
+                      $attrs['empty'] = true;
+
+                      print $this->Form->select('ou', $vv_enums_ou, $attrs);
+
+                      if($this->Form->isFieldError('ou')) {
+                        print $this->Form->error('ou');
+                      }
+                    } else {
+                      // No attribute enumerations defined
+                      print $this->Form->input('ou', array('size' => 60));
+                    }
+                  } else {
+                    print filter_var($co_person_roles[0]['CoPersonRole']['ou'],FILTER_SANITIZE_SPECIAL_CHARS);
+                  }
+                ?>
+              </div>
+            </li>
+            <li>
+              <div class="field-name">
+                <?php
+                  if($e && !$es) {
+                    print $this->Form->label('sponsor_co_person_id', _txt('fd.sponsor') . " " . _txt('fd.sponsor.desc'));
+                  } else {
+                    print _txt('fd.sponsor') . " " . _txt('fd.sponsor.desc');
+                  }
+                ?>
+              </div>
+              <div class="field-info">
+                <?php
+                if(!empty($vv_sponsors)) {
+                  if(!empty($co_person_roles[0]['CoPersonRole']['sponsor_co_person_id'])
+                    && !isset($vv_sponsors[ $co_person_roles[0]['CoPersonRole']['sponsor_co_person_id'] ])) {
+                    if(!empty($co_person_roles[0]['SponsorCoPerson']['PrimaryName'])) {
+                      print $this->Html->link(generateCn($co_person_roles[0]['SponsorCoPerson']['PrimaryName']),
+                        array('controller' => 'co_people',
+                          'action' => 'canvas',
+                          $co_person_roles[0]['SponsorCoPerson']['id']));
+                    }
+
+                    print '<div class="field-desc">
+                              <span class="ui-icon ui-icon-info co-info"></span>
+                              <em>' . _txt('fd.sponsor.inel') . '</em>
+                            </div>';
+                  }
+
+                  if($e && !$es) {
+                    print $this->Form->select('sponsor_co_person_id', $vv_sponsors);
+                  } elseif(!empty($co_person_roles[0]['CoPersonRole']['sponsor_co_person_id'])) {
+                    print filter_var($vv_sponsors[ $co_person_roles[0]['CoPersonRole']['sponsor_co_person_id'] ],FILTER_SANITIZE_SPECIAL_CHARS);
+                  }
+                }
+                ?>
+              </div>
+            </li>
+            <li class="modelbox-data">
+              <div class="field-name">
+                <?php
+                  if($e && !$es) {
+                    print $this->Form->label('valid_from', _txt('fd.valid_from.tz', array($vv_tz)));
+                  } else {
+                    print _txt('fd.valid_from');
+                  }
+                ?><br />
+                <span class="field-descr"><?php print _txt('fd.valid_from.desc'); ?></span>
+              </div>
+              <div class="field-info">
+                <?php
+                  if($e && !$es) {
+                    $args = array(
+                      'class' => 'datepicker-f'
+                    );
+
+                    if(!empty($co_person_roles[0]['CoPersonRole']['valid_from'])) {
+                      if(!empty($vv_tz)) {
+                        // We need to adjust the UTC value to the user's local time
+                        $args['value'] = $this->Time->format($co_person_roles[0]['CoPersonRole']['valid_from'], "%F %T", false, $vv_tz);
+                      } else {
+                        $args['value'] = $co_person_roles[0]['CoPersonRole']['valid_from'];
+                      }
+                    }
+
+                    print $this->Form->text('valid_from', $args);
+                  } else {
+                    if(!empty($co_person_roles[0]['CoPersonRole']['valid_from'])) {
+                      print $this->Time->format($co_person_roles[0]['CoPersonRole']['valid_from'], "%c $vv_tz", false, $vv_tz);
                     }
                   }
-                  ?>
-                  <?php if($e && !$es
-                    && !empty($co_person_roles[0]['CoPersonRole']['status'])
-                    && ($co_person_roles[0]['CoPersonRole']['status'] == StatusEnum::PendingApproval
-                      || $co_person_roles[0]['CoPersonRole']['status'] == StatusEnum::PendingConfirmation)): ?>
-                    <div>
-                      <span class="ui-icon ui-icon-info co-info"></span>
-                      <em><?php print _txt('fd.status.change'); ?></em>
-                    </div>
-                  <?php endif; ?>
-                </td>
-              </tr>
-              <tr class="line<?php print ($l % 2); $l++; ?>">
-                <td>
-                  <?php
-                    $label = _txt('fd.title-a', array(filter_var($cur_co['Co']['name'],FILTER_SANITIZE_SPECIAL_CHARS)));
-                    
-                    if($e && !$es) {
-                      print $this->Form->label('title', $label);
-                    } else {
-                      print $label;
-                    }
-                  ?>
-                </td>
-                <td>
-                  <?php
-                    if($e && !$es) {
-                      if(!empty($vv_enums_title)) {
-                        // Attribute enumerations defined
-                        
-                        if(!empty($co_person_roles[0]['CoPersonRole']['title'])
-                          && !array_search($co_person_roles[0]['CoPersonRole']['title'], $vv_enums_title)) {
-                          print filter_var($co_person_roles[0]['CoPersonRole']['title'],FILTER_SANITIZE_SPECIAL_CHARS);
-                          
-                          print '<div>
-                                   <span class="ui-icon ui-icon-info co-info"></span>
-                                   <em>' . _txt('er.ae.val.inv') . '</em>
-                                 </div>';
-                        }
-                        
-                        $attrs = array();
-                        $attrs['empty'] = true;
-                        
-                        print $this->Form->select('title', $vv_enums_title, $attrs);
-                        
-                        if($this->Form->isFieldError('title')) {
-                          print $this->Form->error('title');
-                        }
-                      } else {
-                        // No attribute enumerations defined
-                        print $this->Form->input('title', array('size' => 60, 'class' => 'focusFirst'));
-                      }
-                    } else {
-                      print filter_var($co_person_roles[0]['CoPersonRole']['title'],FILTER_SANITIZE_SPECIAL_CHARS);
-                    }
-                  ?>
-                </td>
-              </tr>
-              <tr class="line<?php print ($l % 2); $l++; ?>">
-                <td>
-                  <?php
-                    if ($e && !$es) {
-                      print $this->Form->label('o', _txt('fd.o'));
-                    } else {
-                      print _txt('fd.o');
-                    }
-                  ?>
-                </td>
-                <td>
-                  <?php
-                    if($e && !$es) {
-                      if(!empty($vv_enums_o)) {
-                        // Attribute enumerations defined
-                        
-                        if(!empty($co_person_roles[0]['CoPersonRole']['o'])
-                          && !array_search($co_person_roles[0]['CoPersonRole']['o'], $vv_enums_o)) {
-                          print filter_var($co_person_roles[0]['CoPersonRole']['o'],FILTER_SANITIZE_SPECIAL_CHARS);
-                          
-                          print '<div>
-                                   <span class="ui-icon ui-icon-info co-info"></span>
-                                   <em>' . _txt('er.ae.val.inv') . '</em>
-                                 </div>';
-                        }
-                        
-                        $attrs = array();
-                        $attrs['empty'] = true;
-                        
-                        print $this->Form->select('o', $vv_enums_o, $attrs);
-                        
-                        if($this->Form->isFieldError('o')) {
-                          print $this->Form->error('o');
-                        }
-                      } else {
-                        // No attribute enumerations defined
-                        $args = array(
-                          'size' => 60
-                        );
-                        
-                        if($this->action == 'add') {
-                          $args['default'] = filter_var($cur_co['Co']['name'],FILTER_SANITIZE_SPECIAL_CHARS);
-                        }
-                        
-                        print $this->Form->input('o', $args);
-                      }
-                    } else {
-                      print filter_var($co_person_roles[0]['CoPersonRole']['o'],FILTER_SANITIZE_SPECIAL_CHARS);
-                    }
-                  ?>
-                </td>
-              </tr>
-              <tr class="line<?php print ($l % 2); $l++; ?>">
-                <td>
-                  <?php
-                    if ($e && !$es) {
-                      print $this->Form->label('ou', _txt('fd.ou'));
-                    } else {
-                      print _txt('fd.ou');
-                    }
-                  ?>
-                </td>
-                <td>
-                  <?php
-                    if($e && !$es) {
-                      if(!empty($vv_enums_ou)) {
-                        // Attribute enumerations defined
-                        
-                        if(!empty($co_person_roles[0]['CoPersonRole']['ou'])
-                           && !array_search($co_person_roles[0]['CoPersonRole']['ou'], $vv_enums_ou)) {
-                          print filter_var($co_person_roles[0]['CoPersonRole']['ou'],FILTER_SANITIZE_SPECIAL_CHARS);
-                          
-                          print '<div>
-                                   <span class="ui-icon ui-icon-info co-info"></span>
-                                   <em>' . _txt('er.ae.val.inv') . '</em>
-                                 </div>';
-                        }
-                        
-                        $attrs = array();
-                        $attrs['empty'] = true;
-                        
-                        print $this->Form->select('ou', $vv_enums_ou, $attrs);
-                        
-                        if($this->Form->isFieldError('ou')) {
-                          print $this->Form->error('ou');
-                        }
-                      } else {
-                        // No attribute enumerations defined
-                        print $this->Form->input('ou', array('size' => 60));
-                      }
-                    } else {
-                      print filter_var($co_person_roles[0]['CoPersonRole']['ou'],FILTER_SANITIZE_SPECIAL_CHARS);
-                    }
-                  ?>
-                </td>
-              </tr>
-              <tr class="line<?php print ($l % 2); $l++; ?>">
-                <td>
-                  <?php
-                    if($e && !$es) {
-                      print $this->Form->label('sponsor_co_person_id', _txt('fd.sponsor') . " " . _txt('fd.sponsor.desc'));
-                    } else {
-                      print _txt('fd.sponsor') . " " . _txt('fd.sponsor.desc');
-                    }
-                  ?>
-                </td>
-                <td>
-                  <?php
-                  if(!empty($vv_sponsors)) {
-                    if(!empty($co_person_roles[0]['CoPersonRole']['sponsor_co_person_id'])
-                      && !isset($vv_sponsors[ $co_person_roles[0]['CoPersonRole']['sponsor_co_person_id'] ])) {
-                      if(!empty($co_person_roles[0]['SponsorCoPerson']['PrimaryName'])) {
-                        print $this->Html->link(generateCn($co_person_roles[0]['SponsorCoPerson']['PrimaryName']),
-                          array('controller' => 'co_people',
-                            'action' => 'canvas',
-                            $co_person_roles[0]['SponsorCoPerson']['id']));
-                      }
+                ?>
+              </div>
+            </li>
+            <li class="modelbox-data">
+              <div class="field-name">
+                <?php
+                  if($e && !$es) {
+                    print $this->Form->label('valid_through', _txt('fd.valid_through.tz', array($vv_tz)));
+                  } else {
+                    print _txt('fd.valid_through');
+                  }
+                ?><br />
+                <span class="field-descr"><?php print _txt('fd.valid_through.desc'); ?></span>
+              </div>
+              <div class="field-info">
+                <?php
+                  if($e && !$es) {
+                    $args = array(
+                      'class' => 'datepicker-u'
+                    );
 
-                      print '<div>
-                                <span class="ui-icon ui-icon-info co-info"></span>
-                                <em>' . _txt('fd.sponsor.inel') . '</em>
-                              </div>';
+                    if(!empty($co_person_roles[0]['CoPersonRole']['valid_through'])) {
+                      if(!empty($vv_tz)) {
+                        // We need to adjust the UTC value to the user's local time
+                        $args['value'] = $this->Time->format($co_person_roles[0]['CoPersonRole']['valid_through'], "%F %T", false, $vv_tz);
+                      } else {
+                        $args['value'] = $co_person_roles[0]['CoPersonRole']['valid_through'];
+                      }
                     }
 
-                    if($e && !$es) {
-                      print $this->Form->select('sponsor_co_person_id', $vv_sponsors);
-                    } elseif(!empty($co_person_roles[0]['CoPersonRole']['sponsor_co_person_id'])) {
-                      print filter_var($vv_sponsors[ $co_person_roles[0]['CoPersonRole']['sponsor_co_person_id'] ],FILTER_SANITIZE_SPECIAL_CHARS);
+                    print $this->Form->text('valid_through', $args);
+                  } else {
+                    if(!empty($co_person_roles[0]['CoPersonRole']['valid_through'])) {
+                      print $this->Time->format($co_person_roles[0]['CoPersonRole']['valid_through'], "%c $vv_tz", false, $vv_tz);
                     }
                   }
-                  ?>
-                </td>
-              </tr>
-              <tr class="line<?php print ($l % 2); $l++; ?>">
-                <td>
-                  <?php
-                    if($e && !$es) {
-                      print $this->Form->label('valid_from', _txt('fd.valid_from.tz', array($vv_tz)));
-                    } else {
-                      print _txt('fd.valid_from');
-                    }
-                  ?><br />
-                  <span class="descr"><?php print _txt('fd.valid_from.desc'); ?></span>
-                </td>
-                <td>
-                  <?php
-                    if($e && !$es) {
-                      $args = array(
-                        'class' => 'datepicker-f'
-                      );
-                      
-                      if(!empty($co_person_roles[0]['CoPersonRole']['valid_from'])) {
-                        if(!empty($vv_tz)) {
-                          // We need to adjust the UTC value to the user's local time
-                          $args['value'] = $this->Time->format($co_person_roles[0]['CoPersonRole']['valid_from'], "%F %T", false, $vv_tz);
-                        } else {
-                          $args['value'] = $co_person_roles[0]['CoPersonRole']['valid_from'];
-                        }
-                      }
-                      
-                      print $this->Form->text('valid_from', $args);
-                    } else {
-                      if(!empty($co_person_roles[0]['CoPersonRole']['valid_from'])) {
-                        print $this->Time->format($co_person_roles[0]['CoPersonRole']['valid_from'], "%c $vv_tz", false, $vv_tz);
-                      }
-                    }
-                  ?>
-                </td>
-              </tr>
-              <tr class="line<?php print ($l % 2); $l++; ?>">
-                <td>
-                  <?php
-                    if($e && !$es) {
-                      print $this->Form->label('valid_through', _txt('fd.valid_through.tz', array($vv_tz)));
-                    } else {
-                      print _txt('fd.valid_through');
-                    }
-                  ?><br />
-                  <span class="descr"><?php print _txt('fd.valid_through.desc'); ?></span>
-                </td>
-                <td>
-                  <?php
-                    if($e && !$es) {
-                      $args = array(
-                        'class' => 'datepicker-u'
-                      );
-                      
-                      if(!empty($co_person_roles[0]['CoPersonRole']['valid_through'])) {
-                        if(!empty($vv_tz)) {
-                          // We need to adjust the UTC value to the user's local time
-                          $args['value'] = $this->Time->format($co_person_roles[0]['CoPersonRole']['valid_through'], "%F %T", false, $vv_tz);
-                        } else {
-                          $args['value'] = $co_person_roles[0]['CoPersonRole']['valid_through'];
-                        }
-                      }
-                      
-                      print $this->Form->text('valid_through', $args);
-                    } else {
-                      if(!empty($co_person_roles[0]['CoPersonRole']['valid_through'])) {
-                        print $this->Time->format($co_person_roles[0]['CoPersonRole']['valid_through'], "%c $vv_tz", false, $vv_tz);
-                      }
-                    }
-                  ?>
-                </td>
-              </tr>
-              <?php
-              // Check for extended attributes and render
+                ?>
+              </div>
+            </li>
+            <?php
+            // Check for extended attributes and render
+            if(!empty($vv_extended_attributes)) {
 
-              if(!empty($vv_extended_attributes)) {
-                $cl = 'Co' . $cur_co['Co']['id'] . 'PersonExtendedAttribute';
+              $cl = 'Co' . $cur_co['Co']['id'] . 'PersonExtendedAttribute';
+              print '<li class="hidden">' .  $this->Form->hidden($cl . '.id') . '</li>';
 
-                print '<tr class="hidden"><td colspan="2">' .  $this->Form->hidden($cl . '.id') . '</td></tr>';
-
-                foreach($vv_extended_attributes as $c):
-                  $attr = strtolower($c['CoExtendedAttribute']['name']);
-                  ?>
-                  <tr class="line<?php print ($l % 2); $l++; ?>">
-                    <td>
-                      <?php
-                        if($e && !$es) {
-                          print $this->Form->label($cl.'.'.$attr,
-                                                   filter_var($c['CoExtendedAttribute']['display_name'],FILTER_SANITIZE_SPECIAL_CHARS));
-                        } else {
-                          print filter_var($c['CoExtendedAttribute']['display_name'],FILTER_SANITIZE_SPECIAL_CHARS);
-                        }
-                      ?>
-                    </td>
-                    <td>
-                      <?php
+              foreach($vv_extended_attributes as $c) {
+                $attr = strtolower($c['CoExtendedAttribute']['name']);
+                ?>
+                <li class="modelbox-data">
+                  <div class="field-name">
+                    <?php
+                      if($e && !$es) {
+                        print $this->Form->label($cl.'.'.$attr,
+                          filter_var($c['CoExtendedAttribute']['display_name'],FILTER_SANITIZE_SPECIAL_CHARS));
+                      } else {
+                        print filter_var($c['CoExtendedAttribute']['display_name'],FILTER_SANITIZE_SPECIAL_CHARS);
+                      }
+                    ?>
+                  </div>
+                  <div class="field-info">
+                    <?php
                       if($c['CoExtendedAttribute']['type'] == 'TIMESTAMP') {
                         print ($e && !$es ? $this->Form->text($cl.'.'.$attr, array('class' => 'datepicker'))
                           : (($co_person_roles[0][$cl][$attr] > 0) ? strftime("%F", strtotime($co_person_roles[0][$cl][$attr])) : ""));
@@ -524,258 +522,46 @@
                           isset($co_person_roles[0][$cl][$attr]) ? array('default' => $co_person_roles[0][$cl][$attr]) : array())
                           : filter_var($co_person_roles[0][$cl][$attr],FILTER_SANITIZE_SPECIAL_CHARS));
                       }
-                      ?>
-                    </td>
-                  </tr>
-                <?php
-                endforeach;
-              }
-              ?>
-              <tr>
-                <td>
-                  <em><span class="required"><?php print _txt('fd.req'); ?></span></em><br />
-                </td>
-                <td>
-                  <?php
-                  if($e && !$es) {
-                    print $this->Form->submit($submit_label);
-                    print $this->Form->button(_txt('op.reset'),
-                      array('type'=>'reset'));
-                  }
-                  ?>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </li>
-
-
-      <?php if($this->action != "add"): ?>
-
-        <li id="fields-phone" class="fieldGroup">
-
-          <?php if($this->Permission->selfService($permissions, $e, 'TelephoneNumber') == PermissionEnum::ReadWrite): ?>
-            <div class="coAddEditButtons">
-              <?php
-              print $this->Html->link(_txt('op.add'),
-                array(
-                  'controller' => 'telephone_numbers',
-                  'action' => 'add',
-                  'copersonroleid' => $co_person_roles[0]['CoPersonRole']['id']
-                ),
-                array('class' => 'addbutton')
-              );
-              ?>
-            </div>
-          <?php endif; // ReadWrite permission, telephone ?>
-
-          <a href="#tabs-phone" class="fieldGroupName">
-            <span class="ui-icon ui-icon-circlesmall-minus"></span>
-            <?php print _txt('ct.telephone_numbers.pl'); ?>
-          </a>
-
-          <ul id="tabs-phone" class="additionalinfo fields">
-
-            <?php if(!empty($co_person_roles[0]['TelephoneNumber'])): ?>
-              <?php foreach($co_person_roles[0]['TelephoneNumber'] as $t): ?>
-                <?php
-                  if(!empty($t['SourceTelephoneNumber']['id'])) {
-                    // This telephone number came from an OIS and so can't be edited
-                    print '<div>';
-                    print '<div>';
-                    print $this->Html->link($t['number'], array('controller' => 'telephone_numbers', 'action' => 'view', $t['id']));
-                    print " &nbsp;("
-                      . $t['SourceTelephoneNumber']['OrgIdentity']['OrgIdentitySourceRecord']['OrgIdentitySource']['description']
-                      . ", " . $vv_copr_telephonenumber_types[ $t['type'] ] . ")<br />\n";
-                    print '</div>';
-                    print '<div>';
-                    print $this->Html->link(_txt('op.view'),
-                                            array('controller' => 'telephone_numbers', 'action' => 'view', $t['id']),
-                                            array('class' => 'viewbutton')) . "\n";
-                    print '</div>';
-                    print '</div>';
-                    
-                    continue;
-                  }
-                  
-                  $perm = $this->Permission->selfService($permissions, $e, 'TelephoneNumber', $t['type']);
-                ?>
-
-                <li>
-
-                  <?php if($perm == PermissionEnum::ReadWrite): ?>
-                    <div class="actionButtons">
-                      <?php
-                      print '<button type="button" class="deletebutton" title="' . _txt('op.delete')
-                        . '" onclick="javascript:js_confirm_generic(\''
-                        . _txt('js.remove') . '\',\''    // dialog body text
-                        . $this->Html->url(              // dialog confirm URL
-                          array(
-                            'controller' => 'telephone_numbers',
-                            'action' => 'delete',
-                            $t['id']
-                          )
-                        ) . '\',\''
-                        . _txt('op.remove') . '\',\''    // dialog confirm button
-                        . _txt('op.cancel') . '\',\''    // dialog cancel button
-                        . _txt('op.remove') . '\',[\''   // dialog title
-                        . filter_var(_jtxt(formatTelephone($t)),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
-                        . '\']);">'
-                        . _txt('op.delete')
-                        . '</button>';
-                      print $this->Html->link(_txt('op.edit'),
-                          array(
-                            'controller' => 'telephone_numbers',
-                            'action' => 'edit',
-                            $t['id']
-                          ),
-                          array('class' => 'editbutton')) . "\n";
-                      ?>
-                    </div>
-                    <div class="fieldData">
-                      <?php
-                        print $this->Html->link(formatTelephone($t),
-                          array(
-                            'controller' => 'telephone_numbers',
-                            'action' => 'edit',
-                            $t['id']
-                          )
-                        );
-                      ?>
-                      <span class="dataDesc">
-                        (<?php print $vv_copr_telephonenumber_types[ $t['type'] ]; ?>)
-                      </span>
-                    </div>
-
-                  <?php elseif($perm == PermissionEnum::ReadOnly): ?>
-                    <div class="fieldData">
-                      <?php print filter_var(formatTelephone($t),FILTER_SANITIZE_SPECIAL_CHARS); ?>
-                      <span class="dataDesc">
-                      (<?php print $vv_copr_telephonenumber_types[ $t['type'] ]; ?>)
-                    </span>
-                    </div>
-                  <?php endif; // ReadWrite permissions ?>
-
+                    ?>
+                  </div>
                 </li>
-
-              <?php endforeach; // TelephoneNumber ?>
-            <?php else: ?>
-              <li class="invisible"><span class="dataDesc"><?php print _txt('fd.none'); ?></span></li>
-            <?php endif; // TelephoneNumber ?>
-          </ul>
-
-        </li>
-
-        <li id="fields-address" class="fieldGroup">
-
-          <?php if($this->Permission->selfService($permissions, $e, 'Address') == PermissionEnum::ReadWrite): ?>
-            <div class="coAddEditButtons">
-              <?php
-              print $this->Html->link(_txt('op.add'),
-                array(
-                  'controller' => 'addresses',
-                  'action' => 'add',
-                  'copersonroleid' => $co_person_roles[0]['CoPersonRole']['id']),
-                array('class' => 'addbutton'
-                )
-              );
-              ?>
-            </div>
-          <?php endif; // ReadWrite permission, address ?>
-
-          <a href="#tabs-address" class="fieldGroupName">
-            <span class="ui-icon ui-icon-circlesmall-minus"></span>
-            <?php print _txt('ct.addresses.pl'); ?>
-          </a>
-
-
-          <ul id="tabs-address" class="additionalinfo fields">
-
-            <?php if(!empty($co_person_roles[0]['Address'])): ?>
-              <?php foreach($co_person_roles[0]['Address'] as $addr): ?>
                 <?php
-                  if(!empty($addr['SourceAddress']['id'])) {
-                    // This address came from an OIS and so can't be edited
-                    print '<div>';
-                    print '<div>';
-                    print $this->Html->link($addr['street'], array('controller' => 'addresses', 'action' => 'view', $addr['id']));
-                    print " &nbsp;("
-                      . $addr['SourceAddress']['OrgIdentity']['OrgIdentitySourceRecord']['OrgIdentitySource']['description']
-                      . ", " . $vv_copr_address_types[ $addr['type'] ] . ")<br />\n";
-                    print '</div>';
-                    print '<div>';
-                    print $this->Html->link(_txt('op.view'),
-                                            array('controller' => 'addresses', 'action' => 'view', $addr['id']),
-                                            array('class' => 'viewbutton')) . "\n";
-                    print '</div>';
-                    print '</div>';
-                    
-                    continue;
-                  }
-                  
-                  $perm = $this->Permission->selfService($permissions, $e, 'Address', $addr['type']);
-                ?>
+              } // foreach
+            } // endif extended attributes
+            ?>
+            <?php if($e && !$es): ?>
+              <li class="fields-submit">
+                <div class="field-name">
+                  <span class="required"><?php print _txt('fd.req'); ?></span>
+                </div>
+                <div class="field-info">
+                  <?php print $this->Form->submit($submit_label); ?>
+                </div>
+              </li>
+            <?php endif; ?>
+          </ul><!-- tabs-role -->
+        </li><!-- fields-role -->
 
-                <li>
-
-                  <?php if($perm == PermissionEnum::ReadWrite): ?>
-                    <div class="actionButtons">
-                      <?php
-                      print '<button type="button" class="deletebutton" title="' . _txt('op.delete')
-                        . '" onclick="javascript:js_confirm_generic(\''
-                        . _txt('js.remove') . '\',\''    // dialog body text
-                        . $this->Html->url(              // dialog confirm URL
-                          array(
-                            'controller' => 'addresses',
-                            'action' => 'delete',
-                            $addr['id'],
-                            'co' => $cur_co['Co']['id']
-                          )
-                        ) . '\',\''
-                        . _txt('op.remove') . '\',\''    // dialog confirm button
-                        . _txt('op.cancel') . '\',\''    // dialog cancel button
-                        . _txt('op.remove') . '\',[\''   // dialog title
-                        . filter_var(_jtxt($addr['street']),FILTER_SANITIZE_STRING)  // dialog body text replacement strings
-                        . '\']);">'
-                        . _txt('op.delete')
-                        . '</button>';
-                      print $this->Html->link(_txt('op.edit'),
-                          array(
-                            'controller' => 'addresses',
-                            'action' => 'edit',
-                            $addr['id']
-                          ),
-                          array('class' => 'editbutton')) . "\n";
-                      ?>
-                    </div>
-                    <div class="fieldData">
-                      <?php
-                        print $this->Html->link($addr['street'],
-                          array(
-                            'controller' => 'addresses',
-                            'action' => 'edit',
-                            $addr['id'])
-                        );
-                      ?>
-                      <span class="dataDesc">
-                        (<?php print $vv_copr_address_types[ $addr['type'] ]; ?>)
-                      </span>
-                    </div>
-                  <?php elseif($perm == PermissionEnum::ReadOnly): ?>
-                    <div class="fieldData">
-                      <?php print filter_var($addr['street'],FILTER_SANITIZE_SPECIAL_CHARS); ?>
-                      <span class="dataDesc">
-                      (<?php $vv_copr_address_types[ $addr['type'] ]; ?>)
-                    </span>
-                    </div>
-                  <?php endif; // ReadWrite permissions ?>
-                <?php endforeach; // Address ?>
-                <?php else: ?>
-                <li class="invisible"><span class="dataDesc"><?php print _txt('fd.none'); ?></span></li>
-              <?php endif; // Address ?>
-            </ul>
-          </li>
-        <?php endif; // !add ?>
+        <?php
+          if($this->action != "add") {
+            $args = array(
+              'edit'         => $e,
+              'self_service' => true,
+              'model'        => 'CoPersonRole',
+              'model_param'  => 'copersonroleid',
+              'mvpa_model'   => 'TelephoneNumber',
+              'mvpa_field'   => null,
+              'mvpa_format'  => 'formatTelephone'
+            );
+            
+            print $this->element('mvpa', $args);
+            
+            $args['mvpa_model'] = 'Address';
+            $args['mvpa_format'] = 'formatAddress';
+            
+            print $this->element('mvpa', $args);
+          }
+        ?>
       </ul>
     </div>
   </div>

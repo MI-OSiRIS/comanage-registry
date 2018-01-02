@@ -34,8 +34,12 @@ class Identifier extends AppModel {
   
   // Association rules from this model to other models
   public $belongsTo = array(
+    // An identifier may be attached to a CO Department
+    "CoDepartment",
     // An identifier may be attached to a CO Person
     "CoPerson",
+    // An identifier may be created from a Provisioner
+    "CoProvisioningTarget",
     // An identifier may be attached to an Org Identity
     "OrgIdentity",
     // An identifier created from a Pipeline has a Source Identifier
@@ -82,11 +86,13 @@ class Identifier extends AppModel {
                                                  IdentifierEnum::Enterprise,
                                                  IdentifierEnum::ePPN,
                                                  IdentifierEnum::ePTID,
+                                                 IdentifierEnum::ePUID,
                                                  IdentifierEnum::Mail,
                                                  IdentifierEnum::National,
                                                  IdentifierEnum::Network,
                                                  IdentifierEnum::OpenID,
                                                  IdentifierEnum::ORCID,
+                                                 IdentifierEnum::ProvisioningTarget,
                                                  IdentifierEnum::Reference,
                                                  IdentifierEnum::SORID,
                                                  IdentifierEnum::UID))),
@@ -117,6 +123,13 @@ class Identifier extends AppModel {
       )
     ),
     'org_identity_id' => array(
+      'content' => array(
+        'rule' => 'numeric',
+        'required' => false,
+        'allowEmpty' => true
+      )
+    ),
+    'co_department_id' => array(
       'content' => array(
         'rule' => 'numeric',
         'required' => false,
@@ -306,5 +319,24 @@ class Identifier extends AppModel {
     // else we currently don't do anything with org identity identifiers
     
     return true;
+  }
+  
+  /**
+   * Perform a keyword search.
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Integer $coId CO ID to constrain search to
+   * @param  String  $q    String to search for
+   * @return Array Array of search results, as from find('all)
+   */
+  
+  public function search($coId, $q) {
+    $args = array();
+    $args['conditions']['Identifier.identifier'] = $q;
+    $args['conditions']['CoPerson.co_id'] = $coId;
+    $args['order'] = array('Identifier.identifier');
+    $args['contain']['CoPerson'] = 'PrimaryName';
+    
+    return $this->find('all', $args);
   }
 }

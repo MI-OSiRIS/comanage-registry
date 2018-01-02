@@ -26,6 +26,6 @@
  */
 ?>
 
-<h1 id="firstPrompt">
+<h1 class="firstPrompt">
   <?php print _txt('op.dashboard.select', array(filter_var($cur_co['Co']['name'],FILTER_SANITIZE_SPECIAL_CHARS)));?>
 </h1>

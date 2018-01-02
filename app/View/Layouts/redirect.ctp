@@ -24,35 +24,45 @@
  * @since         COmanage Registry v1.0.3
  * @license       Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
  */
+
+  // As a general rule, all Registry pages are post-login and so shouldn't be cached
+  header("Expires: Thursday, 10-Jan-69 00:00:00 GMT");
+  header("Cache-Control: no-store, no-cache, max-age=0, must-revalidate");
+  header("Pragma: no-cache");
+
+  // Add X-UA-Compatible header for IE
+  if (isset($_SERVER['HTTP_USER_AGENT']) && (strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE') !== false)) {
+    header('X-UA-Compatible: IE=edge,chrome=1');
+  }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="<?php print _txt('lang'); ?>">
   <head>
-    <title>
-      <?php print _txt('op.processing'); ?>
-    </title>
-    <?php print $this->Html->charset(); ?>
-    <?php print $this->Html->meta('favicon.ico','/favicon.ico',array('type' => 'icon')); ?>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <?php print $this->Html->meta(array('name' => 'viewport', 'content' => 'width=device-width, initial-scale=1.0')) . "\n"; ?>
+    <?php print $this->Html->charset() . "\n"; ?>
 
-    <!-- Handle the redirect -->
-    <meta http-equiv="refresh" content="1;URL='<?php print $this->Html->url($vv_meta_redirect_target); ?>'" />
+    <title><?php print _txt('op.processing'); ?></title>
+    <?php print $this->Html->meta('favicon.ico','/favicon.ico',array('type' => 'icon')) . "\n"; ?>
 
-    <!-- Include the comanage and jquery style sheets -->
+    <!-- Load CSS -->
     <?php
-    print $this->Html->css('jquery/jquery-ui-1.11.4.custom/jquery-ui.min');
-    print $this->Html->css('jquery/jquery-ui-1.11.4.custom/jquery-ui-comanage-overrides');
-    print $this->Html->css('jquery/superfish/css/superfish');
-    print $this->Html->css('comanage');
-    print $this->Html->css('comanage-responsive');
+      print $this->Html->css('jquery/jquery-ui-1.12.1.custom/jquery-ui.min') . "\n    ";
+      print $this->Html->css('mdl/mdl-1.3.0/material.css') . "\n    ";
+      print $this->Html->css('co-base') . "\n    ";
+      print $this->Html->css('co-responsive') . "\n    ";
     ?>
 
-    <!-- Get jquery code -->
+    <!-- Load JavaScript -->
+    <?php /* only JQuery here - other scripts at bottom */
+      print $this->Html->script('jquery/jquery-3.2.1.min.js') . "\n    ";
+      print $this->Html->script('jquery/jquery-ui-1.12.1.custom/jquery-ui.min.js') . "\n    ";
+    ?>
+
+    <!-- Include external files and scripts -->
     <?php
-    print $this->Html->script('jquery/jquery-1.11.3.min.js');
-    print $this->Html->script('jquery/jquery-ui-1.11.4.custom/jquery-ui.min.js');
-    print $this->Html->script('jquery/superfish/js/superfish.js');
-    print $this->Html->script('jquery/spin.min.js');
+      print $this->fetch('meta');
+      print $this->fetch('css');
+      print $this->fetch('script');
     ?>
 
     <script type="text/javascript">
@@ -81,6 +91,8 @@
 
     </script>
 
+    <meta http-equiv="refresh" content="1;URL='<?php print $this->Html->url($vv_meta_redirect_target); ?>'" />
+
     <!-- Include custom CSS -->
     <?php if(!empty($vv_theme_css)): ?>
       <style type="text/css">
@@ -88,9 +100,34 @@
       </style>
     <?php endif; ?>
   </head>
-
-  <body  class="<?php print $this->params->controller . ' ' . $this->params->action ?>">
-
+  <?php
+    $bodyClasses = $this->params->controller . ' ' . $this->params->action;
+    if($this->Session->check('Auth.User') != NULL) {
+      $bodyClasses .= ' logged-in';
+    } else {
+      $bodyClasses .= ' logged-out';
+    }
+    if(!empty($vv_NavLinks) || !empty($vv_CoNavLinks)) {
+      $bodyClasses .=  ' with-user-defined-links';
+    }
+    if(!empty($vv_theme_header)) {
+      $bodyClasses .=  ' with-custom-header';
+    }
+    if(!empty($vv_theme_footer)) {
+      $bodyClasses .=  ' with-custom-footer';
+    }
+    if(!empty($vv_theme_hide_title)) {
+      $bodyClasses .=  ' title-hidden';
+    }
+    if(!empty($vv_theme_hide_footer_logo)) {
+      $bodyClasses .=  ' footer-hidden';
+    }
+  ?>
+  <body class="redirect <?php print $bodyClasses ?>">
+    <div id="skip-to-content-box">
+      <a href="#content-start" id="skip-to-content">Skip to main content.</a>
+    </div>      
+    
     <!-- Include custom header -->
     <?php if(!empty($vv_theme_header)): ?>
       <header id="customHeader">
@@ -100,20 +137,45 @@
       </header>
     <?php endif; ?>
 
-    <nav id="row1" aria-label="user and platform menus">
-      <div class="contentWidth">
-        <?php print $this->element('secondaryMenu'); ?>
-        <?php print $this->element('links'); ?>
+    <!-- Primary layout -->
+    <div id="comanage-wrapper" class="mdl-layout mdl-js-layout mdl-layout--fixed-drawer">
+
+      <div id="top-menu">
+        <?php if($this->Session->check('Auth.User')): ?>
+          <div id="desktop-hamburger"><em class="material-icons">menu</em></div>
+        <?php endif; ?>
+        <?php if(!empty($vv_NavLinks) || !empty($vv_CoNavLinks)): ?>
+          <div id="user-defined-links-top">
+            <?php print $this->element('links'); // XXX allow user to set this location (e.g. top or side) ?>
+          </div>
+        <?php endif; ?>
+        <nav id="user-menu">
+          <?php print $this->element('menuUser'); ?>
+        </nav>
       </div>
-    </nav>
 
-    <?php if(!isset($vv_theme_hide_title) || !$vv_theme_hide_title): ?>
-      <header id="row2" class="ui-widget-header">
-        <div class="contentWidth">
+      <header id="banner" class="mdl-layout__header mdl-layout__header--scroll">
+        <div class="mdl-layout__header-row">
+          <?php if(!isset($vv_theme_hide_title) || !$vv_theme_hide_title): ?>
+            <div id="collaborationTitle">
+              <?php
+                if(!empty($cur_co['Co']['name'])) {
+                  $args = array();
+                  $args['plugin'] = null;
+                  $args['controller'] = 'co_dashboards';
+                  $args['action'] = 'dashboard';
+                  $args['co'] = $cur_co['Co']['id'];
+                  print $this->Html->link($cur_co['Co']['name'],$args);
+                } else {
+                  print _txt('coordinate');
+                }
+              ?>
+            </div>
+          <?php endif; // $vv_theme_hide_title ?>
 
-          <div class="headerRight">
+          <div id="logo">
             <?php
-              $imgFile = 'comanage-logo.png';
+              $imgFile = 'COmanage-Logo-LG-onBlue.png';
 
               if(is_readable(APP . WEBROOT_DIR . DS . 'img' . DS . 'logo.png')) {
                 // A custom logo has been installed, so use that instead
@@ -125,60 +187,56 @@
                 $this->Html->image(
                   $imgFile,
                   array(
-                    'alt' => 'COmanage Logo',
-                    'height' => 50
+                    'alt' => 'COmanage Logo'
                   )
                 ),'/',
                 array('escape' => false)
               );
             ?>
           </div>
-
-          <div class="headerLeft">
-            <?php
-              if(!empty($cur_co['Co']['name'])) {
-                print '<div id="collaborationTitle">' . filter_var($cur_co['Co']['name'],FILTER_SANITIZE_SPECIAL_CHARS) . '</div>'; // more to go here.
-              } else {
-                print '<div id="collaborationTitle">' . _txt('coordinate') . '</div>';
-              }
-            ?>
-          </div>
         </div>
+
       </header>
-    <?php endif; // $vv_theme_hide_title ?>
 
-    <?php if($this->Session->check('Auth.User')): ?>
-      <nav id="row3" aria-label="main menu">
-        <div class="contentWidth">
-          <?php print $this->element('dropMenu'); ?>
-        </div>
-      </nav>
-    <?php endif ?>
+      <main id="main" class="mdl-layout__content">
 
-    <main id="main" class="contentWidth">
-      <div id="content">
-        <div id="redirect-box">
-          <div id="redirect-box-content">
-            <?php print $this->fetch('content'); ?>
+        <div id="content" class="mdl-grid">
+          <div id="content-inner" class="mdl-cell mdl-cell--12-col">
+            <div id="redirect-box">
+              <div id="redirect-box-content">
+                <?php print $this->fetch('content'); ?>
+              </div>
+              <div id="redirect-spinner"></div>
+            </div>
           </div>
-          <div id="redirect-spinner"></div>
         </div>
-      </div>
-    </main>
 
-    <!-- Include custom footer -->
-    <?php if(!empty($vv_theme_footer)): ?>
-      <footer id="customFooter">
-        <div class="contentWidth">
+        <?php if(Configure::read('debug') > 0): ?>
+          <div id="debug" class="mdl-grid">
+            <?php print $this->element('sql_dump'); ?>
+          </div>
+        <?php endif; ?>
+      </main>
+
+      <?php if(!isset($vv_theme_hide_footer_logo) || !$vv_theme_hide_footer_logo): ?>
+        <footer id="co-footer">
+          <?php print $this->element('footer'); ?>
+        </footer>
+      <?php endif; ?>
+
+      <!-- Include custom footer -->
+      <?php if(!empty($vv_theme_footer)): ?>
+        <footer id="customFooter">
           <?php print $vv_theme_footer; ?>
-        </div>
-      </footer>
-    <?php endif; ?>
+        </footer>
+      <?php endif; ?>
 
-    <?php if(!isset($vv_theme_hide_footer_logo) || !$vv_theme_hide_footer_logo): ?>
-      <footer class="contentWidth">
-        <?php print $this->element('footer'); ?>
-      </footer>
-    <?php endif; ?>
+    </div>
+
+    <!-- Load JavaScript -->
+    <?php
+      print $this->Html->script('mdl/mdl-1.3.0/material.min.js') . "\n    ";
+      print $this->Html->script('jquery/spin.min.js') . "\n    ";
+    ?>
   </body>
 </html>

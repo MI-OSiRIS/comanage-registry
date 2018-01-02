@@ -26,7 +26,7 @@
  */
 ?>
 
-<div id="pagination" class="ui-widget-header">
+<div id="pagination">
   <span class="paginationCounter">
     <?php
       // pagination information

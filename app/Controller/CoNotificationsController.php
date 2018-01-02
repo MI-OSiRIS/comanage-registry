@@ -51,7 +51,18 @@ class CoNotificationsController extends StandardController {
     'RecipientCoGroup',
     'ResolverCoPerson' => 'PrimaryName'
   );
-  
+
+  /**
+   * View a specific notification.
+   *
+   * @since  COmanage Registry v1.1.0
+   * @param  Integer $id CO Notification ID
+   */
+  public function view($id) {
+    parent::view($id);
+    $this->set('title_for_layout', _txt('ct.co_notifications.1'));
+  }
+
   /**
    * Acknowledge the specified notification.
    * - postcondition: CO Invitation status set to 'Acknowledged'
@@ -145,12 +156,11 @@ class CoNotificationsController extends StandardController {
   public function cancel($id) {
     try {
       $this->CoNotification->cancel($id, $this->Session->read('Auth.User.co_person_id'));
+      $this->Flash->set(_txt('rs.nt.cxld'), array('key' => 'success'));    
     }
     catch(Exception $e) {
       $this->Flash->set($e->getMessage(), array('key' => 'error'));
     }
-    
-    $this->Flash->set(_txt('rs.nt.cxld'), array('key' => 'success'));
     
     // Not really clear where to redirect to
     $this->redirect("/");

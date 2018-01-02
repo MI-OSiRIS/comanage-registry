@@ -33,52 +33,25 @@
   $verifyEmail = !empty($invite['CoInvite']['email_address_id']);
 ?>
 
-<h2 class="ui-state-default"><?php print _txt(($verifyEmail ? 'fd.ev.for' : 'fd.inv.for'),
-                                              array(filter_var(generateCn($invitee['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS))); ?></h2>
+<div class="invitation">
+  <span class="invitation-text">
+    <?php print _txt(($verifyEmail ? 'fd.ev.for' : 'fd.inv.for'),
+      array(filter_var(generateCn($invitee['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS))); ?>
+  </span>
 
 <?php
   if($verifyEmail) {
     print "<p>" . _txt('fd.ev.verify.desc', array($invite['EmailAddress']['mail'])) . "</p>";
-    
-    print $this->Html->link(
-      _txt('op.confirm'),
-      array('controller' => 'co_invites',
-            'action' => 'authverify',
-            $invite['CoInvite']['invitation']),
-      array('class' => 'checkbutton')
-    );
-    
-    print $this->Html->link(
-      _txt('op.cancel'),
-      array('controller' => 'co_invites',
-            'action' => 'decline',
-            $invite['CoInvite']['invitation']),
-      array('class' => 'cancelbutton')
-    );
-  } else {
-    if(empty($co_petitions)) {
-      // Default enrollment, put up some basic text
-      print "<p>" . _txt('em.invite.body', array($invitee['Co']['name'])) . "</p>";
-    }
-    
-    print $this->Html->link(
-      _txt('op.accept'),
-      array('controller' => 'co_invites',
-            'action' => (isset($co_enrollment_flow['CoEnrollmentFlow']['require_authn'])
-                         && $co_enrollment_flow['CoEnrollmentFlow']['require_authn']) ? 'authconfirm' : 'confirm',
-            $invite['CoInvite']['invitation']),
-      array('class' => 'checkbutton')
-    );
-    
-    print $this->Html->link(
-      _txt('op.decline'),
-      array('controller' => 'co_invites',
-            'action' => 'decline',
-            $invite['CoInvite']['invitation']),
-      array('class' => 'cancelbutton')
-    );
+  } elseif(empty($co_petitions)) {
+    // Default enrollment, put up some basic text
+    print "<p>" . _txt('em.invite.body', array($invitee['Co']['name'])) . "</p>";
   }
   
+  include "buttons.inc";
+?>
+</div>
+
+<?php
   $e = false;
 
   if(isset($co_petitions)) {

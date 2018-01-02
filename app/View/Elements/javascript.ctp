@@ -29,16 +29,66 @@
 
 <script type="text/javascript">
   $(function() {
+    // Establish left-side navigation
+    $('#main-menu').metisMenu();
+
+    // Never allow MDL to apply "aria-hidden" on the fixed menu drawer (it should always be available to screen readers)
+    $('#navigation-drawer').removeAttr('aria-hidden');
+
     // Focus any designated form element
-    $(".focusFirst").focus();
+    $('.focusFirst').focus();
+
+    // MDL prematurely marks all required=true fields with "is-invalid" class.
+    // Remove it. Must be done after MDL scripts have run (hence, window.load)
+    $(window).on('load', function() {
+      $('.mdl-textfield').removeClass('is-invalid');
+    });
+
+    // DESKTOP MENU DRAWER BEHAVIOR
+    // Check the drawer half-closed cookie on first load and set the drawer state appropriately
+    if (Cookies.get("desktop-drawer-state") == "half-closed") {
+      $("#navigation-drawer").addClass("half-closed");
+      $("#main").addClass("drawer-half-closed");
+    }
+
+    // Desktop hamburger menu-drawer toggle
+    $('#desktop-hamburger').click(function () {
+      if( $("#navigation-drawer").hasClass("half-closed")) {
+        $("#navigation-drawer").removeClass("half-closed");
+        $("#main").removeClass("drawer-half-closed");
+        // set a cookie to hold drawer half-open state between requests
+        Cookies.set("desktop-drawer-state", "open");
+      } else {
+        $("#navigation-drawer").addClass("half-closed");
+        $("#main").addClass("drawer-half-closed");
+        // ensure all the sub-menus collapse when half-closing the menu
+        $("#navigation .metismenu li ul").removeClass("in");
+        $("#navigation .metismenu li").removeClass("active");
+        // set a cookie to hold drawer half-open state between requests
+        Cookies.set("desktop-drawer-state", "half-closed");
+      }
+    });
+
+    // Desktop half-closed drawer behavior
+    $('#navigation-drawer a.menuTop').click(function () {
+      if (Cookies.get("desktop-drawer-state") == "half-closed") {
+        $("#navigation-drawer").toggleClass("half-closed");
+      }
+    });
+    // END DESKTOP MENU DRAWER BEHAVIOR
+
+    // USER MENU BEHAVIORS
+    $("#global-search label").click(function () {
+      $("#global-search-box").toggle();
+    });
 
     // Accordion
     $(".accordion").accordion();
 
-    // Make all submit buttons pretty
-    $("input:submit").button();
+    // Make all submit buttons pretty (MDL)
+    $("input:submit").addClass("spin submit-button mdl-button mdl-js-button mdl-button--raised mdl-button--colored mdl-js-ripple-effect");
 
-    // Other buttons
+    // Other buttons (jQuery)
     $(".addbutton").button({
       icons: {
         primary: 'ui-icon-circle-plus'
@@ -109,7 +159,10 @@
       text: true
     });
 
-    $(".editbutton").button({
+    $(".editbutton").button(
+      {  classes: {
+      "ui-button": "highlight"
+      },
       icons: {
         primary: 'ui-icon-pencil'
       },
@@ -147,6 +200,13 @@
     $(".linkbutton").button({
       icons: {
         primary: 'ui-icon-extlink'
+      },
+      text: true
+    });
+
+    $(".lockbutton").button({
+      icons: {
+        primary: 'ui-icon-locked'
       },
       text: true
     });
@@ -235,9 +295,16 @@
       text: true
     });
     
-    $("button:reset").button();
-    $("button:reset").css('float', 'left');
+    //$("button:reset").button();
+    //$("button:reset").css('float', 'left');
 
+    $(".unlockbutton").button({
+      icons: {
+        primary: 'ui-icon-unlocked'
+      },
+      text: true
+    });
+    
     $(".unlinkbutton").button({
       icons: {
         primary: 'ui-icon-cancel'
@@ -253,7 +320,6 @@
     });
 
     // Datepickers
-
     $(".datepicker").datepicker({
       changeMonth: true,
       changeYear: true,
@@ -261,7 +327,12 @@
       numberOfMonths: 1,
       showButtonPanel: false,
       showOtherMonths: true,
-      selectOtherMonths: true
+      selectOtherMonths: true,
+      onSelect: function() {
+        $(this).closest('.mdl-textfield').addClass('is-dirty');
+      }
+    }).bind('click',function () {
+      $("#ui-datepicker-div").appendTo($(this).closest('.modelbox-data'));
     });
 
     $(".datepicker-f").datepicker({
@@ -271,8 +342,15 @@
       numberOfMonths: 1,
       showButtonPanel: false,
       showOtherMonths: true,
-      selectOtherMonths: true
+      selectOtherMonths: true,
+      onSelect: function(selectedDate) {
+        $(this).closest('.mdl-textfield').addClass('is-dirty');
+      }
+    }).bind('click',function () {
+      $("#ui-datepicker-div").appendTo($(this).closest('.modelbox-data'));
     });
+
+
 
     $(".datepicker-m").datepicker({
       changeMonth: true,
@@ -280,7 +358,12 @@
       numberOfMonths: 1,
       showButtonPanel: false,
       showOtherMonths: true,
-      selectOtherMonths: true
+      selectOtherMonths: true,
+      onSelect: function(selectedDate) {
+        $(this).closest('.mdl-textfield').addClass('is-dirty');
+      }
+    }).bind('click',function () {
+      $("#ui-datepicker-div").appendTo($(this).closest('.modelbox-data'));
     });
 
     $(".datepicker-u").datepicker({
@@ -290,7 +373,12 @@
       numberOfMonths: 1,
       showButtonPanel: false,
       showOtherMonths: true,
-      selectOtherMonths: true
+      selectOtherMonths: true,
+      onSelect: function(selectedDate) {
+        $(this).closest('.mdl-textfield').addClass('is-dirty');
+      }
+    }).bind('click',function () {
+      $("#ui-datepicker-div").appendTo($(this).closest('.modelbox-data'));
     });
 
     // Dialog
@@ -300,38 +388,23 @@
       resizable: false,
       modal: true,
       buttons: {
-        '<?php _txt('op.cancel'); ?>': function() {
+        '<?php print _txt('op.cancel'); ?>': function() {
           $(this).dialog('close');
         },
-        '<?php _txt('op.ok'); ?>': function() {
+        '<?php print _txt('op.ok'); ?>': function() {
           $(this).dialog('close');
         }
       }
     });
 
     // Add a spinner when a form is submitted or when any item is clicked with a "spin" class
-    $("input[type='submit'],.spin").click(function() {
+    $("input[type='submit'], .spin").click(function() {
 
       var spinnerDiv = '<div id="coSpinner"></div>';
       $("body").append(spinnerDiv);
 
-      var coSpinnerOpts = {
-        lines: 13, // The number of lines to draw
-        length: 20, // The length of each line
-        width: 8, // The line thickness
-        radius: 20, // The radius of the inner circle
-        corners: 0.4, // Corner roundness (0..1)
-        rotate: 0, // The rotation offset
-        direction: 1, // 1: clockwise, -1: counterclockwise
-        color: '#9FC6E2', // #rgb or #rrggbb or array of colors
-        speed: 1.2, // Rounds per second
-        trail: 60, // Afterglow percentage
-        shadow: false, // Whether to render a shadow
-        hwaccel: false, // Whether to use hardware acceleration
-        className: 'spinner', // The CSS class to assign to the spinner
-        zIndex: 100 // The z-index (defaults to 2000000000)
-      };
       var coSpinnerTarget = document.getElementById('coSpinner');
+      // coSpinnerOpts are set in js/comanage.js
       var coSpinner = new Spinner(coSpinnerOpts).spin(coSpinnerTarget);
 
       // Test for invalid fields (HTML5) and turn off spinner explicitly if found
@@ -339,14 +412,6 @@
         coSpinner.stop();
       }
 
-    });
-
-    // Turn on the sidebar menus
-    $("#menu").menu();
-    
-    // Turn on tooltips for menuTop
-    $(".menuTop").tooltip({
-      position: { my: "right+15 top", at: "left bottom" }
     });
 
     // Flash Messages

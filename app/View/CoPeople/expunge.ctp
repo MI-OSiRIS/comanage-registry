@@ -74,11 +74,9 @@
     maybe_enable_submit();
   }
 </script>
-<div class="ui-state-highlight ui-corner-all co-info-topbox">
-  <p>
-    <span class="ui-icon ui-icon-info co-info"></span>
-    <strong><?php print _txt('op.expunge.confirm', array(filter_var(generateCn($vv_co_person['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS))); ?></strong>
-  </p>
+<div class="co-info-topbox">
+  <em class="material-icons">info</em>
+  <?php print _txt('op.expunge.confirm', array(filter_var(generateCn($vv_co_person['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS))); ?>
 </div>
 <div class="innerContent">
   <p>

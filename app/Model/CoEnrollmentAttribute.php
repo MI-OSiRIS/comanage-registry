@@ -93,6 +93,11 @@ class CoEnrollmentAttribute extends AppModel {
       'required' => false,
       'allowEmpty' => true
     ),
+    'default_env' => array(
+      'rule' => '/.*/',
+      'required' => false,
+      'allowEmpty' => true
+    ),
     'language' => array(
       'rule'       => array('validateLanguage'),
       'required'   => false,
@@ -167,6 +172,12 @@ class CoEnrollmentAttribute extends AppModel {
     foreach(array_keys($emailAddressTypes) as $k)
       $ret['p:email_address:'.$k] = _txt('fd.email_address.mail') . " (" . $emailAddressTypes[$k] . ", " . _txt('ct.co_people.1') . ")";
     
+    $Url = ClassRegistry::init('Url');
+    $urlTypes = $Url->types($coid, 'type');
+    
+    foreach(array_keys($urlTypes) as $k)
+      $ret['p:url:'.$k] = _txt('fd.url.url') . " (" . $urlTypes[$k] . ", " . _txt('ct.co_people.1') . ")";
+    
     // (2a) Group Memberships are Multi valued CO Person attributes, but have all sorts
     // of special logic around them so they get their own code (code=g)
     
@@ -221,6 +232,9 @@ class CoEnrollmentAttribute extends AppModel {
         
       foreach(array_keys($cm_texts[ $cm_lang ]['en.telephone_number.type']) as $k)
         $ret['i:telephone_number:'.$k] = _txt('fd.telephone_number.number') . " (" . $cm_texts[ $cm_lang ]['en.telephone_number.type'][$k] . ", " . _txt('ct.org_identities.1') . ")";
+        
+      foreach(array_keys($cm_texts[ $cm_lang ]['en.url.type']) as $k)
+        $ret['i:url:'.$k] = _txt('fd.url.url') . " (" . $cm_texts[ $cm_lang ]['en.url.type'][$k] . ", " . _txt('ct.org_identities.1') . ")";
     }
     
     // (7) Enrollment Flow specific attributes -- these don't get copied out of the petition (code=e)
@@ -545,10 +559,15 @@ class CoEnrollmentAttribute extends AppModel {
         
         foreach(array_keys($attrModel->validate) as $k) {
           // Skip fields that are autopopulated
-          if($k != 'co_person_id'
+          if($k != 'co_department_id'
+             && $k != 'co_person_id'
              && $k != 'co_person_role_id'
              && $k != 'org_identity_id'
-             && $k != 'source_' . $attrName . '_id') {
+             && $k != 'source_' . $attrName . '_id'
+             // For now, we skip description (introduced to MVPAs in 3.1.0)
+             // because it will generally be too confusing to people.
+             // "What's my email description?" This could become configurable, though.
+             && $k != 'description') {
             $attr = array();
               
             // The attribute ID and attribute key will be the same for all components
@@ -861,62 +880,93 @@ class CoEnrollmentAttribute extends AppModel {
     // use different formats in their attribute column (the former does not
     // include field names while the latter does).
     
-    $eaMap = array();
-    
-    for($i = 0;$i < count($enrollmentAttributes);$i++) {
-      $model = explode('.', $enrollmentAttributes[$i]['model'], 2);
+    if(!empty($envValues)) {
+      $eaMap = array();
       
-      // Only track org identity attributes
-      if($model[0] == "EnrolleeOrgIdentity"
-         // that aren't hidden
-         && !$enrollmentAttributes[$i]['hidden']
-         // and that are modifiable
-         && (!isset($enrollmentAttributes[$i]['modifiable'])
-             || $enrollmentAttributes[$i]['modifiable'])
-         // and that aren't set to ignore authoritative values
-         && (!isset($enrollmentAttributes[$i]['ignore_authoritative'])
-             || !$enrollmentAttributes[$i]['ignore_authoritative'])) {
-        $key = "";
+      for($i = 0;$i < count($enrollmentAttributes);$i++) {
+        $model = explode('.', $enrollmentAttributes[$i]['model'], 2);
         
-        if(!empty($model[1])) {
-          // Inflect the associated model name, minus any model ID
-          // (ie: we want "EmailAddress", not "EmailAddress.3")
+        // Only track org identity attributes
+        if($model[0] == "EnrolleeOrgIdentity"
+           // that aren't hidden
+           && !$enrollmentAttributes[$i]['hidden']
+           // and that are modifiable
+           && (!isset($enrollmentAttributes[$i]['modifiable'])
+               || $enrollmentAttributes[$i]['modifiable'])
+           // and that aren't set to ignore authoritative values
+           && (!isset($enrollmentAttributes[$i]['ignore_authoritative'])
+               || !$enrollmentAttributes[$i]['ignore_authoritative'])) {
+          $key = "";
           
-          $m = explode(".", $model[1], 2);
-          $key = Inflector::pluralize(Inflector::tableize($m[0])) . ":";
+          if(!empty($model[1])) {
+            // Inflect the associated model name, minus any model ID
+            // (ie: we want "EmailAddress", not "EmailAddress.3")
+            
+            $m = explode(".", $model[1], 2);
+            $key = Inflector::pluralize(Inflector::tableize($m[0])) . ":";
+          }
+          
+          $key .= $enrollmentAttributes[$i]['field'];
+          
+          $eaMap[$key] = $i;
         }
-        
-        $key .= $enrollmentAttributes[$i]['field'];
-        
-        $eaMap[$key] = $i;
+      }
+      
+      // Now walk through the CMP Enrollment Attributes. If an env_name is defined,
+      // look for the corresponding CO Enrollment Attribute.
+      
+      foreach($envValues as $e) {
+        if(!empty($e['env_name']) && isset($eaMap[ $e['attribute'] ])) {
+          $i = $eaMap[ $e['attribute'] ];
+          
+          if(!empty($e['type'])) {
+            // Check the type. The enrollment attribute is of the form i:name:official.
+            
+            $xeattr = explode(':', $enrollmentAttributes[$i]['attribute'], 3);
+            
+            if(empty($xeattr[2]) || ($e['type'] != $xeattr[2])) {
+              // This is not the right type of attribute, move on
+              continue;
+            }
+          }
+          // If no type specified, match any instance of this attribute, regardless of type
+          
+          $enrollmentAttributes[$i]['default'] = getenv($e['env_name']);
+          
+          // Make sure the modifiable value is set. If a value was found, we will
+          // make it not-modifiable.
+          
+          $enrollmentAttributes[$i]['modifiable'] = !(boolean)$enrollmentAttributes[$i]['default'];
+        }
       }
     }
     
-    // Now walk through the CMP Enrollment Attributes. If an env_name is defined,
-    // look for the corresponding CO Enrollment Attribute.
+    // Check for default values from env variables.
     
-    foreach($envValues as $e) {
-      if(!empty($e['env_name']) && isset($eaMap[ $e['attribute'] ])) {
-        $i = $eaMap[ $e['attribute'] ];
-        
-        if(!empty($e['type'])) {
-          // Check the type. The enrollment attribute is of the form i:name:official.
-          
-          $xeattr = explode(':', $enrollmentAttributes[$i]['attribute'], 3);
-          
-          if(empty($xeattr[2]) || ($e['type'] != $xeattr[2])) {
-            // This is not the right type of attribute, move on
-            continue;
-          }
+    for($i = 0;$i < count($enrollmentAttributes);$i++) {
+      // Skip anything that's hidden. This will prevent us from setting a
+      // default value for metadata attributes, and will also prevent using
+      // default values in hidden attributes (which is probably a feature, not
+      // a bug).
+      
+      if($enrollmentAttributes[$i]['hidden']) {
+        continue;
+      }
+      
+      if(!empty($enrollmentAttributes[$i]['CoEnrollmentAttribute']['default_env'])) {
+        if(strstr($enrollmentAttributes[$i]['attribute'], ':name:')) {
+          // Handle name specially
+          $envVar = $enrollmentAttributes[$i]['CoEnrollmentAttribute']['default_env']
+                  . "_"
+                  . strtoupper($enrollmentAttributes[$i]['field']);
+        } else {
+          $envVar = $enrollmentAttributes[$i]['CoEnrollmentAttribute']['default_env'];
         }
-        // If no type specified, match any instance of this attribute, regardless of type
         
-        $enrollmentAttributes[$i]['default'] = getenv($e['env_name']);
+        $enrollmentAttributes[$i]['default'] = getenv($envVar);
         
-        // Make sure the modifiable value is set. If a value was found, we will
-        // make it not-modifiable.
-        
-        $enrollmentAttributes[$i]['modifiable'] = !(boolean)$enrollmentAttributes[$i]['default'];
+        // In the new style, these are defaults, not canonical values
+        $enrollmentAttributes[$i]['modifiable'] = true;
       }
     }
     

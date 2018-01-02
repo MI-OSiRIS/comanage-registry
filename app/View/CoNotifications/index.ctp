@@ -57,70 +57,75 @@
         . "/" . $vv_request_type . ":" . $vv_co_person_id;
 ?>
 
-<form method="get" id="notificationStatus" action="<?php print $furl; ?>">
-  <span class="select-name"><?php print _txt('op.filter.status'); ?></span>
-  <select name="status">
-    <option value=""><?php print _txt('fd.unresolved'); ?></option>
-    <option value="all"<?php if($curstatus == "all") print " selected";?>><?php print _txt('fd.all'); ?></option>
-    <?php
-      foreach(array_keys($vv_notification_statuses) as $s) {
-        print "<option value=\"" . $s . "\"";
-        
-        if($s == $curstatus) {
-          print " selected";
-        }
-        
-        print ">" . $vv_notification_statuses[$s] . "</option>\n";
-      }
-    ?>
-  </select>
-  <input type="submit" value="<?php print _txt('op.filter')?>"/>
-</form>
+<div id="notificationsFilter" class="top-filter">
+  <form method="get" id="notificationStatus" action="<?php print $furl; ?>">
+    <span class="filters">
+      <span class="select-name"><?php print _txt('op.filter.status'); ?></span>
+      <select name="status">
+        <option value=""><?php print _txt('fd.unresolved'); ?></option>
+        <option value="all"<?php if($curstatus == "all") print " selected";?>><?php print _txt('fd.all'); ?></option>
 
-<table id="co_notifications" class="ui-widget">
-  <thead>
-    <tr class="ui-widget-header">
-      <th><?php print $this->Paginator->sort('action', _txt('fd.action')); ?></th>
-      <th><?php print $this->Paginator->sort('comment', _txt('fd.comment')); ?></th>
-      <th><?php print $this->Paginator->sort('created', _txt('fd.created.tz', array($vv_tz))); ?></th>
-      <th><?php print $this->Paginator->sort('resolution_time', _txt('fd.resolved.tz', array($vv_tz))); ?></th>
-    </tr>
-  </thead>
-  
-  <tbody>
-    <?php $i = 0; ?>
-    <?php foreach ($co_notifications as $c): ?>
-    <tr class="line<?php print ($i % 2)+1; ?>">
-      <td><?php print filter_var($c['CoNotification']['action'],FILTER_SANITIZE_SPECIAL_CHARS); ?></td>
-      <td><?php print $this->Html->link(filter_var($c['CoNotification']['comment'],FILTER_SANITIZE_SPECIAL_CHARS),
-                                        array(
-                                          'controller' => 'co_notifications',
-                                          'action'     => 'view',
-                                          $c['CoNotification']['id']
-                                        )); ?></td>
-      <td>
         <?php
-          if($c['CoNotification']['created']) {
-            print $this->Time->niceShort($c['CoNotification']['created'], $vv_tz);
+          foreach(array_keys($vv_notification_statuses) as $s) {
+            print "<option value=\"" . $s . "\"";
+
+            if($s == $curstatus) {
+              print " selected";
+            }
+
+            print ">" . $vv_notification_statuses[$s] . "</option>\n";
           }
         ?>
-      </td>
-      <td><?php
-          if($c['CoNotification']['resolution_time']) {
-            print $this->Time->niceShort($c['CoNotification']['resolution_time'], $vv_tz);
-          }
-        ?>
-      </td>
-    </tr>
-    <?php $i++; ?>
-    <?php endforeach; ?>
-  </tbody>
-  
-  <tfoot>
-    <tr class="ui-widget-header">
-      <th colspan="4">
-        <?php print $this->element("pagination"); ?>
-      </th>
-    </tr>
-  </tfoot>
-</table>
+      </select>
+    </span>
+    <span class="submit-button">
+      <input type="submit" value="<?php print _txt('op.filter')?>"/>
+    </span>
+  </form>
+</div>
+
+<div class="table-container">
+  <table id="co_notifications">
+    <thead>
+      <tr>
+        <th><?php print $this->Paginator->sort('action', _txt('fd.action')); ?></th>
+        <th><?php print $this->Paginator->sort('comment', _txt('fd.comment')); ?></th>
+        <th><?php print $this->Paginator->sort('created', _txt('fd.created.tz', array($vv_tz))); ?></th>
+        <th><?php print $this->Paginator->sort('resolution_time', _txt('fd.resolved.tz', array($vv_tz))); ?></th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <?php $i = 0; ?>
+      <?php foreach ($co_notifications as $c): ?>
+      <tr class="line<?php print ($i % 2)+1; ?>">
+        <td><?php print filter_var($c['CoNotification']['action'],FILTER_SANITIZE_SPECIAL_CHARS); ?></td>
+        <td><?php print $this->Html->link($c['CoNotification']['comment'],
+                                          array(
+                                            'controller' => 'co_notifications',
+                                            'action'     => 'view',
+                                            $c['CoNotification']['id']
+                                          )); ?></td>
+        <td>
+          <?php
+            if($c['CoNotification']['created']) {
+              print $this->Time->niceShort($c['CoNotification']['created'], $vv_tz);
+            }
+          ?>
+        </td>
+        <td><?php
+            if($c['CoNotification']['resolution_time']) {
+              print $this->Time->niceShort($c['CoNotification']['resolution_time'], $vv_tz);
+            }
+          ?>
+        </td>
+      </tr>
+      <?php $i++; ?>
+      <?php endforeach; ?>
+    </tbody>
+
+  </table>
+</div>
+
+<?php
+  print $this->element("pagination");

@@ -56,10 +56,10 @@
     'action'     => 'query',
     $vv_org_identity_source['id']
   );
-  
+
   $this->Html->addCrumb($vv_org_identity_source['description'], $args);
   $this->Html->addCrumb($key);
-  
+
   // Add top links
   $params['topLinks'] = array();
 
@@ -68,21 +68,21 @@
       if(!empty($permissions['create']) && $permissions['create']) {
         // Create a new Org Identity from this record. We might be in the middle
         // of an enrollment flow, in which case we change the text label.
-        
+
         $label = _txt('op.orgid.add.ois');
-        
+
         $args = array(
           'controller' => 'org_identity_sources',
           'action'     => 'create',
           $vv_org_identity_source['id'],
           'key'        => $key
         );
-        
+
         if(!empty($this->request->params['named']['copetitionid'])) {
           $label = _txt('op.orgid.petition.ois');
           $args['copetitionid'] = filter_var($this->request->params['named']['copetitionid'],FILTER_SANITIZE_SPECIAL_CHARS);
         }
-        
+
         $params['topLinks'][] = $this->Html->link(
           $label,
           $args,
@@ -92,7 +92,7 @@
     } else {
       if(!empty($permissions['view']) && $permissions['view']) {
         // View the Org Identity for this record
-        
+
         $params['topLinks'][] = $this->Html->link(
           _txt('op.view-a', array(_txt('ct.org_identities.1'))),
           array(
@@ -103,7 +103,7 @@
           array('class' => 'viewbutton')
         );
       }
-      
+
       // View Source Record button
       $params['topLinks'][] = $this->Html->link(
         _txt('op.view-a', array(_txt('ct.org_identity_source_records.1'))),
@@ -114,11 +114,11 @@
         ),
         array('class' => 'viewbutton')
       );
-      
+
       if($vv_org_identity_source['status'] == SuspendableStatusEnum::Active
          && !empty($permissions['sync']) && $permissions['sync']) {
         // Resync the Org Identity for this record
-        
+
         $params['topLinks'][] = $this->Html->link(
           _txt('op.orgid.sync.ois'),
           array(
@@ -132,28 +132,23 @@
       }
     }
   }
- 
+
   print $this->element("pageTitleAndButtons", $params);
- 
+
   $l = 1;
 ?>
 <?php if(!empty($vv_ois_record)
          && !empty($this->request->params['named']['copetitionid'])): ?>
-<div class="ui-state-highlight ui-corner-all co-info-topbox">
-  <p>
-    <span class="ui-icon ui-icon-info co-info"></span>
-    <strong><?php print _txt('er.ois.pt.linked'); ?></strong>
-  </p>
-</div>
+  <div class="co-info-topbox">
+    <em class="material-icons">info</em>
+    <?php print _txt('er.ois.pt.linked'); ?>
+  </div>
 <?php endif; ?>
 <?php if(!empty($vv_ois_record['OrgIdentitySourceRecord']['org_identity_id'])): ?>
-<div class="ui-state-highlight ui-corner-all co-info-topbox">
-  <p>
-    <span class="ui-icon ui-icon-info co-info"></span>
-    <strong><?php print _txt('in.orgid.ois'); ?></strong>
-  </p>
-</div>
-<br />
+  <div class="co-info-topbox">
+    <em class="material-icons">info</em>
+    <?php print _txt('in.orgid.ois'); ?>
+  </div>
 <?php endif; // view ?>
 <?php if(isset($vv_not_found) && $vv_not_found): ?>
 <div class="ui-state-highlight ui-corner-all co-info-topbox">
@@ -165,191 +160,217 @@
 <br />
 <?php else: // vv_not_found ?>
 <div class="innerContent">
-  <table id="view_org_identity_source_record" class="ui-widget">
-    <tbody>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('ct.org_identity_sources.1'); ?>
-        </td>
-        <td>
-          <?php
-            print $vv_org_identity_source['description'];
-            
-            if($vv_org_identity_source['status'] != SuspendableStatusEnum::Active) {
-              print " (" . _txt('en.status.susp', null, $vv_org_identity_source['status']) . ")";
-            }
-          ?>
-        </td>
-      </tr>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.sorid'); ?>
-        </td>
-        <td>
-          <?php print $key; ?>
-        </td>
-      </tr>
-      <?php if(!empty($vv_org_source_record['Name'])) foreach($vv_org_source_record['Name'] as $name): ?>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php
-            print _txt('fd.name') . " (";
-            
-            if(isset($name['primary_name']) && $name['primary_name'])
-              print _txt('fd.name.primary_name') . ", ";
-            
+  <div class="table-container">
+    <table id="view_org_identity_source_record">
+      <tbody>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('ct.org_identity_sources.1'); ?>
+          </td>
+          <td>
+            <?php
+              print $vv_org_identity_source['description'];
+
+              if($vv_org_identity_source['status'] != SuspendableStatusEnum::Active) {
+                print " (" . _txt('en.status.susp', null, $vv_org_identity_source['status']) . ")";
+              }
+            ?>
+          </td>
+        </tr>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.sorid'); ?>
+          </td>
+          <td>
+            <?php print $key; ?>
+          </td>
+        </tr>
+        <?php if(!empty($vv_org_source_record['Name'])) foreach($vv_org_source_record['Name'] as $name): ?>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php
+              print _txt('fd.name') . " (";
+
+              if(isset($name['primary_name']) && $name['primary_name'])
+                print _txt('fd.name.primary_name') . ", ";
+
             print filter_var($name['type'],FILTER_SANITIZE_SPECIAL_CHARS) . ")";
-          ?>
-        </td>
-        <td>
+            ?>
+          </td>
+          <td>
           <?php print filter_var(generateCn($name),FILTER_SANITIZE_SPECIAL_CHARS); ?>
-        </td>
-      </tr>
-      <?php endforeach; // name ?>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.affiliation'); ?>
-        </td>
-        <td>
-          <?php
-            if(!empty($vv_org_source_record['OrgIdentity']['affiliation'])) {
+          </td>
+        </tr>
+        <?php endforeach; // name ?>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.affiliation'); ?>
+          </td>
+          <td>
+            <?php
+              if(!empty($vv_org_source_record['OrgIdentity']['affiliation'])) {
               print filter_var($vv_org_source_record['OrgIdentity']['affiliation'],FILTER_SANITIZE_SPECIAL_CHARS);
-            }
-          ?>
-        </td>
-      </tr>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.valid_from.tz', array('UTC')); ?>
-        </td>
-        <td>
-          <?php
-            if(!empty($vv_org_source_record['OrgIdentity']['valid_from'])) {
+              }
+            ?>
+          </td>
+        </tr>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.valid_from.tz', array('UTC')); ?>
+          </td>
+          <td>
+            <?php
+              if(!empty($vv_org_source_record['OrgIdentity']['valid_from'])) {
               print filter_var($vv_org_source_record['OrgIdentity']['valid_from'],FILTER_SANITIZE_SPECIAL_CHARS);
-            }
-          ?>
-        </td>
-      </tr>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.valid_through.tz', array('UTC')); ?>
-        </td>
-        <td>
-          <?php
-            if(!empty($vv_org_source_record['OrgIdentity']['valid_through'])) {
+              }
+            ?>
+          </td>
+        </tr>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.valid_through.tz', array('UTC')); ?>
+          </td>
+          <td>
+            <?php
+              if(!empty($vv_org_source_record['OrgIdentity']['valid_through'])) {
               print filter_var($vv_org_source_record['OrgIdentity']['valid_through'],FILTER_SANITIZE_SPECIAL_CHARS);
-            }
-          ?>
-        </td>
-      </tr>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.title'); ?>
-        </td>
-        <td>
-          <?php
-            if(!empty($vv_org_source_record['OrgIdentity']['title'])) {
+              }
+            ?>
+          </td>
+        </tr>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.title'); ?>
+          </td>
+          <td>
+            <?php
+              if(!empty($vv_org_source_record['OrgIdentity']['title'])) {
               print filter_var($vv_org_source_record['OrgIdentity']['title'],FILTER_SANITIZE_SPECIAL_CHARS);
-            }
-          ?>
-        </td>
-      </tr>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.o'); ?>
-        </td>
-        <td>
-          <?php
-            if(!empty($vv_org_source_record['OrgIdentity']['o'])) {
+              }
+            ?>
+          </td>
+        </tr>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.o'); ?>
+          </td>
+          <td>
+            <?php
+              if(!empty($vv_org_source_record['OrgIdentity']['o'])) {
               print filter_var($vv_org_source_record['OrgIdentity']['o'],FILTER_SANITIZE_SPECIAL_CHARS);
-            }
-          ?>
-        </td>
-      </tr>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.ou'); ?>
-        </td>
-        <td>
-          <?php
-            if(!empty($vv_org_source_record['OrgIdentity']['ou'])) {
+              }
+            ?>
+          </td>
+        </tr>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.ou'); ?>
+          </td>
+          <td>
+            <?php
+              if(!empty($vv_org_source_record['OrgIdentity']['ou'])) {
               print filter_var($vv_org_source_record['OrgIdentity']['ou'],FILTER_SANITIZE_SPECIAL_CHARS);
-            }
-          ?>
-        </td>
-      </tr>
-      <?php if(!empty($vv_org_source_record['Address'])) foreach($vv_org_source_record['Address'] as $addr): ?>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.address') . " (" . $addr['type'] . ")"; ?>
-        </td>
-        <td>
+              }
+            ?>
+          </td>
+        </tr>
+        <?php if(!empty($vv_org_source_record['Address'])) foreach($vv_org_source_record['Address'] as $addr): ?>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.address') . " (" . $addr['type'] . ")"; ?>
+          </td>
+          <td>
           <?php print filter_var(formatAddress($addr),FILTER_SANITIZE_SPECIAL_CHARS); ?>
-        </td>
-      </tr>
-      <?php endforeach; // address ?>
-      <?php if(!empty($vv_org_source_record['EmailAddress'])) foreach($vv_org_source_record['EmailAddress'] as $email): ?>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.email_address.mail') . " (" . $email['type'] . ")"; ?>
-        </td>
-        <td>
+          </td>
+        </tr>
+        <?php endforeach; // address ?>
+        <?php if(!empty($vv_org_source_record['EmailAddress'])) foreach($vv_org_source_record['EmailAddress'] as $email): ?>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.email_address.mail') . " (" . $email['type'] . ")"; ?>
+          </td>
+          <td>
           <?php print filter_var($email['mail'],FILTER_SANITIZE_SPECIAL_CHARS); ?>
-        </td>
-      </tr>
-      <?php endforeach; // email ?>
-      <?php if(!empty($vv_org_source_record['Identifier'])) foreach($vv_org_source_record['Identifier'] as $id): ?>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.identifier.identifier') . " (" . $id['type'] . ")"; ?>
-        </td>
-        <td>
+          </td>
+        </tr>
+        <?php endforeach; // email ?>
+        <?php if(!empty($vv_org_source_record['Identifier'])) foreach($vv_org_source_record['Identifier'] as $id): ?>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.identifier.identifier') . " (" . $id['type'] . ")"; ?>
+          </td>
+          <td>
           <?php print filter_var($id['identifier'],FILTER_SANITIZE_SPECIAL_CHARS); ?>
-        </td>
-      </tr>
-      <?php endforeach; // identifier ?>
-      <?php if(!empty($vv_org_source_record['TelephoneNumber'])) foreach($vv_org_source_record['TelephoneNumber'] as $phone): ?>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.telephone_number.number') . " (" . $phone['type'] . ")"; ?>
-        </td>
-        <td>
+          </td>
+        </tr>
+        <?php endforeach; // identifier ?>
+        <?php if(!empty($vv_org_source_record['TelephoneNumber'])) foreach($vv_org_source_record['TelephoneNumber'] as $phone): ?>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.telephone_number.number') . " (" . $phone['type'] . ")"; ?>
+          </td>
+          <td>
           <?php print filter_var(formatTelephone($phone),FILTER_SANITIZE_SPECIAL_CHARS); ?>
-        </td>
-      </tr>
-      <?php endforeach; // telephone ?>
-      <?php if(!empty($vv_mapped_groups)): ?>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.group.mem.map'); ?>
-        </td>
-        <td>
-          <ul>
-            <?php
-              foreach($vv_mapped_groups as $g) {
+          </td>
+        </tr>
+        <?php endforeach; // telephone ?>
+        <?php if(!empty($vv_org_source_record['Url'])) foreach($vv_org_source_record['Url'] as $url): ?>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.url.url') . " (" . $url['type'] . ")"; ?>
+          </td>
+          <td>
+            <?php print $url['url']; ?>
+          </td>
+        </tr>
+        <?php endforeach; // url ?>
+        <?php if(!empty($vv_mapped_groups)): ?>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.group.mem.map'); ?>
+          </td>
+          <td>
+            <ul>
+              <?php
+                foreach($vv_mapped_groups as $g) {
                 print "<li>" . filter_var($g['CoGroup']['name'],FILTER_SANITIZE_SPECIAL_CHARS) . "</li>\n";
-              }
-            ?>
-          </ul>
-        </td>
-      </tr>
-      <?php endif; // mapped groups ?>
-      <tr class="line<?php print $l++ % 2; ?>">
-        <td>
-          <?php print _txt('fd.ois.record'); ?><br />
-          <span class="descr"><?php print _txt('fd.ois.record.desc'); ?></span>
-        </td>
-        <td>
-          <pre>
-            <?php
-              if(!empty($vv_raw_source_record)) {
+                }
+              ?>
+            </ul>
+          </td>
+        </tr>
+        <?php endif; // mapped groups ?>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.ois.record'); ?><br />
+            <span class="descr"><?php print _txt('fd.ois.record.desc'); ?></span>
+          </td>
+          <td>
+            <pre>
+              <?php
+                if(!empty($vv_raw_source_record)) {
                 print filter_var($vv_raw_source_record,FILTER_SANITIZE_SPECIAL_CHARS);
+                }
+              ?>
+            </pre>
+          </td>
+        </tr>
+        <?php if($vv_org_identity_source['hash_source_record']): ?>
+        <tr class="line<?php print $l++ % 2; ?>">
+          <td>
+            <?php print _txt('fd.ois.record.hashed'); ?>
+          </td>
+          <td>
+            <?php
+              if(!empty($vv_source_record_hash)) {
+                print $vv_source_record_hash;
               }
             ?>
-          </pre>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+          </td>
+        </tr>
+        <?php endif; // hash_source_record ?>
+      </tbody>
+    </table>
+  </div>
 </div>
 <?php endif; // vv_not_found

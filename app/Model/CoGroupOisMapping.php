@@ -71,6 +71,7 @@ class CoGroupOisMapping extends AppModel {
       'allowEmpty' => false
     ),
     'pattern' => array(
+      // XXX We would ideally check for a valid regular expression when ComparisonEnum is Regex
       'rule' => 'notBlank',
       'required' => true,
       'allowEmpty' => false
@@ -120,7 +121,7 @@ class CoGroupOisMapping extends AppModel {
         return (strcasecmp($value, $pattern) !== 0);
         break;
       case ComparisonEnum::Regex:
-        return (strcasecmp($value, $pattern) !== 0);
+        return (preg_match($pattern, $value));
         break;
       default:
         // Ignore anything unexpected
@@ -155,9 +156,17 @@ class CoGroupOisMapping extends AppModel {
       
       if(!empty($attributes[$attr])) {
         // There can be more than one value for a given attribute
-        
-        foreach($attributes[$attr] as $v) {
-          if($this->compare($v,
+        if(is_array($attributes[$attr])) {
+          foreach($attributes[$attr] as $v) {
+            if($this->compare($v,
+                              $m['CoGroupOisMapping']['comparison'],
+                              $m['CoGroupOisMapping']['pattern'])) {
+              // Match found
+              $ret[ $m['CoGroupOisMapping']['co_group_id'] ] = "member";
+            }
+          }
+        } else {
+          if($this->compare($attributes[$attr],
                             $m['CoGroupOisMapping']['comparison'],
                             $m['CoGroupOisMapping']['pattern'])) {
             // Match found

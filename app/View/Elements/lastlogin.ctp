@@ -37,7 +37,7 @@
   if(!empty($a)):
 ?>
 <div id="lastLogin">
-  <div class="ui-state-highlight ui-corner-all co-info-topbox">
+  <div class="co-info-topbox">
     <?php foreach($lastlogin as $u => $l): ?>
     <?php if(!empty($l)): ?>
     <p>

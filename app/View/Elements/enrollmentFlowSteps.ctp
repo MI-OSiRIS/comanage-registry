@@ -26,7 +26,7 @@
  * @license       Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
  */
 ?>
-<div class="sidebar">
+<div class="sidebar-content">
   <div id="enrollmentFlowSteps">
     <h3><?php print _txt('ct.co_enrollment_flows.1') ?></h3>
     <ul>
@@ -35,16 +35,15 @@
         print '<li class="' . $step['state'] . '">';
         switch ($step['state']) {
           case 'complete':
-            print '<span class="ui-icon ui-icon-check"> </span>';
+            print '<em class="material-icons">done</em>';
             break;
           case 'selected':
-            print '<span class="ui-icon ui-icon-arrowthick-1-e"> </span>';
+            print '<em class="material-icons">forward</em>';
             break;
           case 'stopped':
-            print '<span class="ui-icon ui-icon-closethick"> </span>';
+            print '<em class="material-icons">cancel</em>';
             break;
           case 'incomplete':
-            print '<span class="ui-icon ui-icon-bullet"> </span>';
             break;
         }
         print '<span class="stepText">' . $step['title'] . '</span>';

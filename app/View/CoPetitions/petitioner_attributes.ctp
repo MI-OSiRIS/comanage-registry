@@ -34,14 +34,26 @@ $(document).ready(function() {
     if(event.which != 13) {
       // 13 is enter/return... don't search on form submit
       // XXX Don't hardcode fields here, or /registry prefix
+      var thisFieldId = $(this).attr("id");
       $.ajax({
         url: '/registry/co_people/match/coef:' + <?php print filter_var($co_enrollment_flow_id,FILTER_SANITIZE_URL); ?>
              + '/given:' + document.getElementById(givenNameAttr).value
              + '/family:' + document.getElementById(familyNameAttr).value
       }).done(function(data) {
-        $('#petitionerMatchResults').html(data);
+        //$('#petitionerMatchResults').html(data);
+        $("#matchable-for-" + thisFieldId).html(data);
+
+        // provide a close button to manually hide matchable info
+        $("#matchable-for-" + thisFieldId + " .close-button").click(function() {
+          $(this).closest('.matchable-output').hide();
+        });
       });
     }
+  });
+
+  // clear out existing matchable output boxes when focusing a matchable field
+  $("input.matchable").focus(function() {
+    $('.matchable-output').html('').show();
   });
 });
 </script>
@@ -74,7 +86,7 @@ $(document).ready(function() {
 
   $this->set('enrollmentFlowSteps', $enrollmentFlowSteps);
 
-
+  // XXX is $submit_label used?
   $submit_label = _txt('op.add');
   
   print $this->Form->create(
@@ -96,14 +108,11 @@ $(document).ready(function() {
     print $this->Form->hidden('CoPetition.token', array('default' => $vv_petition_token)) . "\n";
   }
 ?>
-<div>
-  <div id="tabs-attributes">
-    <?php
-      $e = true;  
-      
-      include('petition-attributes.inc');
-    ?>
-  </div>
+<div id="tabs-attributes">
+  <?php
+    $e = true;
+    include('petition-attributes.inc');
+  ?>
 </div>
 <?php
   print $this->Form->end();

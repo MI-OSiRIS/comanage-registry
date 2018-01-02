@@ -33,6 +33,23 @@ abstract class OrgIdentitySourceBackend extends AppModel {
   protected $pluginCfg = null;
   
   /**
+   * Obtain a list of records changed since $lastStart, through $curStart.
+   * Note this list should only include updated or deleted records, and not NEW records.
+   * New records will not be processed via the changelist, and may throw an error.
+   * (New records should be processed via FULL processing, QUERY mode, or MANUAL sync.)
+   * 
+   * @since  COmanage Registry v3.1.0
+   * @param  Integer $lastStart Time of start of last request, or 0 if no previous request
+   * @param  Integer $curStart  Time of start of current request
+   * @return Mixed              Array of SORIDs, or false if not supported
+   * @throws RuntimeException
+   */
+  
+  public function getChangeList($lastStart, $curStart) {
+    return false;
+  }
+  
+  /**
    * Obtain the configuration for this backend. This will correspond to FooSource.
    *
    * @since  COmanage Registry v2.0.0

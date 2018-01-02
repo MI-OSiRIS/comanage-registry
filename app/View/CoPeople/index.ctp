@@ -29,9 +29,10 @@
 <script>
   $(function() {
     
-    $( ".line1, .line2" ).accordion({
+    $( ".co-person" ).accordion({
       collapsible: true,
-      active     : false
+      active     : false,
+      heightStyle: "content"
     });
 
     // allow names to link to the person canvas
@@ -46,9 +47,9 @@
 
   function togglePeople(state) {
     if (state == 'open') {
-      $(".line1, .line2" ).accordion( "option", "active", 0 );
+      $(".co-person" ).accordion( "option", "active", 0 );
     } else {
-      $(".line1, .line2" ).accordion( "option", "active", false );
+      $(".co-person" ).accordion( "option", "active", false );
     }
   }
 </script>
@@ -67,73 +68,32 @@
     $this->Html->addCrumb(filter_var($title_for_layout,FILTER_SANITIZE_SPECIAL_CHARS));
   } else {
     $this->Html->addCrumb(_txt('me.population'));
-    
-    // Add buttons to sidebar
-    /* XXX DEPRECATED.  Keep for now.
-    $sidebarButtons = $this->get('sidebarButtons');
-    
-    if($permissions['enroll'] && !empty($co_enrollment_flows)) {
-      $sidebarButtons[] = array(
-        'icon'    => 'circle-plus',
-        'title'   => _txt('op.enroll'),
-        'url'     => array(
-          'controller' => 'co_enrollment_flows',
-          'action'     => 'select',
-          'co'         => $cur_co['Co']['id']
-        )
-      );    
-    } elseif($permissions['add']) {
-      $sidebarButtons[] = array(
-        'icon'    => 'circle-plus',
-        'title'   => _txt('op.inv'),
-        'url'     => array(
-          'controller' => 'org_identities', 
-          'action'     => 'find', 
-          'co'         => $cur_co['Co']['id']
-        )
-      );
-    }  
-    
-    $this->set('sidebarButtons', $sidebarButtons);
-    */
   }
 ?>
 
 <?php if($this->action == 'link'): ?>
-<div class="ui-state-highlight ui-corner-all co-info-topbox">
-  <p>
-    <span class="ui-icon ui-icon-info co-info"></span>
-    <strong><?php print _txt('op.link.select', array(filter_var(generateCn($vv_org_identity['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS),
-                                                     filter_var($vv_org_identity['OrgIdentity']['id'],FILTER_SANITIZE_SPECIAL_CHARS))); ?></strong>
-  </p>
-</div>
-<br />
+  <div class="co-info-topbox">
+    <em class="material-icons">info</em>
+    <?php print _txt('op.link.select', array(filter_var(generateCn($vv_org_identity['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS),
+      filter_var($vv_org_identity['OrgIdentity']['id'],FILTER_SANITIZE_SPECIAL_CHARS))); ?>
+  </div>
 <?php elseif($this->action == 'relink' && !empty($vv_co_org_identity_link['OrgIdentity'])): ?>
-<div class="ui-state-highlight ui-corner-all co-info-topbox">
-  <p>
-    <span class="ui-icon ui-icon-info co-info"></span>
-    <strong><?php print _txt('op.relink.select', array(filter_var(generateCn($vv_co_org_identity_link['OrgIdentity']['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS),
-                                                       filter_var($vv_co_org_identity_link['OrgIdentity']['id'],FILTER_SANITIZE_SPECIAL_CHARS))); ?></strong>
-  </p>
-</div>
-<br />
+  <div class="co-info-topbox">
+    <em class="material-icons">info</em>
+    <?php print _txt('op.relink.select', array(filter_var(generateCn($vv_co_org_identity_link['OrgIdentity']['PrimaryName']),FILTER_SANITIZE_SPECIAL_CHARS),
+      filter_var($vv_co_org_identity_link['OrgIdentity']['id'],FILTER_SANITIZE_SPECIAL_CHARS))); ?>
+  </div>
 <?php elseif($this->action == 'relink' && !empty($vv_co_person_role['CoPersonRole'])): ?>
-<div class="ui-state-highlight ui-corner-all co-info-topbox">
-  <p>
-    <span class="ui-icon ui-icon-info co-info"></span>
-    <strong><?php print _txt('op.relink.role.select', array(filter_var($vv_co_person_role['CoPersonRole']['title'],FILTER_SANITIZE_SPECIAL_CHARS),
-                                                       filter_var($vv_co_person_role['CoPersonRole']['id'],FILTER_SANITIZE_SPECIAL_CHARS))); ?></strong>
-  </p>
-</div>
-<br />
+  <div class="co-info-topbox">
+    <em class="material-icons">info</em>
+    <?php print _txt('op.relink.role.select', array(filter_var($vv_co_person_role['CoPersonRole']['title'],FILTER_SANITIZE_SPECIAL_CHARS),
+      filter_var($vv_co_person_role['CoPersonRole']['id'],FILTER_SANITIZE_SPECIAL_CHARS))); ?>
+  </div>
 <?php elseif($this->action == 'select'): ?>
-<div class="ui-state-highlight ui-corner-all co-info-topbox">
-  <p>
-    <span class="ui-icon ui-icon-info co-info"></span>
-    <strong><?php print _txt('op.select.select'); ?></strong>
-  </p>
-</div>
-<br />
+  <div class="co-info-topbox">
+    <em class="material-icons">info</em>
+    <?php print _txt('op.select.select'); ?>
+  </div>
 <?php endif; // link ?>
 
 <div id="sorter" class="listControl">
@@ -168,7 +128,7 @@ if(isset($permissions['search']) && $permissions['search'] ) {
 }
 ?>
 
-<div id="peopleAlphabet" class="listControl">
+<div id="peopleAlphabet" class="listControl" aria-label="<?php print _txt('me.alpha.label'); ?>">
   <ul>
     <?php
       $args = array();
@@ -204,56 +164,65 @@ if(isset($permissions['search']) && $permissions['search'] ) {
         print '<li' . $alphaStyle . '>' . $this->html->link($i,$args) . '</li>';
       }
     ?>
+    <li class="spin">
+      <a href="javascript:clearSearch(document.getElementById('CoPersonSearchForm'));"
+         title="<?php print _txt('op.clear.search'); ?>">
+        <em class="material-icons">block</em>
+      </a>
+    </li>
   </ul>
 </div>
 
 <div id="co_people">
   <?php $i = 0; ?>
   <?php foreach ($co_people as $p): ?>
-    <div class="line<?php print ($i % 2)+1; ?>">
-      <div class = "panel1">
+    <div class="co-person line<?php print ($i % 2)+1; ?>">
+      <div class="person-panel">
         <?php
           $nameWithoutEmailClass = 'nameWithEmail';
           if(!isset($p['EmailAddress'][0]['mail'])) {
             $nameWithoutEmailClass = 'nameWithoutEmail';
           }
         ?>
-        <div class="name <?php print $nameWithoutEmailClass; ?>">
-          <?php
-            print $this->Html->link(generateCn($p['PrimaryName']),
-              array(
-                'controller' => 'co_people',
-                'action' => ($permissions['edit'] ? 'canvas' : ($permissions['view'] ? 'view' : '')),
-                $p['CoPerson']['id'])
-            );
-          ?>
-        </div>
+        <div class="person-info">
+          <div class="person-info-inner">
+            <span class="person-name <?php print $nameWithoutEmailClass; ?>">
+              <?php
+                print $this->Html->link(generateCn($p['PrimaryName']),
+                  array(
+                    'controller' => 'co_people',
+                    'action' => ($permissions['edit'] ? 'canvas' : ($permissions['view'] ? 'view' : '')),
+                    $p['CoPerson']['id'])
+                );
+              ?>
+            </span>
 
-        <div class = "email">
-          <?php
-              if(isset($p['EmailAddress'][0]['mail'])) { 
-                print '(' ;
+            <span class="person-email">
+              <?php
+                  if(isset($p['EmailAddress'][0]['mail'])) {
+                    print '(' ;
 
-                $email = $p['EmailAddress'][0]['mail'];
-                if(strlen($email) > 36)
-                  print substr($email, 0, 35) . "...";
-                else
-                  print $email;
-                
-                print ')';
-              }
-          ?>
-        </div>
+                    $email = $p['EmailAddress'][0]['mail'];
+                    if(strlen($email) > 36)
+                      print substr($email, 0, 35) . "...";
+                    else
+                      print $email;
 
-        <div class="status">
-          <?php
-            global $status_t;
+                    print ')';
+                  }
+              ?>
+            </span>
+          </div>
 
-            if(!empty($p['CoPerson']['status']) ) print _txt('en.status', null, $p['CoPerson']['status']);
-          ?>
+          <span class="person-status">
+            <?php
+              global $status_t;
+              if(!empty($p['CoPerson']['status']) ) print _txt('en.status', null, $p['CoPerson']['status']);
+            ?>
+          </span>
         </div>
         
-        <div class="admin">
+        <div class="person-admin">
           <?php
             if(true || $myPerson) {
               // XXX for now, cou admins get all the actions, but see CO-505
@@ -321,7 +290,7 @@ if(isset($permissions['search']) && $permissions['search'] ) {
                       $p['CoPerson']['id']
                     ),
                     array(
-                      'class' => 'editbutton',
+                      'class' => 'editbutton spin',
                       'onclick' => 'noprop(event);',
                       'title' => _txt('op.edit-a',array(generateCn($p['PrimaryName']))),
                       'aria-label' => _txt('op.edit-a',array(generateCn($p['PrimaryName'])))
@@ -377,8 +346,10 @@ if(isset($permissions['search']) && $permissions['search'] ) {
             }
           ?>
         </div>
+        <span class="clearfix"></span>
       </div>
-      <div class = "panel2">
+      <div class = "role-panel">
+        <div class="roles-title"><?php print _txt('fd.roles'); ?></div>
         <div class="roles">
           <?php
             foreach ($p['CoPersonRole'] as $pr) {
@@ -431,13 +402,18 @@ if(isset($permissions['search']) && $permissions['search'] ) {
                       } else {
                         print '<span class="roleTitleLinks">';
                         print $this->Html->link(($this->action == 'relink'
-                                                 ? _txt('op.view')
-                                                 : _txt('op.edit')),
-                                                array('controller' => 'co_person_roles',
-                                                      'action' => ($permissions['edit'] ? "edit" : "view"),
-                                                      $pr['id'],
-                                                      'co' => $cur_co['Co']['id']),
-                                                array('class' => 'editbutton'));
+                           ? _txt('op.view')
+                           : _txt('op.edit')),
+                          array('controller' => 'co_person_roles',
+                                'action' => ($permissions['edit'] ? "edit" : "view"),
+                                $pr['id'],
+                                'co' => $cur_co['Co']['id']),
+                          array(
+                            'class' => 'editbutton spin',
+                            'onclick' => 'noprop(event);',
+                            'title' => _txt('op.edit-a',array(_txt('ct.co_person_roles.1') . ' ' . $pr['title'])),
+                            'aria-label' => _txt('op.edit-a',array(_txt('ct.co_person_roles.1') . ' ' . $pr['title']))
+                          ));
                         print '</span>';
                         if(!empty($pr['title'])) {
                           print '<span class="roleTitleText">';
@@ -472,7 +448,7 @@ if(isset($permissions['search']) && $permissions['search'] ) {
                       }
                       print ")";
                     }
-
+                  print '<span class="clearfix"></span>';
                   print "</div>";  // roletitle
                 print "</div>";  // roleinfo
               print "</div>";  // role
@@ -500,7 +476,7 @@ if(isset($permissions['search']) && $permissions['search'] ) {
   ?>
 
   <?php print $this->element("pagination"); ?>
-  <div class="clear"></div>
+  <div class="clearfix"></div>
 
 </div>
 
