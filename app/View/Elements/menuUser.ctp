@@ -150,25 +150,25 @@
         // This rendering is a bit different from how render_plugin_menus() does it...
         foreach(array_keys($menuContent['plugins']) as $plugin) {
           if(isset($menuContent['plugins'][$plugin]['coperson'])) {
-            foreach(array_keys($menuContent['plugins'][$plugin]['coperson']) as $label) {
-              print '<li> 
-                       <a href="#">'.$label.'</a>
-                       <span class="sf-sub-indicator"> »</span>
-                       <ul>';
 
+            // bmeekhof (OSiRIS) 
+            // Just print a direct link to plugin menu items 
+            // this is kind of a hack so our token link displays at top level of menu
+            // may not come out so well if other plugins include menu items
+            
+            foreach(array_keys($menuContent['plugins'][$plugin]['coperson']) as $label) {
+             
               foreach($menuContent['cos'] as $co) {
                 if(empty($co['co_person_id']))
                   continue;
 
                 $args = $menuContent['plugins'][$plugin]['coperson'][$label];
-
-                $args[] = 'copersonid:' . $co['co_person_id'];
+              
+                $args['copersonid'] = $co['co_person_id'];
                 $args['plugin'] = Inflector::underscore($plugin);
-
-                print '<li class="mdl-menu__item">' . $this->Html->link($co['co_name'], $args) . "</li>\n";
+                print "<li class='mdl-menu__item'>" . $this->Html->link($co['co_name'] . ' Tokens', $args) . "</li>\n";
               }
-
-              print "</ul></li>";
+              // bmeekhof - mark end of our menu code changes 
             }
           }
         }
