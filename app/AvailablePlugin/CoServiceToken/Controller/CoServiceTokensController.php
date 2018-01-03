@@ -113,35 +113,37 @@ class CoServiceTokensController extends StandardController {
     if(!empty($tokenSetting)) {
       if ($tokenSetting['CoServiceTokenSetting']['token_type'] == CoServiceTokenTypeEnum::CephKey) {
 
-      if (empty($this->request->params['named']['cocephprovisionerid'])) {
-        $this->Flash->set(_txt('er.coservicetoken.nocephprovisioner', array(_txt('ct.co_service_token_settings.1'))),
-                        array('key' => 'error'));
-        $this->performRedirect();
-      }
+        if (empty($this->request->params['named']['cocephprovisionerid'])) {
+          $this->Flash->set(_txt('er.coservicetoken.nocephprovisioner', array(_txt('ct.co_service_token_settings.1'))),
+                          array('key' => 'error'));
+          $this->performRedirect();
+        }
 
-      if (empty($this->request->params['named']['coldapprovisionerid'])) {
-        $this->Flash->set(_txt('er.coservicetoken.noldapprovisioner', array(_txt('ct.co_service_token_settings.1'))),
-                        array('key' => 'error'));
-        $this->performRedirect();
+        if (empty($this->request->params['named']['coldapprovisionerid'])) {
+          $this->Flash->set(_txt('er.coservicetoken.noldapprovisioner', array(_txt('ct.co_service_token_settings.1'))),
+                          array('key' => 'error'));
+          $this->performRedirect();
+        }
       }
     }
 
-
-      $args = array();
-      $args['conditions']['CoService.id'] = $tokenSetting['CoServiceTokenSetting']['co_service_id'];
-      $args['contain'] = false;
-
-      $this->set('vv_co_service', $this->CoServiceToken->CoService->find('first', $args));
-    }
-
-    $this->set('vv_co_person_id', $this->request->params['named']['copersonid']);
-    $this->set('vv_token', $this->CoServiceToken->generate($this->request->params['named']['copersonid'],
+    
+    $this->CoServiceToken->generate($this->request->params['named']['copersonid'],
                                                            $tokenSetting['CoServiceTokenSetting']['co_service_id'],
                                                            $tokenSetting['CoServiceTokenSetting']['token_type'],
                                                            $this->Session->read('Auth.User.co_person_id'),
                                                            $this->request->params['named']['cocephprovisionerid'],
-                                                           $this->request->params['named']['coldapprovisionerid']));
+                                                           $this->request->params['named']['coldapprovisionerid']);
+
+    // the redirect should kick in so the generate.ctp content is never displayed. 
+    // If somehow the page does end up displaying the var settings below are used
+    // set title and breadcrumb params
     $this->set('title_for_layout', _txt('ct.co_service_tokens.1'));
+    $this->set('vv_co_person_id', $this->request->params['named']['copersonid']);
+
+    $this->Flash->set(_txt('pl.coservicetoken.token.success'), array('key' => 'success'));
+    $this->performRedirect();
+
   }
 
   /**
