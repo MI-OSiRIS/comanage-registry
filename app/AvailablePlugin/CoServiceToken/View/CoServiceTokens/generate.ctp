@@ -43,30 +43,3 @@
     <strong><?php print _txt('pl.coservicetoken.token.info'); ?></strong>
   </p>
 </div>
-<?php
-/*
-<div class="innerContent">
-<table id="<?php print $this->action; ?>_co_service_token" class="ui-widget">
-  <tbody>
-    <tr class="line1">
-      <th class="ui-widget-header">
-        <?php print _txt('ct.co_services.1'); ?>
-      </th>
-      <td>
-        <?php print filter_var($vv_co_service['CoService']['name'], FILTER_SANITIZE_SPECIAL_CHARS); ?>
-      </td>
-    </tr>
-    <tr class="line2">
-      <th class="ui-widget-header">
-        <?php print _txt('pl.coservicetoken.token'); ?>
-      </th>
-      <td>
-        <span style="font-size:20px; font-family:courier;"><?php print filter_var($vv_token, FILTER_SANITIZE_SPECIAL_CHARS); ?></span>
-      </td>
-    </tr>
-  </tbody>
-</table>
-</div>
-*/
-?>
-
