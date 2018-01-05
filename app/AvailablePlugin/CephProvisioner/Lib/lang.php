@@ -21,6 +21,7 @@ $cm_ceph_provisioner_texts['en_US'] = array(
 
     // Plugin texts
     'pl.cephprovisioner.info'    => 'Configure ceph provisioner',
+    'pl.cephprovisioner.ldap_target'  => 'LDAP Lookup Target',
     'pl.cephprovisioner.rgw_url'      => 'RGW URL',
     'pl.cephprovisioner.rgw_url.desc'      => 'URL to reach Ceph RGW, required to provision COU buckets and ACLs',
     'pl.cephprovisioner.ceph_client_name'      => 'Ceph Client ID',

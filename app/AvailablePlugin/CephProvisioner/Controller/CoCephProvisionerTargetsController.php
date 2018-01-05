@@ -35,21 +35,44 @@ class CoCephProvisionerTargetsController extends SPTController {
   public $paginate = array(
     'limit' => 25,
     'order' => array(
-      'ceph_client_id' => 'asc'
+      'ceph_client_name' => 'asc'
     )
   );
   
+  public $uses = array(
+    'CephProvisioner.CoCephProvisionerTarget',
+    'CoProvisioningTarget'
+  );
+
   /**
    * Callback after controller methods are invoked but before views are rendered.
    *
    * @since  COmanage Registry v0.9.3
    */
-  /*
+  
   function beforeRender() {
     parent::beforeRender();
+    $this->CoProvisioningTarget->bindModel(array('hasOne' =>
+                                                 array('LdapProvisioner.CoLdapProvisionerTarget')),
+                                           false);
+    
+    $args = array();
+    $args['conditions']['CoProvisioningTarget.co_id'] = $this->cur_co['Co']['id'];
+    $args['conditions']['CoProvisioningTarget.plugin'] = 'LdapProvisioner';
+    $args['contain'][] = 'CoLdapProvisionerTarget';
+    
+    $ldapProvisioners = $this->CoProvisioningTarget->find('all', $args);
+    
+    $availableTargets = array();
+    
+    foreach($ldapProvisioners as $lp) {
+      $availableTargets[ $lp['CoLdapProvisionerTarget']['id'] ] = $lp['CoProvisioningTarget']['description'];
+    }
+    
+    $this->set('vv_ldap_provisioners', $availableTargets);
     
   }
-  */
+  
   
   /**
    * Perform any dependency checks required prior to a write (add/edit) operation.
