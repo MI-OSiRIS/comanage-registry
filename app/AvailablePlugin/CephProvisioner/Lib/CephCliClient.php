@@ -33,15 +33,22 @@ App::uses('CakeLog', 'Log');
 class CephCliClient extends CephCli {
 
   // map an array of daemon => caps to a string suitable for ceph auth commands
-  // Example (part after client.zzz):  ceph auth caps client.zzz osd 'allow rw pool=blah' mon 'allow r'
+  // Example (part after client.zzz):
+  // Array: [ 'osd' => 'allow rw pool=blah', 'mon' => 'allow r' ]  
+  // String:  osd 'allow rw pool=blah' mon 'allow r'
+  // If caps is an array it will be combined with comma between elements
   private function mapArrayToCapString($caps) {
     // quote each cap value
-    $a = array_map(function($value) { return "'$value'"; }, $caps);
+    //$a = array_map(function($value) { return "'$value'"; }, $caps);
 
     // build cap string
     $capstring = '';
-    foreach ($a as $daemon => $cap) {
-        $capstring .= $daemon . ' ' . $cap . ' ';
+    foreach ($caps as $daemon => $cap) {
+        if (is_array($cap)) {
+          $glue = ($daemon == 'mds') ? ';' : ',';
+          $cap = implode($glue, $cap);
+        }
+        $capstring .= $daemon . ' ' . "'$cap'" . ' ';
     }
     return $capstring;
   }
@@ -52,6 +59,15 @@ class CephCliClient extends CephCli {
 
   public function addEntity($id, $caps = array()) {
     $this->ceph("auth add client.$id " . $this->mapArrayToCapString($caps));
+  }
+
+  // adds entity if not existing, recreates with caps specified otherwise
+  public function addOrUpdateEntity($id, $caps = array()) {
+    try {
+      $this->addEntity($id,$caps);
+    } catch (CephClientException $e) {
+      $this->setCaps($id,$caps);
+    }
   }
 
   public function getOrCreateKey($id, $caps = array()) {

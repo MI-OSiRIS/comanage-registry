@@ -52,7 +52,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   
   // Validation rules for table elements
   public $validate = array(
-    // pasted, fix this
+    
     'co_provisioning_target_id' => array(
       'rule' => 'numeric',
       'required' => true,
@@ -118,7 +118,12 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       'rule' => 'numeric',
       'required' => true,
       'allowEmpty' => false
-    )
+    ),
+      'co_ldap_provisioner_target_id' => array(
+      'rule' => 'numeric',
+      'required' => true,
+      'message' => 'A CO LDAP Provisioning Target ID must be provided'
+    ),
   );
  
   private $cou_name;
@@ -150,6 +155,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
         case ProvisioningActionEnum::CoPersonUnexpired:
         case ProvisioningActionEnum::CoPersonUpdated:
           $this->provisionCoPersonAction($coProvisioningTargetData,$provisioningData);
+          $this->updateCephClientKey($coProvisioningTargetData, $provisioningData);
           $this->syncRgwCoPeople($coProvisioningTargetData);
           break;
         case ProvisioningActionEnum::CoPersonExpired:
@@ -271,6 +277,11 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     if (!$this->associatePoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools)) {
       throw new RuntimeException(_txt('er.cephprovisioner.datapool.associate'));
     }
+
+    //if (!$this->updateCephClientKey($coProvisioningTargetData,$coGroupData)) {
+    //  throw new RuntimeException(_txt('er.cephprovisioner.datapool.associate'));
+    //}
+
   }
 
   public function associatePoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools) {
@@ -288,6 +299,140 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       return true;
 
       // do some stuff here
+
+  }
+
+    /**
+   * Determine Ceph access capabilities for CoPerson and create client key
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Array CO Provisioning Target data
+   * @param  coPersonData
+   * @return Boolean True on success
+   * @throws RuntimeException
+   * @throws CephClientException
+   */
+
+  public function updateCephClientKey($coProvisioningTargetData, $coPersonData) {
+
+    $couObject = ClassRegistry::init('Cou');
+    $ceph = $this->cephClientFactory($coProvisioningTargetData);
+    $caps = array('mon' => 'allow r', 'mgr' => 'allow r');
+
+    $uid_identifier = IdentifierEnum::UID;
+    $userid = Hash::extract($coPersonData, "Identifier.{n}[type=uid].identifier");
+
+    if (empty($userid)) { throw new RuntimeException(_txt('er.cephprovisioner.identifier')); }
+  
+    // pull ldap config (we'll need to query for memberOf gids)
+    // Pull the LDAP configuration
+
+    $CoLdapProvisionerTarget = ClassRegistry::init('LdapProvisioner.CoLdapProvisionerTarget');
+
+    $args = array();
+    $args['conditions']['CoLdapProvisionerTarget.id'] = $coProvisioningTargetData['CoCephProvisionerTarget']['co_ldap_provisioner_target_id'];
+    $args['contain'] = false;
+
+    $ldapTarget = $CoLdapProvisionerTarget->find('first', $args);
+
+    if(empty($ldapTarget)) {
+      throw new RuntimeException(_txt('er.noldap'));
+    }
+
+    $cxn = ldap_connect($ldapTarget['CoLdapProvisionerTarget']['serverurl']);
+    
+    if(!$cxn) {
+      throw new RuntimeException(_txt('er.ldapprovisioner.connect'), 0x5b /*LDAP_CONNECT_ERROR*/);
+    }
+
+    if(!@ldap_bind($cxn,
+                   $ldapTarget['CoLdapProvisionerTarget']['binddn'],
+                   $ldapTarget['CoLdapProvisionerTarget']['password'])) {
+      throw new RuntimeException(ldap_error($cxn), ldap_errno($cxn));
+    }
+
+    // it might be more efficient to search for memberOf and then query only those groups for gid
+    // although I'm not doing that 
+
+    // Pull the master DN for this person to use in lookup
+    
+    $CoLdapProvisionerDn = ClassRegistry::init('LdapProvisioner.CoLdapProvisionerDn');
+    
+    $args = array();
+    $args['conditions']['CoLdapProvisionerDn.co_ldap_provisioner_target_id'] = $coProvisioningTargetData['CoCephProvisionerTarget']['co_ldap_provisioner_target_id'];
+    $args['conditions']['CoLdapProvisionerDn.co_person_id'] = $coPersonData['CoPerson']['id'];
+    $args['fields'] = array('id', 'dn');
+    $args['contain'] = false;
+    $dn = $CoLdapProvisionerDn->find('first', $args);
+
+    $this->log("CephProvisioner updateCephClientKey - looked up master DN: " . json_encode($dn));
+    
+    if(empty($dn)) {
+      throw new RuntimeException(_txt('er.nodn'));
+    }
+
+    $dnString = $dn['CoLdapProvisionerDn']['dn'];
+
+    // pick up uid
+    $s = @ldap_search($cxn, $dnString, "(objectClass=posixAccount)", ['uidNumber']);
+
+    if ($s) {
+      $uidResults = ldap_get_entries($cxn, $s);
+      //$uid = Hash::extract($provisioningData['Identifier'], "{n}[type=$idType].identifier");
+      $uidList = Hash::extract($uidResults, "{n}.uidnumber.0");
+      $this->log('CephProvisioner updateCephClientKey found uid list: ' . json_encode($uidList));
+      $uid = $uidList[0];
+    }
+
+    // find all gid for member groups
+    $s = @ldap_search($cxn, $ldapTarget['CoLdapProvisionerTarget']['group_basedn'], "(&(objectClass=posixGroup)(uniqueMember=$dnString))", ['gidNumber']);
+    
+    if ($s) {
+      $gidResults = ldap_get_entries($cxn, $s);
+      //$uid = Hash::extract($provisioningData['Identifier'], "{n}[type=$idType].identifier");
+      $gidList = Hash::extract($gidResults, "{n}.gidnumber.0");
+      $this->log('CephProvisioner updateCephClientKey found gid list: ' . json_encode($gidList));
+    }
+
+   /* 2017-12-19 20:51:51 Error: CoServiceToken getOrCreateCephKey found gid list: {"count":10,"0":{"gidnumber":{"count":1,"0":"1000072"},"0":"gidnumber","count":1,"dn":"cn=OSiRIS:OsirisAdmin:CO_COU_OsirisAdmin_members_all,ou=Groups,dc=osris,dc=org"},"1":{"gidnumber":{"count":1,"0":"1000071"},"0":"gidnumber","count":1,"dn":"cn=OSiRIS:OsirisAdmin:CO_COU_OsirisAdmin_members_active,ou=Groups,dc=osris,dc=org"},"2":{"gidnumber":{"count":1,"0":"1000070"},"0":"gidnumber","count":1,"dn":"cn=OSiRIS:OsirisAdmin:CO_COU_OsirisAdmin_admins,ou=Groups,dc=osris,dc=org"},"3":{"gidnumber":{"count":1,"0":"1000083"},"0":"gidnumber","count":1,"dn":"cn=OSiRIS:OsirisAdmin:test,ou=Groups,dc=osris,dc=org"},"4":{"gidnumber":{"count":1,"0":"1000089"},"0":"gidnumber","count":1,"dn":"cn=OSiRIS:OsirisAdmin:blah,ou=Groups,dc=osris,dc=org"},"5":{"gidnumber":{"count":1,"0":"1000090"},"0":"gidnumber","count":1,"dn":"cn=OSiRIS:OsirisAdmin:admin,ou=Groups,dc=osris,dc=org"},"6":{"gidnumber":{"count":1,"0":"1000191"},"0":"gidnumber","count":1,"dn":"cn=OSiRIS:ATLAS:CO_COU_ATLAS_members_all,ou=Groups,dc=osris,dc=org"},"7":{"gidnumber":{"count":1,"0":"1000192"},"0":"gidnumber","count":1,"dn":"cn=OSiRIS:ATLAS:CO_COU_ATLAS_admins,ou=Groups,dc=osris,dc=org"},"8":{"gidnumber":{"count":1,"0":"1000190"},"0":"gidnumber","count":1,"dn":"cn=OSiRIS:ATLAS:CO_COU_ATLAS_members_active,ou=Groups,dc=osris,dc=org"},"9":{"gidnumber":{"count":1,"0":"100010"},"0":"gidnumber","count":1,"dn":"cn=bmeekhof,ou=Groups,dc=osris,dc=org"}} */
+    
+    // some people might be in both cou admin and member groups, keep a log of cou id to avoid making cap strings for both
+    // (at some point admin vs member may indicate different cap strings but currently they do not)
+    $duplicateCheck = array();
+
+    foreach ($coPersonData['CoGroupMember'] as $group) {
+      if ($this->isCouAdminOrMembersGroup($group)) {
+      
+        if (in_array($group['CoGroup']['cou_id'], $duplicateCheck)) { continue; }
+
+        $args = array();
+        $args['conditions']['Cou.id'] = $group['CoGroup']['cou_id'];
+        $args['contain'] = false;
+        $couData = $couObject->find('first', $args);
+
+        $couNameLower = strtolower($couData['Cou']['name']);
+
+        $duplicateCheck[] = $group['CoGroup']['cou_id'];
+        $couDataPools = $this-> CoCephProvisionerDataPool -> getCouDataPools($coProvisioningTargetData, $group);
+        $this->log("CoServiceToken getOrCreateCephKey couDataPools: " . json_encode($couDataPools), 'error');
+
+        if (empty($couDataPools)) {
+          throw new RuntimeException(_txt('er.coservicetoken.nopool') . ' ');
+        }
+
+        $caps['mds'][] = "allow rw path=/$couNameLower uid=$uid gids=" . implode(',', $gidList);
+
+        $poolCount = sizeof($couDataPools);
+        for ($idx = 0; $idx < $poolCount; $idx++) {
+          $poolName = $couDataPools[$idx]['CoCephProvisionerDataPool']['cou_data_pool'];    
+          $caps['osd'][] = "allow rw pool=$poolName";
+        }
+      }
+    }
+  
+    $this->log("CephProvisioner updateCephClientKey - generated caps array: " . json_encode($caps),'error');
+    
+    $ceph->addOrUpdateEntity($userid[0],$caps);
 
   }
 

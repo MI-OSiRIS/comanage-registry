@@ -76,10 +76,10 @@ class CephCli {
         } else {
           $code = 0;
         }
-        //if(Configure::read('debug')) {
+        if(Configure::read('debug')) {
             CakeLog::write('error', $s_output);
             CakeLog::write('error', 'Ceph CLI was ' . $cmd);
-      //}
+        }
       throw new CephClientException($s_output,$code);
     }
 
