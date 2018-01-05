@@ -40,13 +40,6 @@
   print $this->Form->hidden('co_provisioning_target_id', array('default' => $vv_ptid)) . "\n";
 ?>
  
-<div class="ui-state-highlight ui-corner-all" style="margin-top: 20px; padding: 0 .7em;"> 
-  <p>
-    <span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>
-    <strong><?php print _txt('pl.cephprovisioner.info'); ?></strong>
-  </p>
-</div>
-<br />
 <table id="<?php print $this->action; ?>_co_ceph_provisioner_target" class="ui-widget">
   <tbody>
     <tr class="line1">
@@ -157,6 +150,25 @@
         <?php print ($e ? $this->Form->input('cou_data_pool_pgcount', array('size' => 4)) : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['cou_data_pool_pgcount'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
       </td>
     </tr>
+     <tr class="line1">
+      <td>
+        <strong class="fieldTitle"><?php print _txt('pl.cephprovisioner.ldap_target'); ?></strong><font class="required">*</font>
+      </td>
+      <td>
+        <?php
+          $attrs = array();
+          $attrs['empty'] = false;
+          
+          print $this->Form->select('co_ldap_provisioner_target_id',
+                                    $vv_ldap_provisioners,
+                                    $attrs);
+
+          if($this->Form->isFieldError('co_ldap_provisioner_target_id')) {
+            print $this->Form->error('co_ldap_provisioner_target_id');
+          }
+        ?>
+      </td>
+    </tr>
       <td>
         <i><font class="required"><?php print _txt('fd.req'); ?></font></i><br />
       </td>
@@ -164,7 +176,7 @@
         <?php
           if($e) {
             print $this->Form->submit($submit_label);
-            print $this->Form->button(_txt('op.reset'), 
+            print '<br />' . $this->Form->button(_txt('op.reset'), 
                                       array('type'=>'reset'));
           }
         ?>
