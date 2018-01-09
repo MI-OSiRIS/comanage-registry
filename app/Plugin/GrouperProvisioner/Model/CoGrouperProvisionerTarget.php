@@ -645,6 +645,8 @@ FROM
         if($m['member'] && !($m['deleted']) && !($m['co_group_member_id'])) {
           $provisionerGroup = $this->CoGrouperProvisionerGroup
                                    ->findProvisionerGroup($coProvisioningTargetData, $m);
+          // squelch log message about being unable to provision top-level CO groups
+          if(is_null($provisionerGroup)) { continue; }
           $groupName = $this->CoGrouperProvisionerGroup
                             ->getGrouperGroupName($provisionerGroup);
           $groupDescription = $this->CoGrouperProvisionerGroup
