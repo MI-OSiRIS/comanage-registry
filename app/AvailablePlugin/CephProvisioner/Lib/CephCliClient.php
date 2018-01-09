@@ -45,7 +45,7 @@ class CephCliClient extends CephCli {
     $capstring = '';
     foreach ($caps as $daemon => $cap) {
         if (is_array($cap)) {
-          $glue = ($daemon == 'mds') ? ';' : ',';
+          $glue = ($daemon == 'mds') ? '; ' : ', ';
           $cap = implode($glue, $cap);
         }
         $capstring .= $daemon . ' ' . "'$cap'" . ' ';
@@ -53,6 +53,21 @@ class CephCliClient extends CephCli {
     return $capstring;
   }
 
+  /**
+  * query ceph cluster for all auth entities, returning only those matching our configured user prefix
+  * @param userPrefix - unique prefix to username component set for all client entities:  client.prefix.user
+  * @return Array of entities
+  */
+  public function getEntities($userPrefix='comanage') {
+    $output = $this->ceph('auth ls', true);
+    $entities = array();
+    foreach ($output as $oline) {
+      if (strpos($oline,"client.$userPrefix.") !== false) {
+        $entities[] = $oline;
+      }
+    }
+    return $entities;
+  }
 
   public function removeEntity($id) {
     $this->ceph("auth rm client.$id");
@@ -89,7 +104,7 @@ class CephCliClient extends CephCli {
   }
 
   public function getKeyring($id, $format='array') {
-    $output =  $this->ceph("auth get client.$id", 'array');
+    $output =  $this->ceph("auth get client.$id", true);
     // remove the 'exported keyring for xxx' output line
     array_shift($output);
     if ($format == 'string') {
@@ -120,7 +135,7 @@ class CephCliClient extends CephCli {
   // returns true if creation succeeds, false if pool exists, exception will be thrown if command fails
   public function createDataPool($poolname, $pgcount, $size = 3) {
     // check if pool exists
-    $pools = $this->ceph('osd pool ls','array');
+    $pools = $this->ceph('osd pool ls',true);
     if (in_array($poolname, $pools)) {
         return false;
     }

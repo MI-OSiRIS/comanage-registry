@@ -152,7 +152,17 @@
     </tr>
      <tr class="line1">
       <td>
-        <strong class="fieldTitle"><?php print _txt('pl.cephprovisioner.ldap_target'); ?></strong><font class="required">*</font>
+        <?php print _txt('pl.cephprovisioner.opt_posix_lookup_ldap'); ?><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.opt_posix_lookup_ldap.desc'); ?></font>
+      </td>
+      <td>
+        <?php print ($e ? $this->Form->input('opt_posix_lookup_ldap', array()) : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['opt_posix_lookup_ldap'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+      </td>
+    </tr>
+     <tr class="line2">
+      <td>
+        <strong class="fieldTitle"><?php print _txt('pl.cephprovisioner.ldap_target'); ?></strong><font class="required">*</font><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.ldap_target.desc'); ?></font>
       </td>
       <td>
         <?php
@@ -169,6 +179,46 @@
         ?>
       </td>
     </tr>
+    <tr class="line1">
+      <td>
+        <strong class="fieldTitle"><?php print _txt('pl.cephprovisioner.grouper_target'); ?></strong><font class="required">*</font><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.grouper_target.desc'); ?></font>
+      </td>
+      <td>
+        <?php
+          $attrs = array();
+          $attrs['empty'] = false;
+          
+          print $this->Form->select('co_grouper_provisioner_target_id',
+                                    $vv_grouper_provisioners,
+                                    $attrs);
+
+          if($this->Form->isFieldError('co_grouper_provisioner_target_id')) {
+            print $this->Form->error('co_grouper_provisioner_target_id');
+          }
+        ?>
+      </td>
+    </tr>
+     <tr class="line2">
+      <td>
+        <?php print _txt('pl.cephprovisioner.rgw_user_separator'); ?><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.rgw_user_separator.desc'); ?></font>
+      </td>
+      <td>
+        <?php print ($e ? $this->Form->input('rgw_user_separator', array('size' => 4, 'default' => '_')) : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['rgw_user_separator'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+      </td>
+    </tr>
+     <tr class="line1">
+      <td>
+        <?php print _txt('pl.cephprovisioner.ceph_user_prefix'); ?><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.ceph_user_prefix.desc'); ?></font>
+      </td>
+      <td>
+        <?php print ($e ? $this->Form->input('ceph_user_prefix', array('size' => 25, 'default' => 'comanage')) : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['ceph_user_prefix'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+      </td>
+    </tr>
+
+
       <td>
         <i><font class="required"><?php print _txt('fd.req'); ?></font></i><br />
       </td>

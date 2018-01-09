@@ -55,7 +55,7 @@ class CephCli {
   * @param  Return output formatted as multi-line string or array 
   * @param  Text to pipe into ceph command
   **/
-  protected function ceph($op, $format='string', $pipeInput=null) {
+  protected function ceph($op, $arrayOutput=false, $pipeInput=null) {
     $output = array();
     //$return = 1;
     $cmd = $this->ceph . ' --id=' . $this->client_id 
@@ -84,10 +84,10 @@ class CephCli {
     }
 
      // output returns as array
-    if ($format == 'string') {
-      return $s_output;
-    } else {
+    if ($arrayOutput) {
       return $output;
+    } else {
+      return $s_output;
     }
   }
 
