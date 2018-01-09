@@ -70,6 +70,25 @@ class CoCephProvisionerTargetsController extends SPTController {
     }
     
     $this->set('vv_ldap_provisioners', $availableTargets);
+
+    $this->CoProvisioningTarget->bindModel(array('hasOne' =>
+                                                 array('GrouperProvisioner.CoGrouperProvisionerTarget')),
+                                           false);
+    
+    $args = array();
+    $args['conditions']['CoProvisioningTarget.co_id'] = $this->cur_co['Co']['id'];
+    $args['conditions']['CoProvisioningTarget.plugin'] = 'GrouperProvisioner';
+    $args['contain'][] = 'CoGrouperProvisionerTarget';
+    
+    $grouperProvisioners = $this->CoProvisioningTarget->find('all', $args);
+    
+    $availableTargets = array();
+    
+    foreach($grouperProvisioners as $lp) {
+      $availableGrouperTargets[ $lp['CoGrouperProvisionerTarget']['id'] ] = $lp['CoProvisioningTarget']['description'];
+    }
+    
+    $this->set('vv_grouper_provisioners', $availableGrouperTargets);
     
   }
   

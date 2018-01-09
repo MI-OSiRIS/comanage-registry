@@ -60,7 +60,7 @@ class CephRgwAdminCliClient extends CephCli {
         if(!is_array($tags)) { $tags = (array) $tags; }
         $taglist = implode(',',$tags);
 
-        $zg_json = $this->ceph("zonegroup placement list $zoneFlags", 'string');
+        $zg_json = $this->ceph("zonegroup placement list $zoneFlags");
         // decode json data into associative array 
         $zg_data = json_decode($zg_json, true);
 
@@ -72,11 +72,11 @@ class CephRgwAdminCliClient extends CephCli {
                 CakeLog::write('debug', "Placement target $target exists with same tags '$taglist'");
             } else {
                 CakeLog::write('debug', "Placement target $target exists, updating tags to '$taglist'");
-                $this->ceph("zonegroup placement modify --placement-id=$target --tags=$taglist  $zoneFlags", 'string');
+                $this->ceph("zonegroup placement modify --placement-id=$target --tags=$taglist  $zoneFlags");
             } 
         } else {
             CakeLog::write('debug', "Adding new placement target $target with tags '$taglist'");
-            $this->ceph("zonegroup placement add --placement-id=$target --tags=$taglist  $zoneFlags", 'string');
+            $this->ceph("zonegroup placement add --placement-id=$target --tags=$taglist  $zoneFlags");
         }
 
         $zp_json = $this->ceph('zone placement list $zoneFlags');
@@ -134,70 +134,15 @@ class CephRgwAdminCliClient extends CephCli {
         $this->ceph("user rm --uid=$userid");
     }
 
-    // this checks users matching our naming pattern (uid_cou) and removes any 
-    // which do not have valid uid or cou.  It replaces any delete or update type functions.
-    public function syncRgwUsers() {
-        $userList = $this->listRgwUsers();
-
+    public function listRgwUsers($userSeparator='_') {
+        $userList = json_decode($this->ceph("metadata list user"), true);
+        $returnList = array();
         foreach ($userList as $user) {
-            // check for an underscore indicating this is a comanage created user
-            if (strpos($user, '_') === false) { continue; }
-            CakeLog::write('debug',"Ceph RGW Sync - checking user: " . json_encode($user));
-            $CoGroupObject = ClassRegistry::init('CoGroup');
-            $CouObject = ClassRegistry::init('Cou');
-            $CoPersonObject = ClassRegistry::init('CoPerson');
-
-            $userComp = explode('_', $user);
-            $rgw_uid = $userComp[0];
-            $rgw_cou = $userComp[1];
-
-            //check cou validity
-            $args = array();
-            $args['conditions']['Cou.name'] = $rgw_cou;
-            $args['contain'] = false;
-            $couData = $CouObject->find('first', $args);
-            CakeLog::write('debug',"Ceph RGW sync - found cou: " . json_encode($couData));
-            // if cou component doesn't exist this isn't valid account
-            if (empty($couData)) {
-                CakeLog::write('info',"Ceph RGW sync - COU Component $rgw_cou not found - deleting user: " . $user);
-                $this->deleteRgwUser($user);
-                continue;
-            }
-
-            $co_id = $couData['Cou']['co_id'];
-            $cou_id = $couData['Cou']['id'];
-            $cou_name = $couData['Cou']['name'];
-            // COU component of name is valid, now see if any co person has the identifier
-            try {
-                $coPersonId = $CoPersonObject->idForIdentifier($co_id,$rgw_uid,IdentifierEnum::UID);
-                CakeLog::write('debug',"Ceph RGW sync - found CO Person ID: " . json_encode($coPersonId));
-                // now verify that the co person is in the COU group
-                $coPersonGroups = $CoGroupObject -> findForCoPerson($coPersonId, null, null, null, false);
-                CakeLog::write('debug',"Ceph RGW sync - CO Person member groups found: " . json_encode($coPersonGroups));
-            } catch (InvalidArgumentException $e) {
-                if ($e->getMessage() == 'Unknown Identifier') {
-                    CakeLog::write('info',"Ceph RGW sync - person identifier component $rgw_uid not found - deleting user: " . $user . " Exception was" . $e->getCode() . ':' . $e->getMessage());
-                    $this->deleteRgwUser($user);
-                    continue;
-                } else {
-                    throw $e;
-                }
-            }
-            // user and cou exist, now check if user is in fact a member of this cou
-
-            $activeMemberGroup = GroupEnum::ActiveMembers;
-            $couGroupMatch = Hash::extract($coPersonGroups, "{n}.CoGroup[cou_id=$cou_id][group_type=$activeMemberGroup].name");
-            if (empty($couGroupMatch)) {
-                CakeLog::write('info',"Ceph RGW sync - $rgw_uid is not in active member COU group for $cou_name - deleting RGW user");
-                $this->deleteRgwUser($user);
-            } else {
-                CakeLog::write('debug',"Ceph RGW sync - rgw suffix matches user cou group: " . json_encode($couGroupMatch));
+            if (strpos($user, $userSeparator) !== false) {
+                $returnList[] = $user;
             }
         }
-    }
-
-    public function listRgwUsers() {
-        return json_decode($this->ceph("metadata list user"), true);
+        return $returnList;
     }
 
    /**
@@ -218,11 +163,13 @@ class CephRgwAdminCliClient extends CephCli {
             $md = $metaData;
         }
 
-        $this->ceph("metadata put user:$userid", 'string', $md);
+        $this->ceph("metadata put user:$userid", false, $md);
         return true;
     }
 
    /**
+    * Add placement tags to ceph rgw user, create user if not exist
+    *
     * @param  String: user id to operate on
     * @param  String: Placement tag to add to user id metadata
     * @return Boolean: true if tag added, false if no action required

@@ -29,7 +29,7 @@
   must be specified in raw SQL, which needs the prefixed table name.
 
 -->
-<schema version="0.4">
+<schema version="0.6">
   <table name="co_ceph_provisioner_targets">
     <field name="id" type="I">
       <key />
@@ -42,10 +42,15 @@
      <field name="co_ldap_provisioner_target_id" type="I">
       <constraint>REFERENCES cm_co_ldap_provisioner_targets(id)</constraint>
     </field>
+
+    <field name="co_grouper_provisioner_target_id" type ="I">
+      <constraint>REFERENCES cm_co_grouper_provisioner_targets(id)</constraint>
+    </field>
     
     <field name="rgw_url" type="C" size="256" />
     <field name="opt_rgw_admin_api" type="L" />
     <field name="opt_ceph_admin_api" type="L" />
+    <field name="opt_posix_lookup_ldap" type="L" />
     <field name="ceph_admin_api_url" type="C" size="256" />
     <field name="rgw_admin_api_url" type="C" size="256" />
     <field name="ceph_client_name" type="C" size="64" />
@@ -55,6 +60,8 @@
     <field name="rgw_secret_key" type="C" size="256" />
     <field name="opt_create_cou_data_pools" type="L" />
     <field name="cou_data_pool_pgcount" type="I" />
+    <field name="rgw_user_separator" type="C" size="5" />
+    <field name="ceph_user_prefix" type="C" size="64" />
 
     <field name="created" type="T" />
     <field name="modified" type="T" />
