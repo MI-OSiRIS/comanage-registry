@@ -55,7 +55,7 @@ class GrouperRestClient extends HttpSocket {
     $uri = $this->_parseUri($serverUrl);
     $uri['user'] = $login;
     $uri['pass'] = $password;
-    $uri['path'] = $contextPath . '/servicesRest/v2_1_000/';
+    $uri['path'] = $contextPath . '/servicesRest/v2_2_000/';
     
     $this->defaultRequest = array(
       'method' => 'POST',
