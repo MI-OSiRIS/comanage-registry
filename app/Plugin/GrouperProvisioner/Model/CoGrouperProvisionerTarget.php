@@ -627,7 +627,7 @@ FROM
     // Filter the returned groups by the stem that this plugin is configured to control.
     $grouperGroups = array();
     $stem = $coProvisioningTargetData['CoGrouperProvisionerTarget']['stem'];
-    $pattern = "/^" . preg_quote($stem, '/') . ".*" . "CO_COU_.*/";
+    $pattern = "/^" . preg_quote($stem, '/') . "/";
     foreach($allGrouperGroups as $g) {
       if (preg_match($pattern, $g)) {
         $grouperGroups[] = $g;
