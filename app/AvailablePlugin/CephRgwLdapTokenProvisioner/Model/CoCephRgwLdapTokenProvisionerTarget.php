@@ -131,7 +131,6 @@ class CoCephRgwLdapTokenProvisionerTarget extends CoProvisionerPluginTarget {
     $rgwDnList = array();
 
     foreach ($CoGroups as $group) {
-      $this->log("CoGRoup Info: " . json_encode($group));
       if ($CoGroupObject->isCouMembersGroup($group)) {
         if ($group['CoGroup']['group_type'] == GroupEnum::ActiveMembers) { 
           $args = array();
@@ -277,14 +276,13 @@ class CoCephRgwLdapTokenProvisionerTarget extends CoProvisionerPluginTarget {
 
         // user and cou exist, now check if user is in fact a member of this cou
         $coPersonGroups = $CoGroupObject -> findForCoPerson($coPersonId, null, null, null, false);
-        $this->log("CephRgwLdapToken - CO Person member groups found: " . json_encode($coPersonGroups));
         $activeMemberGroup = GroupEnum::ActiveMembers;
         $couGroupMatch = Hash::extract($coPersonGroups, "{n}.CoGroup[cou_id=$cou_id][group_type=$activeMemberGroup].name");
         if (empty($couGroupMatch)) {
-          $this->log("CephRgwLdapToken - $rgw_uid is not in active member COU group for $cou_name - deleting ldap record");
+          $this->log("CephRgwLdapToken - $rgw_uid is not in active member COU group for $cou_name - deleting ldap record", 'info');
           @ldap_delete($cxn, $dn);
         } else {
-          $this->log("CephRgwLdapToken - rgw suffix matches user cou group: " . json_encode($couGroupMatch));
+          $this->log("CephRgwLdapToken - rgw suffix matches user $rgw_uid cou group: " . json_encode($couGroupMatch),'debug');
         }
       }
     }
