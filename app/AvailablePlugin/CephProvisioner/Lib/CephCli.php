@@ -34,9 +34,12 @@ class CephCli {
     private $client_id;
     private $cluster;
     private $options;
+    // identifier used to denote users managed by this library
+    // usage is implementation specific in RGW and cluster client 
+    protected $identifier;
     protected $ceph = '/usr/bin/ceph';
 
-  public function __construct($client_id = 'admin', $cluster = 'ceph', $options = array()) {
+  public function __construct($client_id = 'admin', $cluster = 'ceph', $identifier = null, $options = array()) {
 
     if (empty($client_id) || empty($cluster)) {
       throw new CephClientException(_txt('er.cephprovisioner.client.param'));
@@ -44,6 +47,7 @@ class CephCli {
 
     $this->client_id = $client_id;
     $this->cluster = $cluster;
+    $this->identifier = $identifier;
     $this->options = $options;
   }
 
@@ -76,11 +80,12 @@ class CephCli {
         } else {
           $code = 0;
         }
-        if(Configure::read('debug')) {
-            CakeLog::write('error', $s_output);
-            CakeLog::write('error', 'Ceph CLI was ' . $cmd);
-        }
       throw new CephClientException($s_output,$code);
+    }
+
+    if(Configure::read('debug')) {
+            CakeLog::write('error', 'Ceph CLI was ' . $cmd);
+            CakeLog::write('error', 'Ceph command output: ' . $s_output);
     }
 
      // output returns as array

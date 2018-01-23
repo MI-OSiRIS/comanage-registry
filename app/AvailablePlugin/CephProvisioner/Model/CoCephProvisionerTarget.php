@@ -329,23 +329,12 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
 
   public function syncCephCoPeople($coProvisioningTargetData) {
     $ceph = $this->cephClientFactory($coProvisioningTargetData);
-    $configuredPrefix = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_user_prefix'];
-    $fullPrefix = "client." . $configuredPrefix . '.';
     $CoPersonObject = ClassRegistry::init('CoPerson');
 
-    // this only returns entities we manage (but we'll double check later too)
-    $entities = $ceph->getEntities($configuredPrefix);
+    // this only returns entities we manage 
+    $entities = $ceph->getEntities();
 
-    foreach ($entities as $ent) {
-  
-      // these shouldn't happen and could lead to wrongly deleting unmanaged client entities or core cluster daemon entities, throw an exception
-      if (strpos($ent, 'osd') !== false || 
-          strpos($ent, 'mgr') !== false ||
-          strpos($ent, $fullPrefix) === false)  { 
-        throw new RuntimeException(_txt('er.cephprovisioner.entity')); 
-      }
-
-      $userid = str_replace($fullPrefix, "", $ent);
+    foreach ($entities as $userid) {
       $args = array();
       $args['conditions']['CoProvisioningTarget.id'] = $coProvisioningTargetData['CoCephProvisionerTarget']['co_provisioning_target_id'];
       $args['contain'] = false;
@@ -356,9 +345,9 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
         $coPersonId = $CoPersonObject->idForIdentifier($coId,$userid,IdentifierEnum::UID);
       }  catch (InvalidArgumentException $e) {
         if ($e->getMessage() == 'Unknown Identifier') {
-          $this->log("CephProvisioner - syncCephCoPeople identifier $userid not found - deleting ceph entity: $fullPrefix$userid - " . "Caught exception was " . $e->getCode() . ':' . $e->getMessage(), 'error');
+          $this->log("CephProvisioner - syncCephCoPeople identifier $userid not found - deleting user. " . "Caught exception was " . $e->getCode() . ':' . $e->getMessage(), 'info');
           // all the ceph lib classes hard-code client. into operations
-          $ceph->removeEntity("$configuredPrefix.$userid");
+          $ceph->removeEntity($userid);
         } else {
           throw $e;
         }
@@ -372,7 +361,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   public function syncRgwCoPeople($coProvisioningTargetData) {
       $rgwa = $this->rgwAdminClientFactory($coProvisioningTargetData);
       $sep = $coProvisioningTargetData['CoCephProvisionerTarget']['rgw_user_separator'];
-      $userList = $rgwa->listRgwUsers($sep);
+      $userList = $rgwa->listRgwUsers();
 
       foreach ($userList as $user) {
           // sanity check, be sure this is really a managed user with our separator
@@ -423,7 +412,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
           $activeMemberGroup = GroupEnum::ActiveMembers;
           $couGroupMatch = Hash::extract($coPersonGroups, "{n}.CoGroup[cou_id=$cou_id][group_type=$activeMemberGroup].name");
           if (empty($couGroupMatch)) {
-              $this->log("CephProvisioner - syncRgwCoPeople $rgw_uid is not in active member COU group for $cou_name - deleting RGW user");
+              $this->log("CephProvisioner - syncRgwCoPeople $rgw_uid is not in active member COU group for $cou_name - deleting RGW user", 'info');
               $rgwa->deleteRgwUser($user);
           } else {
               $this->log("CephProvisioner - syncRgwCoPeople rgw suffix matches user cou group: " . json_encode($couGroupMatch), 'debug');
@@ -523,7 +512,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
 
     $this->log("CephProvisioner updateCephClientKey - generated caps array: " . json_encode($caps),'debug');
     
-    $ceph->addOrUpdateEntity($prefix . '.' . $userid,$caps);
+    $ceph->addOrUpdateEntity($userid,$caps);
 
     return true;
 
@@ -700,6 +689,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   public function rgwAdminClientFactory($coProvisioningTargetData) {
     $client_id = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_client_name'];
     $cluster = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_cluster'];
+    $separator = $coProvisioningTargetData['CoCephProvisionerTarget']['rgw_user_separator'];
 
     if (empty($cluster)) { $cluster = 'ceph'; }
 
@@ -707,7 +697,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       throw CephClientException("RGW admin api client is not implemented");
     } else {
       try {
-        $ceph = new CephRgwAdminCliClient($client_id,$cluster);
+        $ceph = new CephRgwAdminCliClient($client_id,$cluster, $separator);
     } catch (CephCliClientException $e) {
       $this->log("CephProvisioner unable to create new CephRgwAdminCliClient: " . $e->getMessage());
       return null;
@@ -727,11 +717,12 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   public function cephCliClientFactory($coProvisioningTargetData) {
     $client_id = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_client_name'];
     $cluster = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_cluster'];
+    $prefix = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_user_prefix'];
 
     if (empty($cluster)) { $cluster = 'ceph'; }
     
     try {
-      $ceph = new CephCliClient($client_id,$cluster);
+      $ceph = new CephCliClient($client_id,$cluster,$prefix);
     } catch (CephCliClientException $e) {
       $this->log("CephProvisioner unable to create new CephCliClient: " . $e->getMessage());
       return null;
