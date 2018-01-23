@@ -14,6 +14,7 @@ $cm_ceph_provisioner_texts['en_US'] = array(
     'er.cephprovisioner.identifier' => 'CoPerson has no identifier for uid',
     'er.cephprovisioner.nopool'          => 'Could not determine pool permissions - no COU data pools found',
     'er.cephprovisioner.entity'          => 'Danger: found unmanaged user, osd, or mgr key in list of Ceph entities returned from client lib',
+    'er.cephprovisioner.entity.arg'      => 'Danger: User not containing unique identifier passed to Ceph client lib',
     'er.cephprovisioner.datapool.cogroup' => 'CoGroup cou_id missing from provisining data',
     'er.cephprovisioner.datapool.rename'  => 'Error renaming COU data pools in Ceph',
     'er.cephprovisioner.datapool.provision'  => 'Error provisioning COU data pools in Ceph',

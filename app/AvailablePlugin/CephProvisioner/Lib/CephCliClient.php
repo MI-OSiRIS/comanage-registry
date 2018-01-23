@@ -25,12 +25,30 @@
  * @license       Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
  */
 
+// NOTE:  All the functions in this lib automatically add or remove the client.identifier prefix
+// TODO:  Make that boolean class var for more flexibility?  Currently doesn't matter, only need one way
 
 App::uses('CephClientException', 'CephProvisioner.Lib');
 App::uses('CephCli', 'CephProvisioner.Lib');
 App::uses('CakeLog', 'Log');
 
 class CephCliClient extends CephCli {
+
+  private $userPrefix;
+
+  public function __construct($client_id, $cluster, $identifier = 'comanage', $options = array()) {
+     parent::__construct($client_id, $cluster, $identifier, $options);
+     
+     if (!empty($this->identifier)) {
+      $this->userPrefix = 'client.' . $this->identifier . '.';
+     } else {
+      $this->userPrefix = 'client.';
+     }
+  }
+
+  public function getUserPrefix() {
+    return $this->userPrefix;
+  }
 
   // map an array of daemon => caps to a string suitable for ceph auth commands
   // Example (part after client.zzz):
@@ -59,23 +77,25 @@ class CephCliClient extends CephCli {
   * @param userPrefix - unique prefix to username component set for all client entities:  client.prefix.user
   * @return Array of entities
   */
-  public function getEntities($userPrefix='comanage') {
+  public function getEntities() {
     $output = $this->ceph('auth ls', true);
     $entities = array();
     foreach ($output as $oline) {
-      if (strpos($oline,"client.$userPrefix.") !== false) {
-        $entities[] = $oline;
+      if (strpos($oline,$this->userPrefix) !== false &&
+          strpos($oline, 'osd.') === false && 
+          strpos($oline, 'mgr.') === false)  { 
+        $entities[] = str_replace($this->userPrefix, '', $oline);
       }
     }
     return $entities;
   }
 
   public function removeEntity($id) {
-    $this->ceph("auth rm client.$id");
+    $this->ceph("auth rm " . $this->userPrefix . $id);
   }
 
   public function addEntity($id, $caps = array()) {
-    $this->ceph("auth add client.$id " . $this->mapArrayToCapString($caps));
+    $this->ceph("auth add " . $this->userPrefix . $id . ' ' . $this->mapArrayToCapString($caps));
   }
 
   // adds entity if not existing, recreates with caps specified otherwise
@@ -88,24 +108,19 @@ class CephCliClient extends CephCli {
   }
 
   public function getOrCreateKey($id, $caps = array()) {
-    return $this->ceph("auth get-or-create-key client.$id " . $this->mapArrayToCapString($caps));
+    return $this->ceph("auth get-or-create-key " . $this->userPrefix . $id . ' ' . $this->mapArrayToCapString($caps));
   }
 
   public function setCaps($id, $caps = array()) {
-    $this->ceph("auth caps client.$id " . $this->mapArrayToCapString($caps)); 
-  }
-
-  // add caps in $caps to existing capabilities
-  public function updateCaps($id, $caps) {
-    // maybe
+    $this->ceph("auth caps " . $this->userPrefix . $id . ' ' . $this->mapArrayToCapString($caps));
   }
 
   public function getKey($id) {
-    return join('\n', $this->ceph("auth get-key client.$id"));
+    return join('\n', $this->ceph("auth get-key " . $this->userPrefix . $id));
   }
 
   public function getKeyring($id, $format='array') {
-    $output =  $this->ceph("auth get client.$id", true);
+    $output =  $this->ceph("auth get " . $this->userPrefix . $id, true);
     // remove the 'exported keyring for xxx' output line
     array_shift($output);
     if ($format == 'string') {
