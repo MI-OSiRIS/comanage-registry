@@ -101,6 +101,17 @@ class CoServiceToken extends AppModel {
     );
   }
 
+  public function retrieveToken($coServiceId, $coPersonId) {
+     // Is there already a token?
+    $args = array();
+    $args['conditions']['CoServiceToken.co_service_id'] = $coServiceId;
+    $args['conditions']['CoServiceToken.co_person_id'] = $coPersonId;
+    $args['contain'] = false;
+
+    return $this->find('first', $args);
+
+  }
+
   /**
    * Generate a CO Service Token.
    *
@@ -121,6 +132,11 @@ class CoServiceToken extends AppModel {
                            $ldapProvisionerId=null) {
     $token = null;
 
+    // retrieve existing token
+    // doing this here because the existence of a token is used to determine
+    // whether we regenerate or just retrieve the initially provisioned provisioned ceph key 
+    $curToken = $this->retrieveToken($coServiceId,$coPersonId);
+
     switch($tokenType) {
       case CoServiceTokenTypeEnum::Plain08:
       case CoServiceTokenTypeEnum::Plain15:
@@ -135,7 +151,7 @@ class CoServiceToken extends AppModel {
                         (integer)$tokenType);
         break;
       case CoServiceTokenTypeEnum::CephKey:
-        $token = $this->regenCephKey($coPersonId, $cephProvisionerId, $ldapProvisionerId);
+        $token = $this->regenCephKey($coPersonId, $cephProvisionerId, $ldapProvisionerId, $curToken);
         break;
       default:
         throw new LogicException(_txt('er.notimpl'));
@@ -145,14 +161,6 @@ class CoServiceToken extends AppModel {
     if(!$token) {
       throw new RuntimeException(_txt('er.coservicetoken.fail'));
     }
-
-    // Is there already a token?
-    $args = array();
-    $args['conditions']['CoServiceToken.co_service_id'] = $coServiceId;
-    $args['conditions']['CoServiceToken.co_person_id'] = $coPersonId;
-    $args['contain'] = false;
-
-    $curToken = $this->find('first', $args);
 
     $newToken = array(
       'co_service_id' => $coServiceId,
@@ -190,7 +198,7 @@ class CoServiceToken extends AppModel {
 
   // look up existing entity and key capabilities, rm and recreate with new shared secret
   // there is no way in ceph to simply regenerate the secret for an entity
-  private function regenCephKey($coPersonId, $cephProvisionerId, $ldapProvisionerId) {
+  private function regenCephKey($coPersonId, $cephProvisionerId, $ldapProvisionerId, $curToken) {
     $cephProvisionerTarget = ClassRegistry::init('CephProvisioner.CoCephProvisionerTarget');
     $coPersonObject = ClassRegistry::init('CoPerson');
 
@@ -208,13 +216,15 @@ class CoServiceToken extends AppModel {
     $args['contain'] = false;
     $cephProvisionerTargetData = $cephProvisionerTarget -> find('first', $args);
     $cephClient = $cephProvisionerTarget -> cephClientFactory($cephProvisionerTargetData);
-
+    $this->log("regenCephKey - looking up uid:" . json_encode($uid));
     $cephKeyring = $cephClient->getKeyring($uid[0]);
     $this->log("regenCephKey - cephKeyring found:" . json_encode($cephKeyring));
     $capsArray = $cephClient->formatKeyringToCapsArray($cephKeyring);
     $this->log("regenCephKey - result of formatKeyringToCapsArray:" . json_encode($capsArray));
     if (!empty($capsArray)) {
-      $cephClient->removeEntity($uid[0]);
+      if (!empty($curToken['CoServiceToken']['id'])) {
+        $cephClient->removeEntity($uid[0]);
+      }
       return $cephClient->getOrCreateKey($uid[0], $capsArray);
     }
   }

@@ -38,7 +38,7 @@ class CoServiceTokensController extends StandardController {
       'co_person_id' => 'asc'
     )
   );
-
+  
   // This controller needs a CO Person to be set
   public $requires_person = true;
 
@@ -165,7 +165,19 @@ class CoServiceTokensController extends StandardController {
     $args['order'][] = 'CoService.name ASC';
     $args['contain'][] = 'CoServiceTokenSetting';
 
-    $this->set('vv_co_services', $this->CoServiceToken->CoService->find('all', $args));
+    $coServices = $this->CoServiceToken->CoService->find('all', $args);
+
+    $this->set('vv_co_services', $coServices);
+
+    $cephProvisionerTarget = ClassRegistry::init('CephProvisioner.CoCephProvisionerTarget');
+    $args = array();
+    //$args['conditions']['CoCephProvisionerTarget.id'] = $coProvisioningTargetData['CoCephProvisionerTarget']['co_ldap_provisioner_target_id'];
+    $args['contain'] = false;
+
+    $cephProvisioners = $cephProvisionerTarget->find('all', $args);
+
+    // CephKey token types need to lookup user prefix for display    
+    $this->set('vv_ceph_provisioners', $cephProvisioners);
 
     $coPerson = ClassRegistry::init('CoPerson');
     $CoGroupObject = ClassRegistry::init('CoGroup');
@@ -177,11 +189,9 @@ class CoServiceTokensController extends StandardController {
     $args['contain'] = false;
 
     $coPersonIdentifier = $coPerson -> Identifier->find('first', $args);
-    //$this->set('vv_co_person_uid', $coPersonIdentifier['Identifier']['identifier']);
 
     $co_person_info = array();
 
-    //$CoPersonObject = ClassRegistry::init('CoPerson');
     $CoGroups = $CoGroupObject->findForCoPerson($this->Session->read('Auth.User.co_person_id'));
 
     foreach ($CoGroups as $group) {

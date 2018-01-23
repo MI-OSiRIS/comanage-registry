@@ -25,7 +25,7 @@
  * @license       Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
  */
 
-  // there's supposed to be some kind of automatic syntax to generate this path...
+  // script with keyDownload function to download client key data blob
   print $this->Html->script('CoServiceToken.script.js');
 
   // Add breadcrumbs
@@ -76,47 +76,50 @@
         <?php
 
           $co_service_id = $c['CoService']['id'];
-          $token_type = Hash::extract($co_service_tokens, "{n}.CoServiceToken[co_service_id=$co_service_id].token_type");
-
-          if(in_array($co_service_id, $tokensSet)) {
-            $token = Hash::extract($co_service_tokens, "{n}.CoServiceToken[co_service_id=$co_service_id].token");
-          } else {
-            print _txt('pl.coservicetoken.token.no');
-          }
-
-          switch($token_type[0]) {
-            case CoServiceTokenTypeEnum::CephRgwToken:
-              foreach ($vv_co_person_info as $person_info) {
-                $encoding_description = "<font style='font-weight: bold;'>S3 Access Key for ". $person_info['cou_formatted'] . " COU: </font><br /><hr> ";
-                $encoding = base64_encode(json_encode(
-                  [ "RGW_TOKEN" =>
-                    [
-                      "version" => 1,
-                      "type" => "ldap",
-                      "id" => $person_info['uid'] . '_' . $person_info['cou'],
-                      "key" => $token[0]
-                    ]
-                  ]));
-                print $encoding_description . filter_var( $encoding, FILTER_SANITIZE_SPECIAL_CHARS) . '<br /><hr>';
-              }
-              break;
-            case CoServiceTokenTypeEnum::CephKey:
-              $keyring = '[client.' . $vv_co_person_info[0]['uid'] . '] <br />' 
-                      . '&nbsp;&nbsp;&nbsp;key = ' . filter_var( $token[0], FILTER_SANITIZE_SPECIAL_CHARS);
-
-              $keyring_plain = '[client.' . $vv_co_person_info[0]['uid'] . ']\n' 
-                      . '\tkey = ' . $token[0];
-
-              print "<font style='font-weight: bold;'>Ceph Keyring</font> - "
-                      . '<a href=javascript:blobDownload("' . $keyring_plain . '", "client.' . $vv_co_person_info[0]['uid'] . 'keyring")>download</a><hr>'
-                      . $keyring;
-              break;
-            default:
-              print filter_var( $token[0], FILTER_SANITIZE_SPECIAL_CHARS);
-              break;
-          }
-
           
+          if(!in_array($co_service_id, $tokensSet)) {
+            print _txt('pl.coservicetoken.token.no');
+          } else {
+            $token = Hash::extract($co_service_tokens, "{n}.CoServiceToken[co_service_id=$co_service_id].token");
+            $token_type = Hash::extract($co_service_tokens, "{n}.CoServiceToken[co_service_id=$co_service_id].token_type");
+          
+            switch($token_type[0]) {
+              case CoServiceTokenTypeEnum::CephRgwToken:
+                foreach ($vv_co_person_info as $person_info) {
+                  $encoding_description = "<font style='font-weight: bold;'>S3 Access Key for ". $person_info['cou_formatted'] . " COU: </font><br /><hr> ";
+                  $encoding = base64_encode(json_encode(
+                    [ "RGW_TOKEN" =>
+                      [
+                        "version" => 1,
+                        "type" => "ldap",
+                        "id" => $person_info['uid'] . '_' . $person_info['cou'],
+                        "key" => $token[0]
+                      ]
+                    ]));
+                  print $encoding_description . filter_var( $encoding, FILTER_SANITIZE_SPECIAL_CHARS) . '<br /><hr>';
+                }
+                break;
+              case CoServiceTokenTypeEnum::CephKey:
+
+                $ceph_provisioner_id = $c['CoServiceTokenSetting']['co_ceph_provisioner_target_id'];
+
+                $prefix = Hash::extract($vv_ceph_provisioners, "{n}.CoCephProvisionerTarget[id=$ceph_provisioner_id].ceph_user_prefix");
+
+                $keyring = '[client.' . $prefix[0] . '.' . $vv_co_person_info[0]['uid'] . '] <br />' 
+                        . '&nbsp;&nbsp;&nbsp;key = ' . filter_var( $token[0], FILTER_SANITIZE_SPECIAL_CHARS);
+
+                $keyring_plain = '[client.' . $prefix[0] . '.' . $vv_co_person_info[0]['uid'] . ']\n' 
+                        . '\tkey = ' . $token[0];
+
+                print "<font style='font-weight: bold;'>Ceph Keyring</font> - "
+                        . '<a href="#key" onclick=\'keyDownload("' . $keyring_plain . '", "ceph.client.' . $prefix[0] . '.' . $vv_co_person_info[0]['uid'] . '.keyring");\'>download</a><hr>'
+                        . $keyring;
+                break;
+              default:
+                print filter_var( $token[0], FILTER_SANITIZE_SPECIAL_CHARS);
+                break;
+            }
+          }
 
         ?>
       <td>
