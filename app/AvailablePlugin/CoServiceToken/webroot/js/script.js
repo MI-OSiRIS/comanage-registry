@@ -1,4 +1,4 @@
-blobDownload(filename, data) {
+function keyDownload(data, filename) {
     var blob = new Blob([data], {type: 'text/plain'});
     if(window.navigator.msSaveOrOpenBlob) {
         window.navigator.msSaveBlob(blob, filename);
