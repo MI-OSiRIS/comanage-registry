@@ -26,15 +26,22 @@
  */
 
 
+// NOTE:  Both components of username are used by CephProvisioner so this implementation
+// does not strip out or automatically add any components based on the 'identifier' class var
+// however it is used to limit which users are returned by listRgwUsers and also is checked 
+// for existence in params sent to add/delete functions
+
 App::uses('CephClientException', 'CephProvisioner.Lib');
 App::uses('CephCli', 'CephProvisioner.Lib');
 App::uses('CakeLog', 'Log');
 
-
-
 class CephRgwAdminCliClient extends CephCli {
 
     protected $ceph = '/usr/bin/radosgw-admin';
+
+     public function __construct($client_id, $cluster, $identifier = '_', $options=array()) {
+        parent::__construct($client_id, $cluster, $identifier, $options);
+    }
 
     /** 
     *
@@ -102,6 +109,10 @@ class CephRgwAdminCliClient extends CephCli {
     }
 
     public function getUserMetadata($userid) {
+        if (strpos($userid, $this->identifier) === false) { 
+            throw new RuntimeException(_txt('er.cephprovisioner.entity.arg'));
+        }
+
         try { 
             $data = $this->ceph("metadata get user:$userid");
         } catch (CephClientException $e) {
@@ -119,6 +130,11 @@ class CephRgwAdminCliClient extends CephCli {
     **/
 
     public function addRgwUser($userid) {
+
+        if (strpos($userid, $this->identifier) === false) { 
+            throw new RuntimeException(_txt('er.cephprovisioner.entity.arg'));
+        }
+
         // add user so we can set meta-data but remove user keys (auth is from ldap tokens)
         $this->ceph("user create --display-name=$userid --uid=$userid");
         // user create outputs metadata but the structure is different from output of 
@@ -131,14 +147,19 @@ class CephRgwAdminCliClient extends CephCli {
     }
 
     public function deleteRgwUser($userid) {
+
+        if (strpos($userid, $this->identifier) === false) { 
+            throw new RuntimeException(_txt('er.cephprovisioner.entity.arg'));
+        }
+
         $this->ceph("user rm --uid=$userid");
     }
 
-    public function listRgwUsers($userSeparator='_') {
+    public function listRgwUsers() {
         $userList = json_decode($this->ceph("metadata list user"), true);
         $returnList = array();
         foreach ($userList as $user) {
-            if (strpos($user, $userSeparator) !== false) {
+            if (strpos($user, $this->identifier) !== false) {
                 $returnList[] = $user;
             }
         }
@@ -154,6 +175,10 @@ class CephRgwAdminCliClient extends CephCli {
     **/
 
     public function setUserMetadata($userid, $metaData) {
+
+        if (strpos($userid, $this->identifier) === false) { 
+            throw new RuntimeException(_txt('er.cephprovisioner.entity.arg'));
+        }
 
         if (is_array($metaData)) { 
             $md = json_encode($metaData);
@@ -178,6 +203,10 @@ class CephRgwAdminCliClient extends CephCli {
     **/
 
     public function addUserPlacementTag($userid, $tag) {
+
+        if (strpos($userid, $this->identifier) === false) { 
+            throw new RuntimeException(_txt('er.cephprovisioner.entity.arg'));
+        }
 
         if (!in_array($userid, $this->listRgwUsers())) {
             CakeLog::write('info', "Adding user to RGW: $userid");
@@ -213,6 +242,10 @@ class CephRgwAdminCliClient extends CephCli {
 
     // this is probably obsolete since users now only have one placement tag and are removed if no longer part of COU
     public function removeUserPlacementTag($userid, $tag) {
+
+        if (strpos($userid, $this->identifier) === false) { 
+            throw new RuntimeException(_txt('er.cephprovisioner.entity.arg'));
+        }
 
         if (!in_array($userid, $this->listRgwUsers())) {
             CakeLog::write('info', "removeUserPlacementTag: User does not exist, cannot remove placement tag: $userid");
