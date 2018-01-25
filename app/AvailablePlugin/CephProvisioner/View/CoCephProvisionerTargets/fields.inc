@@ -218,6 +218,36 @@
       </td>
     </tr>
 
+     <tr class="line2">
+      <td>
+        <?php print _txt('pl.cephprovisioner.opt_create_cou_data_dir'); ?><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.opt_create_cou_data_dir.desc'); ?></font>
+      </td>
+      <td>
+        <?php print ($e ? $this->Form->input('opt_create_cou_data_dir') : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['opt_create_cou_data_dir'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+      </td>
+    </tr>
+
+  <tr class="line1">
+      <td>
+        <?php print _txt('pl.cephprovisioner.ceph_fs_mountpoint'); ?><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.ceph_fs_mountpoint.desc'); ?></font>
+      </td>
+      <td>
+        <?php print ($e ? $this->Form->input('ceph_fs_mountpoint', array('size' => 25)) : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['ceph_fs_mountpoint'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+      </td>
+    </tr>
+
+     <tr class="line2">
+      <td>
+        <?php print _txt('pl.cephprovisioner.ceph_fs_name'); ?><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.ceph_fs_name.desc'); ?></font>
+      </td>
+      <td>
+        <?php print ($e ? $this->Form->input('ceph_fs_name', array('size' => 25)) : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['ceph_fs_name'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+      </td>
+    </tr>
+
 
       <td>
         <i><font class="required"><?php print _txt('fd.req'); ?></font></i><br />

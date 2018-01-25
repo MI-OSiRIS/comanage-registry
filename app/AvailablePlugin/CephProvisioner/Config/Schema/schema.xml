@@ -62,6 +62,9 @@
     <field name="cou_data_pool_pgcount" type="I" />
     <field name="rgw_user_separator" type="C" size="5" />
     <field name="ceph_user_prefix" type="C" size="64" />
+    <field name="opt_create_cou_data_dir" type="L" />
+    <field name="ceph_fs_mountpoint" type="C" size="256" />
+    <field name="ceph_fs_name" type="C" size="128" />
 
     <field name="created" type="T" />
     <field name="modified" type="T" />

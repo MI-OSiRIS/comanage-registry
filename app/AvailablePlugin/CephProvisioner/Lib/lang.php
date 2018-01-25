@@ -62,6 +62,15 @@ $cm_ceph_provisioner_texts['en_US'] = array(
     'pl.cephprovisioner.rgw_user_separator'     =>  'RGW User Separator',
     'pl.cephprovisioner.rgw_user_separator.desc'     =>  'String used to separate 2 part (user and cou) user identities for RGW users.  Default is "_".  Example generated user:  example_couname repeated for each user member cou',
 
+    'pl.cephprovisioner.opt_create_cou_data_dir'      => 'Create COU data directory',
+    'pl.cephprovisioner.opt_create_cou_data_dir.desc'      => 'When new COU created, also create a CephFS data directory placed on their data pool',
+
+    'pl.cephprovisioner.ceph_fs_mountpoint'      => 'CephFS Mountpoint',
+    'pl.cephprovisioner.ceph_fs_mountpoint.desc'      => 'Where CephFS is mounted, data directories are created here',
+
+    'pl.cephprovisioner.ceph_fs_name'      => 'CephFS name',
+    'pl.cephprovisioner.ceph_fs_name.desc'      => 'Name of CephFS, needed to add new data pools for CephFS access',
+
 );
 
 ?>

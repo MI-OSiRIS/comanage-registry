@@ -147,9 +147,6 @@ class CoCephProvisionerDataPool extends AppModel {
         if (!$ceph->createDataPool($newDataPool, $pgcount)) {
           $this->log("Ceph provisioner updateCouDataPools - pool already exists in Ceph: " . $newDataPool, 'info');
         }
-        
-        $ceph->enableDataPoolApplication($newDataPool, $poolType);
-
       } else {
         // existing pool has different name than it should, rename, remove rgw placement target, and update the database record
         // placement target will be created by application association done as later provisioning step

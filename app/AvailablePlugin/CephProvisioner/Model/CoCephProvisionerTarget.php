@@ -145,6 +145,20 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       'required' => true,
       'allowEmpty' => false
     ),
+      'opt_create_cou_data_dir' => array (
+      'rule' => 'boolean',
+      'on'   => true
+    ),
+      'ceph_fs_mountpoint' => array (
+      'rule' => 'notBlank',
+      'required' => false,
+      'allowEmpty' => true
+    ),
+      'ceph_fs_name' => array (
+      'rule' => 'notBlank',
+      'required' => false,
+      'allowEmpty' => true
+    ),
   );
   
   /**
@@ -424,17 +438,26 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       $rgwa = $this->rgwAdminClientFactory($coProvisioningTargetData);
       $ceph = $this->cephClientFactory($coProvisioningTargetData);
       $cou = $this->CoCephProvisionerDataPool->getCouName($coGroupData);
+      $fsname = $coProvisioningTargetDat['CoCephProvisionerTarget']['ceph_fs_name'];
       
       $poolType = CephDataPoolEnum::Rgw;
-      $poolName = Hash::extract($couDataPools,  "{n}.CoCephProvisionerDataPool[cou_data_pool_type=$poolType].cou_data_pool");
 
-      if (!$poolName) { throw RuntimeException(_text('er.cephprovisioner.rgw.extract')); }
+      foreach ($couDataPools as $pool) {
+        $poolType = $pool['CoCephProvisionerDataPool']['cou_data_pool_type'];
+        $ceph->enableDataPoolApplication($newDataPool, $poolType);
+        switch ($poolType) {
+          case CephDataPoolEnum::Rgw:
+            $rgwa->addPlacementTarget($cou, $cou, $poolName[0]);
+            break;
+          case CephDataPoolEnum::Fs:
+            $ceph->addFsDataPool($pool['CoCephProvisionerDataPool']['cou_data_pool']);
+            break;
+        }
+      }
 
-      $rgwa->addPlacementTarget($cou, $cou, $poolName[0]);
+      // unused, but I always forget how to use hash::extract so leave this here so I can reference it
+      //$poolName = Hash::extract($couDataPools,  "{n}.CoCephProvisionerDataPool[cou_data_pool_type=$poolType].cou_data_pool");
 
-      return true;
-
-      // do some stuff here
 
   }
 
