@@ -259,14 +259,20 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   }
 
   public function deleteCoGroupAction($coProvisioningTargetData, $coGroupData) {
-    //$ceph = $this -> cephClientFactory($coProvisioningTargetData);
     if (!$this -> isCouAdminOrMembersGroup($coGroupData)) {
       return true;
     }
 
-    // this does not delete pools in ceph, but removes them from comanage db and removes cou user associations in Ceph.  It also removes S3 placement targets.
-    if (!$this -> CoCephProvisionerDataPool -> deleteCouDataPoolAssociations($coProvisioningTargetData, $coGroupData)) {
-        throw new RuntimeException(_txt('er.cephprovisioner.datapool.delete'));
+    // admin / member group deletions only happen at COU deletion
+    // delete pool records from database and unlink pools from CephFS, RGW targets
+    if ($couDataPools = $this -> CoCephProvisionerDataPool -> getCouDataPools($coProvisioningTargetData, $coGroupData)) {
+
+      // true 4th param means unlink these pools
+      $this -> linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools, true);
+
+      // this does not delete pools in ceph, but removes them from comanage db 
+      $this -> CoCephProvisionerDataPool -> deleteCouDataPoolRecords($coProvisioningTargetData, $coGroupData);
+
     }
 
     // sync users to remove those which are now invalidated due to removal of the group 
@@ -288,9 +294,10 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
         throw new RuntimeException(_txt('er.cephprovisioner.datapool.provision'));
     }
 
-    if (!$this->associatePoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools)) {
-      throw new RuntimeException(_txt('er.cephprovisioner.datapool.associate'));
-    }
+    $this->linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools);
+
+    $this->createCouDataDir($coProvisioningTargetData, $coGroupData, $couDataPools);
+
   }
 
   // the external service sync is time consuming, this seems like a good place to run it without
@@ -434,29 +441,59 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       }
   }
 
-  public function associatePoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools) {
+  public function linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools, $unlink=false) {
       $rgwa = $this->rgwAdminClientFactory($coProvisioningTargetData);
       $ceph = $this->cephClientFactory($coProvisioningTargetData);
-      $cou = $this->CoCephProvisionerDataPool->getCouName($coGroupData);
-      $fsname = $coProvisioningTargetDat['CoCephProvisionerTarget']['ceph_fs_name'];
       
-      $poolType = CephDataPoolEnum::Rgw;
+      if (!$cou = $this->CoCephProvisionerDataPool->getCouName($coGroupData)) { 
+        throw new RuntimeException(_txt('er.cephprovisioner.nocou'));
+      }
 
+      $fsName = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_fs_name'];
+      
       foreach ($couDataPools as $pool) {
         $poolType = $pool['CoCephProvisionerDataPool']['cou_data_pool_type'];
-        $ceph->enableDataPoolApplication($newDataPool, $poolType);
+        $poolName = $pool['CoCephProvisionerDataPool']['cou_data_pool'];
+
+        // no need to unset the pool application if we are unlinking the pool
+        $unlink ? false : $ceph->enableDataPoolApplication($poolName, $poolType);
+
         switch ($poolType) {
           case CephDataPoolEnum::Rgw:
-            $rgwa->addPlacementTarget($cou, $cou, $poolName[0]);
+            $unlink ? $rgw->removePlacementTarget($poolName) : $rgwa->addPlacementTarget($cou, $cou, $poolName);
             break;
           case CephDataPoolEnum::Fs:
-            $ceph->addFsDataPool($pool['CoCephProvisionerDataPool']['cou_data_pool']);
+            $unlink ? $ceph->removeFsDataPool($poolName, $fsName) : $ceph->addFsDataPool($poolName, $fsName);
             break;
         }
       }
 
       // unused, but I always forget how to use hash::extract so leave this here so I can reference it
       //$poolName = Hash::extract($couDataPools,  "{n}.CoCephProvisionerDataPool[cou_data_pool_type=$poolType].cou_data_pool");
+
+
+  }
+
+  /**
+  * create COU data directory under configured mount point (will attempt to mount)
+  * @param provisioning target data
+  * @param provisioning group data (to extract COU name)
+  * @param couDataPools (retrieve with CoCephProvisionerDataPool methods)
+  * @return true if success
+  *
+  * There is no param or function equivalent to delete data dir - danger of deleting data someone may have wanted archived
+  **/
+
+  public function createCouDataDir($coProvisioningTargetData,$coGroupData, $couDataPools) {
+    $mountDir = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_fs_mountpoint'];
+    
+    if (!$cou = $this->CoCephProvisionerDataPool->getCouName($coGroupData)) { 
+        throw new RuntimeException(_txt('er.cephprovisioner.nocou'));
+    }
+     // We won't ordinarily have permissions to execute this
+     mkdir($homedir, '0777');
+     chown($homedir, $uidnumber);
+     chgrp($homedir, $gidnumber);
 
 
   }
@@ -517,9 +554,8 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
         $couNameLower = strtolower($couData['Cou']['name']);
 
         $duplicateCheck[] = $group['CoGroup']['cou_id'];
-        $couDataPools = $this-> CoCephProvisionerDataPool -> getCouDataPools($coProvisioningTargetData, $group);
 
-        if (empty($couDataPools)) {
+        if (!$couDataPools = $this-> CoCephProvisionerDataPool -> getCouDataPools($coProvisioningTargetData, $group)) {
           throw new RuntimeException(_txt('er.cocephprovisioner.nopool') . ' ');
         }
 
