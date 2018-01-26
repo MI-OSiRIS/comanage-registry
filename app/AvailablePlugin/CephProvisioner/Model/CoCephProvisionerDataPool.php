@@ -72,27 +72,22 @@ class CoCephProvisionerDataPool extends AppModel {
    * @throws CephClientException
    */
 
-  public function deleteCouDataPoolAssociations($coProvisioningTargetData, $coGroupData) {
+  public function deleteCouDataPoolRecords($coProvisioningTargetData, $coGroupData) {
     if(empty($coGroupData['CoGroup']['cou_id'])) {
       throw new RuntimeException(_txt('er.cephprovisioner.datapool.cogroup'));
     }
 
     $oldPoolCoRecord = $this->getCouDataPools($coProvisioningTargetData,$coGroupData);
-    $rgwa = $this->CoCephProvisionerTarget->rgwAdminClientFactory($coProvisioningTargetData);
     $this->log("deleteCouDataPools - getCouDataPools result: " . json_encode($oldPoolCoRecord), 'debug');
 
     if (empty($oldPoolCoRecord)) {
       return true;
     } else {
-      if ($this->deleteAll(['cou_id' => $coGroupData['CoGroup']['cou_id']], false)) {
-        $poolType = CephDataPoolEnum::Rgw;
-        $poolName = Hash::extract($oldPoolCoRecord,  "{n}.CoCephProvisionerDataPool[cou_data_pool_type=$poolType].cou_data_pool");   
-        if ($poolName && $rgwa->removePlacementTarget($poolName[0])) { 
-          return true; 
-        } 
-      } 
+      if (!$this->deleteAll(['cou_id' => $coGroupData['CoGroup']['cou_id']], false)) {
+        throw new RuntimeException(_txt('er.cephprovisioner.datapool.delete'));
+      }
     } 
-    return false;
+    return true;
   }
 
   /**

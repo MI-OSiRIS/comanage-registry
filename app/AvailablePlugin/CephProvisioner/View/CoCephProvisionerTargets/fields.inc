@@ -248,7 +248,6 @@
       </td>
     </tr>
 
-
       <td>
         <i><font class="required"><?php print _txt('fd.req'); ?></font></i><br />
       </td>

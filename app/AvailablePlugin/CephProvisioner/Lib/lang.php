@@ -15,11 +15,12 @@ $cm_ceph_provisioner_texts['en_US'] = array(
     'er.cephprovisioner.nopool'          => 'Could not determine pool permissions - no COU data pools found',
     'er.cephprovisioner.entity'          => 'Danger: found unmanaged user, osd, or mgr key in list of Ceph entities returned from client lib',
     'er.cephprovisioner.entity.arg'      => 'Danger: User not containing unique identifier passed to Ceph client lib',
-    'er.cephprovisioner.datapool.cogroup' => 'CoGroup cou_id missing from provisining data',
+    'er.cephprovisioner.datapool.cogroup' => 'CoGroup cou_id missing from provisioning data',
     'er.cephprovisioner.datapool.rename'  => 'Error renaming COU data pools in Ceph',
     'er.cephprovisioner.datapool.provision'  => 'Error provisioning COU data pools in Ceph',
     'er.cephprovisioner.datapool.delete'    =>  'Error removing data pool records and/or ceph pool application associations',
     'er.cephprovisioner.associate'  => 'Error associating COU data pools to ceph applications',
+    'er.cephprovisioner.nocou'      => 'Error looking up COU from group data',
     'er.cephprovisioner.rgw.extract'  => 'A pool name was not found in COU data pool records for RGW pool type',
     'er.cephprovisioner.rgw.user_metadata'  => 'Unknown error creating or looking up user metadata: ',
     'er.cephprovisioner.client.param'  => 'Empty parameter passed to Ceph client class',
@@ -63,7 +64,7 @@ $cm_ceph_provisioner_texts['en_US'] = array(
     'pl.cephprovisioner.rgw_user_separator.desc'     =>  'String used to separate 2 part (user and cou) user identities for RGW users.  Default is "_".  Example generated user:  example_couname repeated for each user member cou',
 
     'pl.cephprovisioner.opt_create_cou_data_dir'      => 'Create COU data directory',
-    'pl.cephprovisioner.opt_create_cou_data_dir.desc'      => 'When new COU created, also create a CephFS data directory placed on their data pool',
+    'pl.cephprovisioner.opt_create_cou_data_dir.desc'      => 'When new COU created, also create a CephFS data directory placed on their data pool.  Must install mkCouDir.sh script and configure sudo for webserver user to run this script with needed permissions.',
 
     'pl.cephprovisioner.ceph_fs_mountpoint'      => 'CephFS Mountpoint',
     'pl.cephprovisioner.ceph_fs_mountpoint.desc'      => 'Where CephFS is mounted, data directories are created here',
