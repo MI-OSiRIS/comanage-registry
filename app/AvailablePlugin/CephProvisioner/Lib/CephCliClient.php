@@ -50,7 +50,13 @@ class CephCliClient extends CephCli {
     return $this->userPrefix;
   }
 
-  public function addFsDataPool($pool){}
+  public function addFsDataPool($poolName, $fsName){
+    $this->ceph("fs add_data_pool $fsName $poolName");
+  }
+
+  public function removeFsDataPool($poolName, $fsName){
+    $this->ceph("fs rm_data_pool $fsName $poolName");
+  }
 
   // map an array of daemon => caps to a string suitable for ceph auth commands
   // Example (part after client.zzz):
