@@ -848,8 +848,8 @@ original notification at
   'er.auth' =>        'Not authenticated',
   'er.auth.co' =>     'You are not a member of any COs. Please contact an administrator for assistance.',
   'er.auth.empty' =>  'Found empty username at login. Please contact an administrator for assistance.',
-  'er.auth.org' =>    'The identifier "%1$s" is not registered. If your request for enrollment is still being processed, you will not be able to login until it is approved. Please contact an administrator for assistance.',
-  'er.auth.roles' =>  'You do not have any current roles. If your request for enrollment is still being processed, you will not be able to login until it is approved. Please contact an administrator for assistance.',
+  'er.auth.org' =>    'The identifier "%1$s" is not registered. If your request for enrollment is still being processed, you will not be able to login until it is approved. If you have received notification that your enrollment is approved please <a href="auth/login">login again</a>.',
+  'er.auth.roles' =>  'You do not have any current roles. If your request for enrollment is still being processed, you will not be able to login until it is approved. If you have received notification that your enrollment or role addition is approved please <a href="auth/login">login again</a>.',
   // authr = Authenticator (model), vs Authentication (login)
   'er.authr.unlocked' => 'Authenticator is already unlocked',
   'er.changelog.model.load' => 'Failed to load model "%1$s"',
