@@ -27,9 +27,9 @@
 
 App::uses("CoProvisionerPluginTarget", "Model");
 
-class CoLdapServiceTokenProvisionerTarget extends CoProvisionerPluginTarget {
+class CoLdapNfsUserProvisionerTarget extends CoProvisionerPluginTarget {
   // Define class name for cake
-  public $name = "CoLdapServiceTokenProvisionerTarget";
+  public $name = "CoLdapNfsUserProvisionerTarget";
   
   // Add behaviors
   public $actsAs = array('Containable');
@@ -107,7 +107,7 @@ class CoLdapServiceTokenProvisionerTarget extends CoProvisionerPluginTarget {
     $CoLdapProvisionerDn = ClassRegistry::init('LdapProvisioner.CoLdapProvisionerDn');
     
     $args = array();
-    $args['conditions']['CoLdapProvisionerDn.co_ldap_provisioner_target_id'] = $coProvisioningTargetData['CoLdapServiceTokenProvisionerTarget']['co_ldap_provisioner_target_id'];
+    $args['conditions']['CoLdapProvisionerDn.co_ldap_provisioner_target_id'] = $coProvisioningTargetData['CoLdapNfsUserProvisionerTarget']['co_ldap_provisioner_target_id'];
     $args['conditions']['CoLdapProvisionerDn.co_person_id'] = $provisioningData['CoPerson']['id'];
     $args['fields'] = array('id', 'dn');
     $args['contain'] = false;
@@ -124,7 +124,7 @@ class CoLdapServiceTokenProvisionerTarget extends CoProvisionerPluginTarget {
     $CoLdapProvisionerTarget = ClassRegistry::init('LdapProvisioner.CoLdapProvisionerTarget');
     
     $args = array();
-    $args['conditions']['CoLdapProvisionerTarget.id'] = $coProvisioningTargetData['CoLdapServiceTokenProvisionerTarget']['co_ldap_provisioner_target_id'];
+    $args['conditions']['CoLdapProvisionerTarget.id'] = $coProvisioningTargetData['CoLdapNfsUserProvisionerTarget']['co_ldap_provisioner_target_id'];
     $args['contain'] = false;
     
     $ldapTarget = $CoLdapProvisionerTarget->find('first', $args);
@@ -136,21 +136,21 @@ class CoLdapServiceTokenProvisionerTarget extends CoProvisionerPluginTarget {
     
     // Pull the desired token
     
-    $CoServiceToken = ClassRegistry::init('CoServiceToken.CoServiceToken');
+    $CoNfsUser = ClassRegistry::init('CoNfsUser.CoNfsUser');
     
     $args = array();
-    $args['conditions']['CoServiceToken.co_service_id'] = $coProvisioningTargetData['CoLdapServiceTokenProvisionerTarget']['co_service_id'];
-    $args['conditions']['CoServiceToken.co_person_id'] = $provisioningData['CoPerson']['id'];
+    $args['conditions']['CoNfsUser.co_service_id'] = $coProvisioningTargetData['CoLdapNfsUserProvisionerTarget']['co_service_id'];
+    $args['conditions']['CoNfsUser.co_person_id'] = $provisioningData['CoPerson']['id'];
     $args['contain'] = false;
     
-    $token = $CoServiceToken->find('first', $args);
+    $token = $CoNfsUser->find('first', $args);
     
     // Modify the LDAP entry
     
     $attributes = array();
     
-    if($modify && !empty($token['CoServiceToken']['token'])) {
-      $attributes['userPassword'] = $token['CoServiceToken']['token'];
+    if($modify && !empty($token['CoNfsUser']['token'])) {
+      $attributes['userPassword'] = $token['CoNfsUser']['token'];
     } else {
       $attributes['userPassword'] = '';
     }

@@ -27,9 +27,9 @@
 
 App::uses("SPTController", "Controller");
 
-class CoLdapServiceTokenProvisionerTargetsController extends SPTController {
+class CoLdapNfsUserProvisionerTargetsController extends SPTController {
   // Class name, used by Cake
-  public $name = "CoLdapServiceTokenProvisionerTargets";
+  public $name = "CoLdapNfsUserProvisionerTargets";
   
   // Establish pagination parameters for HTML views
   public $paginate = array(
@@ -40,8 +40,8 @@ class CoLdapServiceTokenProvisionerTargetsController extends SPTController {
   );
   
   public $uses = array(
-    'LdapServiceTokenProvisioner.CoLdapServiceTokenProvisionerTarget',
-    //'CoServiceToken.CoServiceTokenSetting',
+    'LdapNfsUserProvisioner.CoLdapNfsUserProvisionerTarget',
+    //'CoNfsUser.CoNfsUserSetting',
     'CoProvisioningTarget',
     'CoService'
   );
@@ -77,12 +77,12 @@ class CoLdapServiceTokenProvisionerTargetsController extends SPTController {
     $this->set('vv_ldap_provisioners', $availableTargets);
     
     $this->CoService->bindModel(array('hasOne' =>
-                                      array('CoServiceToken.CoServiceTokenSetting')),
+                                      array('CoNfsUser.CoNfsUserSetting')),
                                 false);
 
     $args = array();
     $args['conditions']['CoService.co_id'] = $this->cur_co['Co']['id'];
-    $args['contain'][] = 'CoServiceTokenSetting';
+    $args['contain'][] = 'CoNfsUserSetting';
     
     $services = $this->CoService->find('all', $args);
     
@@ -91,8 +91,8 @@ class CoLdapServiceTokenProvisionerTargetsController extends SPTController {
     // We only want enabled services.
     
     foreach($services as $svc) {
-      if(isset($svc['CoServiceTokenSetting']['enabled']) && $svc['CoServiceTokenSetting']['enabled']) {
-        $enabledServices[ $svc['CoServiceTokenSetting']['co_service_id'] ] = $svc['CoService']['name'];
+      if(isset($svc['CoNfsUserSetting']['enabled']) && $svc['CoNfsUserSetting']['enabled']) {
+        $enabledServices[ $svc['CoNfsUserSetting']['co_service_id'] ] = $svc['CoService']['name'];
       }
     }
     
