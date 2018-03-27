@@ -563,6 +563,11 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
 
         $poolCount = sizeof($couDataPools);
         for ($idx = 0; $idx < $poolCount; $idx++) {
+          $type = $couDataPools[$idx]['CoCephProvisionerDataPool']['cou_data_pool_type'];
+          // skip rgw pools, no direct access needed
+          // maybe skip fs pools? Dangerous to allow full access to all users (but we'll have to if they want to mount the FS directly)
+          if ($type == CephDataPoolEnum::Rgw) { continue; }
+          // or ($type == CephDataPoolEnum::Fs) 
           $poolName = $couDataPools[$idx]['CoCephProvisionerDataPool']['cou_data_pool'];    
           $caps['osd'][] = "allow rw pool=$poolName";
         }
