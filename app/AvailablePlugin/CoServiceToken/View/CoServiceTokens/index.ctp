@@ -86,7 +86,14 @@
             switch($token_type[0]) {
               case CoServiceTokenTypeEnum::CephRgwToken:
                 foreach ($vv_co_person_info as $person_info) {
-                  $encoding_description = "<font style='font-weight: bold;'>S3 Access Key for ". $person_info['cou_formatted'] . " COU: </font><br /><hr> ";
+
+                  $encoding_description = "<font style='font-weight: bold;'>S3 Access Key for ". 
+                    $person_info['cou_formatted'] . 
+                    ' COU (' 
+                    . $person_info['uid'] . '_' 
+                    . $person_info['cou'] .
+                    '): </font><br /><hr> ';
+
                   $encoding = base64_encode(json_encode(
                     [ "RGW_TOKEN" =>
                       [
@@ -96,6 +103,7 @@
                         "key" => $token[0]
                       ]
                     ]));
+                  
                   print $encoding_description . filter_var( $encoding, FILTER_SANITIZE_SPECIAL_CHARS) . '<br /><hr>';
                 }
                 break;
