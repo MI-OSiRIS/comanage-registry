@@ -83,6 +83,10 @@ class SshKey extends AppModel {
       ),
       'filter' => array(
         'rule' => array('validateInput')
+      ),
+      'pattern' => array(
+        'rule' => '/^AAAA[0-9A-Za-z+\/]+[=]{0,3}$/',
+        'message' => 'SSH key field should include only the key string, do not include type, comment, or extra spaces before/after.'
       )
     )
   );
