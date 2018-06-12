@@ -72,6 +72,12 @@ $cm_ceph_provisioner_texts['en_US'] = array(
     'pl.cephprovisioner.ceph_fs_name'      => 'CephFS name',
     'pl.cephprovisioner.ceph_fs_name.desc'      => 'Name of CephFS, needed to add new data pools for CephFS access',
 
+    'pl.cephprovisioner.opt_mds_cap_uid'       => 'Set key uid/gid limitations',
+    'pl.cephprovisioner.opt_mds_cap_uid.desc'  => 'Set MDS caps on client keys limiting UID and GID to those provisioned by COManage and Grouper/LDAP',
+    
+    'pl.cephprovisioner.opt_mds_cap_idmap'     => 'Set idmap cap on keys',
+    'pl.cephprovisioner.opt_mds_cap_idmap.desc'  => 'Set "idmap" capability on managed ceph client keys',
+
 );
 
 ?>
