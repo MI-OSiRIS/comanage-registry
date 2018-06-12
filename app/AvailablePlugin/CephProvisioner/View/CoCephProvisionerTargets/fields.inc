@@ -248,6 +248,26 @@
       </td>
     </tr>
 
+     <tr class="line1">
+      <td>
+        <?php print _txt('pl.cephprovisioner.opt_mds_cap_uid'); ?><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.opt_mds_cap_uid.desc'); ?></font>
+      </td>
+      <td>
+        <?php print ($e ? $this->Form->input('opt_mds_cap_uid') : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['opt_mds_cap_uid'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+      </td>
+    </tr>
+
+     <tr class="line2">
+      <td>
+        <?php print _txt('pl.cephprovisioner.opt_mds_cap_idmap'); ?><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.opt_mds_cap_idmap.desc'); ?></font>
+      </td>
+      <td>
+        <?php print ($e ? $this->Form->input('opt_mds_cap_idmap') : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['opt_mds_cap_idmap'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+      </td>
+    </tr>
+
       <td>
         <i><font class="required"><?php print _txt('fd.req'); ?></font></i><br />
       </td>

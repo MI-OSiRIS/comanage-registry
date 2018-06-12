@@ -21,7 +21,7 @@
   
   @link          http://www.internet2.edu/comanage COmanage Project
   @package       registry
-  @since         COmanage Registry v2.0.0
+  @since         COmanage Registry v3.1.0
   @license       Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
 -->
 <!--
@@ -29,7 +29,7 @@
   must be specified in raw SQL, which needs the prefixed table name.
 
 -->
-<schema version="0.6">
+<schema version="0.7">
   <table name="co_ceph_provisioner_targets">
     <field name="id" type="I">
       <key />
@@ -65,6 +65,8 @@
     <field name="opt_create_cou_data_dir" type="L" />
     <field name="ceph_fs_mountpoint" type="C" size="256" />
     <field name="ceph_fs_name" type="C" size="128" />
+    <field name="opt_mds_cap_uid" type="L" />
+    <field name="opt_mds_cap_idmap" type="L" />
 
     <field name="created" type="T" />
     <field name="modified" type="T" />
