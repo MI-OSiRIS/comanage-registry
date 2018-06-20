@@ -159,6 +159,14 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       'required' => false,
       'allowEmpty' => true
     ),
+      'opt_mds_cap_uid' => array (
+      'rule' => 'boolean',
+      'on'   => true
+    ),
+      'opt_mds_cap_idmap' => array (
+      'rule' => 'boolean',
+      'on'   => false
+    )
   );
   
   /**
@@ -521,20 +529,24 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     if (empty($userid)) { throw new RuntimeException(_txt('er.cephprovisioner.identifier')); }
     else { $userid = $userid[0]; }
 
-    if ($coProvisioningTargetData['CoCephProvisionerTarget']['opt_posix_lookup_ldap']) {
-      $useridNumber = $this->getLdapUidNumber($coProvisioningTargetData, $coPersonData);
-      $gidList = $this->getLdapGidList($coProvisioningTargetData,$coPersonData);
-    } else {
-      $useridNumber = Hash::extract($coPersonData, "Identifier.{n}[type=uidNumber].identifier");
-      $gidList = $this->getGrouperGidList($coProvisioningTargetData, $userid);
-      // append the user personal group id which won't be in grouper
-      $gidNumber = Hash::extract($coPersonData, "Identifier.{n}[type=gidNumber].identifier");
-      if (empty($gidNumber)) { throw new RuntimeException(_txt('er.cephprovisioner.identifier')); }
-      $gidList[] = $gidNumber[0];
-    }
+    // If configured to add uid/gid info look that info up in LDAP or grouper
+    if ($coProvisioningTargetData['CoCephProvisionerTarget']['opt_mds_cap_uid']) {
 
-    if (empty($useridNumber)) { throw new RuntimeException(_txt('er.cephprovisioner.identifier')); }
-    else { $useridNumber = $useridNumber[0]; }
+      if ($coProvisioningTargetData['CoCephProvisionerTarget']['opt_posix_lookup_ldap']) {
+        $useridNumber = $this->getLdapUidNumber($coProvisioningTargetData, $coPersonData);
+        $gidList = $this->getLdapGidList($coProvisioningTargetData,$coPersonData);
+      } else {
+        $useridNumber = Hash::extract($coPersonData, "Identifier.{n}[type=uidNumber].identifier");
+        $gidList = $this->getGrouperGidList($coProvisioningTargetData, $userid);
+        // append the user personal group id which won't be in grouper
+        $gidNumber = Hash::extract($coPersonData, "Identifier.{n}[type=gidNumber].identifier");
+        if (empty($gidNumber)) { throw new RuntimeException(_txt('er.cephprovisioner.identifier')); }
+        $gidList[] = $gidNumber[0];
+      }
+
+      if (empty($useridNumber)) { throw new RuntimeException(_txt('er.cephprovisioner.identifier')); }
+      else { $useridNumber = $useridNumber[0]; }
+    }
   
     // some people might be in both cou admin and member groups, keep a log of cou id to avoid making cap strings for both
     // (at some point admin vs member may indicate different cap strings but currently they do not)
@@ -559,14 +571,32 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
           throw new RuntimeException(_txt('er.cocephprovisioner.nopool') . ' ');
         }
 
-        $caps['mds'][] = "allow rw path=/$couNameLower uid=$useridNumber gids=" . implode(',',$gidList); 
+        // always set rw on cou path
+        $pathSpec = "allow rw path=/$couNameLower";
+
+        // add uid/gid list if set (only if config switch was enabled earlier)
+        if (isset($useridNumber) && isset($gidList)) {
+          $pathSpec .= " uid=$useridNumber gids=" . implode(',',$gidList); 
+        }
+
+        $caps['mds'][] = $pathSpec;
 
         $poolCount = sizeof($couDataPools);
         for ($idx = 0; $idx < $poolCount; $idx++) {
+          $type = $couDataPools[$idx]['CoCephProvisionerDataPool']['cou_data_pool_type'];
+          // skip rgw pools, no direct access needed
+          // maybe skip fs pools? Dangerous to allow full access to all users (but we'll have to if they want to mount the FS directly)
+          if ($type == CephDataPoolEnum::Rgw) { continue; }
+          // or ($type == CephDataPoolEnum::Fs) 
           $poolName = $couDataPools[$idx]['CoCephProvisionerDataPool']['cou_data_pool'];    
           $caps['osd'][] = "allow rw pool=$poolName";
         }
       }
+    }
+
+    // Add idmap cap to key if configured
+    if ($coProvisioningTargetData['CoCephProvisionerTarget']['opt_mds_cap_idmap']) {
+      $caps['mds'][] = 'idmap';
     }
 
     $this->log("CephProvisioner updateCephClientKey - generated caps array: " . json_encode($caps),'debug');
