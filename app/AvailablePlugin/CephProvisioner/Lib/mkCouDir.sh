@@ -77,7 +77,9 @@ chmod g+s "$DIRPATH" && \
 chmod g+w "$DIRPATH" && \
 chmod o-rwx "$DIRPATH" && \
 chgrp "$AdminGroup" "$DIRPATH" && \
-setfacl -d -m "group:$MemberGroup:rx" "$DIRPATH"
+setfacl -d -m "group:$MemberGroup:rx" "$DIRPATH" && \
+setfacl -m "group:$MemberGroup:rx" "$DIRPATH"
+
 
 if [ $? -ne 0 ]; then
     echo "Error: setfacl failed to set group read ACL group:$MemberGroup:rx"
