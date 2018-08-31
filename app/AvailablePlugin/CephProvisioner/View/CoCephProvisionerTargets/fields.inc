@@ -227,8 +227,17 @@
         <?php print ($e ? $this->Form->input('opt_create_cou_data_dir') : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['opt_create_cou_data_dir'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
       </td>
     </tr>
+     <tr class="line1">
+      <td>
+        <?php print _txt('pl.cephprovisioner.cou_data_dir_command'); ?><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.cou_data_dir_command.desc'); ?></font>
+      </td>
+      <td>
+        <?php print ($e ? $this->Form->input('cou_data_dir_command') : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['cou_data_dir_command'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+      </td>
+    </tr>
 
-  <tr class="line1">
+  <tr class="line2">
       <td>
         <?php print _txt('pl.cephprovisioner.ceph_fs_mountpoint'); ?><br />
         <font class="desc"><?php print _txt('pl.cephprovisioner.ceph_fs_mountpoint.desc'); ?></font>
@@ -238,7 +247,7 @@
       </td>
     </tr>
 
-     <tr class="line2">
+     <tr class="line1">
       <td>
         <?php print _txt('pl.cephprovisioner.ceph_fs_name'); ?><br />
         <font class="desc"><?php print _txt('pl.cephprovisioner.ceph_fs_name.desc'); ?></font>
@@ -248,7 +257,7 @@
       </td>
     </tr>
 
-     <tr class="line1">
+     <tr class="line2">
       <td>
         <?php print _txt('pl.cephprovisioner.opt_mds_cap_uid'); ?><br />
         <font class="desc"><?php print _txt('pl.cephprovisioner.opt_mds_cap_uid.desc'); ?></font>
@@ -258,7 +267,7 @@
       </td>
     </tr>
 
-     <tr class="line2">
+     <tr class="line1">
       <td>
         <?php print _txt('pl.cephprovisioner.opt_mds_cap_idmap'); ?><br />
         <font class="desc"><?php print _txt('pl.cephprovisioner.opt_mds_cap_idmap.desc'); ?></font>

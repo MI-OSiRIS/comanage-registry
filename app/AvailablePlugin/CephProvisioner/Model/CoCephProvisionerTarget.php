@@ -149,6 +149,11 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       'rule' => 'boolean',
       'on'   => true
     ),
+      'cou_data_dir_command' => array(
+        'rule' => 'notBlank',
+        'required' => false,
+        'allowEmpty' => true
+    ),
       'ceph_fs_mountpoint' => array (
       'rule' => 'notBlank',
       'required' => false,
@@ -292,20 +297,22 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   }
 
   public function provisionCoGroupAction($coProvisioningTargetData,$coGroupData) {
-    
     // nothing to provision
     if (!$this -> isCouAdminOrMembersGroup($coGroupData)) {
       return true;
     }
 
-    if (!$couDataPools = $this -> CoCephProvisionerDataPool -> updateCouDataPools($coProvisioningTargetData, $coGroupData)) {
+    if ($couDataPools = $this -> CoCephProvisionerDataPool -> updateCouDataPools($coProvisioningTargetData, $coGroupData)) {
+      $this->linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools);
+      
+      if ( $coProvisioningTargetData['CoCephProvisionerTarget']['opt_create_cou_data_dir'] ) {
+          if (!$this->createCouDataDir($coProvisioningTargetData, $coGroupData, $couDataPools)) {
+            throw new RuntimeException(_txt('er.cephprovisioner.coudir'));
+          }
+      } else {
         throw new RuntimeException(_txt('er.cephprovisioner.datapool.provision'));
+      }
     }
-
-    $this->linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools);
-
-    $this->createCouDataDir($coProvisioningTargetData, $coGroupData, $couDataPools);
-
   }
 
   // the external service sync is time consuming, this seems like a good place to run it without
@@ -483,27 +490,49 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   }
 
   /**
-  * create COU data directory under configured mount point (will attempt to mount)
+  * create COU data directory under configured mount point.  Helper script does not do anything to modify dir if it exists.
   * @param provisioning target data
   * @param provisioning group data (to extract COU name)
   * @param couDataPools (retrieve with CoCephProvisionerDataPool methods)
-  * @return true if success
+  * @return Boolean depending on success
+  * 
   *
   * There is no param or function equivalent to delete data dir - danger of deleting data someone may have wanted archived
   **/
-
   public function createCouDataDir($coProvisioningTargetData,$coGroupData, $couDataPools) {
+  
     $mountDir = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_fs_mountpoint'];
-    
+    $baseCommand = $coProvisioningTargetData['CoCephProvisionerTarget']['opt_cou_data_dir_command'];
+
     if (!$cou = $this->CoCephProvisionerDataPool->getCouName($coGroupData)) { 
-        throw new RuntimeException(_txt('er.cephprovisioner.nocou'));
+        $this->log(_txt('er.cephprovisioner.nocou'), 'error');
+        return false;
     }
-     // We won't ordinarily have permissions to execute this
-     mkdir($homedir, '0777');
-     chown($homedir, $uidnumber);
-     chgrp($homedir, $gidnumber);
 
+    $couLC = strtolower ($cou);
 
+    # no need to call out if the directory exists already
+    if (file_exists("$mountDir/$couLC")) { return true; }
+
+    if (empty($baseCommand)) {
+      $baseCommand = '/bin/sudo -n /usr/local/bin/mkCouDir.sh';
+    }
+
+    $fullCommand = $baseCommand . ' ' . $cou  . ' ' . $mountDir . ' 2>&1';
+
+    $this->log("CephProvisioner - Creating COU data directory: '$fullCommand' ", 'debug');
+
+    # passwordless sudo for this command has to be setup for this to work
+    # you must also symlink it from somewhere in path to /comanage/app/AvailablePlugin/CephProvisioner/Lib/mkCouDir.sh
+    # path has to also be allowed by sudo config (secure_path setting)
+    # For example, in /etc/sudoers:  apache ALL=(root) NOPASSWD: /usr/local/bin/mkCouDir.sh   
+    exec($fullCommand, $output, $return);
+
+    if ($return != 0) {
+      $this->log("CephProvisioner - Command returned $return while creating COU data directory with output:  " . join(' ; ',$output), 'error');
+      return false;
+    }
+    return true;
   }
 
     /**

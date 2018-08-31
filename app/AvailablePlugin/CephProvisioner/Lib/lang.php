@@ -25,6 +25,7 @@ $cm_ceph_provisioner_texts['en_US'] = array(
     'er.cephprovisioner.rgw.user_metadata'  => 'Unknown error creating or looking up user metadata: ',
     'er.cephprovisioner.client.param'  => 'Empty parameter passed to Ceph client class',
     'er.cephprovisioner.pooltype'  => 'Multiple pool records stored for type, not supported in this plugin.  Type:  ',
+    'er.cephprovisioner.coudir'    => 'Error creating COU data dir on CephFS mountpoint',
 
     // Plugin texts
     'pl.cephprovisioner.info'    => 'Configure ceph provisioner',
@@ -65,6 +66,9 @@ $cm_ceph_provisioner_texts['en_US'] = array(
 
     'pl.cephprovisioner.opt_create_cou_data_dir'      => 'Create COU data directory',
     'pl.cephprovisioner.opt_create_cou_data_dir.desc'      => 'When new COU created, also create a CephFS data directory placed on their data pool.  Must install mkCouDir.sh script and configure sudo for webserver user to run this script with needed permissions.',
+
+    'pl.cephprovisioner.cou_data_dir_command' => 'COU dir create command',
+    'pl.cephprovisioner.cou_data_dir_command.desc' => 'Full path to command that will be run to create a COU data directory.  It will be given COU name and parent path as params.  Default is "/bin/sudo /usr/local/bin/mkCouDir.sh" (install script there or link to ComanageInstallDir/app/AvailablePlugin/CephProvisioner/Lib/mkCouDir.sh)',
 
     'pl.cephprovisioner.ceph_fs_mountpoint'      => 'CephFS Mountpoint',
     'pl.cephprovisioner.ceph_fs_mountpoint.desc'      => 'Where CephFS is mounted, data directories are created here',
