@@ -3,7 +3,7 @@
 # This is a helper script meant to be run with sudo as a user having
 # permissions to create COU dirs and set permissions, placement, etc
 
-# Requires arguments: -c COU, -d parent directory to create COU dir (must be cephFS)
+# Requires arguments: mkCouDir.sh [COU Name]  [parent directory to create COU dir] (must be cephFS)
 
 # exit codes:
 # 0 success or directory exists 
@@ -14,32 +14,33 @@
 # 5 setting directory ownership or permissions failed
 # 6 setting fattr for data pool placement failed
 
-while getopts ":o:c:d:" opt; do
-    case ${opt} in 
-        c ) 
-            if [ -n "$OPTARG" ]; then
-                COU=$OPTARG
-            else
-                echo "Error: Empty string not allowed for COU argument"
-                exit 2
-            fi
-            ;;
-        d ) 
-            if [[ $OPTARG == *'/'* ]]; then
-                DIR=$OPTARG
-            else
-                echo "Error: Parent directory does not contain '/', does not appear to be path"
-                exit 2
-            fi
-            ;;
-        : ) 
-            exit 2
-            ;;
-        \? ) 
-            exit 2
-            ;;
-    esac
-done
+
+function usage {
+    echo "Usage: mkCouDir.sh [COU Name]  [parent directory path for COU dir]    (must be cephFS)"
+}
+
+
+if [ -n "$1" ]; then
+    COU=$1
+else 
+    echo "Error: Empty string not allowed for COU argument"
+    usage
+    exit 2
+fi
+
+if [ -n "$2" ]; then
+    if [[ $2 == *'/'* ]]; then
+        DIR=$2
+    else
+       echo "Error: Parent directory does not contain '/', does not appear to be path"
+       usage
+       exit 2 
+   fi
+else
+    echo "Error: Empty string not allowed for parent mount argument"
+    usage
+    exit 2
+fi
 
 COUDIR=$(echo $COU | tr "[:upper:]" "[:lower:]")
 DIRPATH="${DIR}/${COUDIR}"
@@ -58,7 +59,7 @@ fi
 # timeout with KILL (9) after 10 seconds in case the mount is hanging
 STAT=$(timeout -s 9 10 stat -f -c %T $DIR)
 
-if [ "$STAT" == "ceph" ]; then
+if [ "$STAT" == "ceph" -o "$STAT" == "fuseblk" ]; then
     mkdir "$DIRPATH"
 
     if [ $? -ne 0 ]; then

@@ -29,7 +29,7 @@
   must be specified in raw SQL, which needs the prefixed table name.
 
 -->
-<schema version="0.7">
+<schema version="0.8">
   <table name="co_ceph_provisioner_targets">
     <field name="id" type="I">
       <key />
@@ -63,6 +63,7 @@
     <field name="rgw_user_separator" type="C" size="5" />
     <field name="ceph_user_prefix" type="C" size="64" />
     <field name="opt_create_cou_data_dir" type="L" />
+    <field name="cou_data_dir_command" type="C" size="256" />
     <field name="ceph_fs_mountpoint" type="C" size="256" />
     <field name="ceph_fs_name" type="C" size="128" />
     <field name="opt_mds_cap_uid" type="L" />
