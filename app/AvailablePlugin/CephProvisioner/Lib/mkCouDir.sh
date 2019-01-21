@@ -75,11 +75,11 @@ AdminGroup="CO_COU_${COU}_admins"
 MemberGroup="CO_COU_${COU}_members_active"
 
 chmod g+s "$DIRPATH" && \
-chmod g+w "$DIRPATH" && \
+chmod g+r "$DIRPATH" && \
 chmod o-rwx "$DIRPATH" && \
-chgrp "$AdminGroup" "$DIRPATH" && \
-setfacl -d -m "group:$MemberGroup:rx" "$DIRPATH" && \
-setfacl -m "group:$MemberGroup:rx" "$DIRPATH"
+chgrp "$MemberGroup" "$DIRPATH" && \
+setfacl -d -m "group:$AdminGroup:rwx" "$DIRPATH" && \
+setfacl -m "group:$AdminGroup:rwx" "$DIRPATH"
 
 
 if [ $? -ne 0 ]; then
