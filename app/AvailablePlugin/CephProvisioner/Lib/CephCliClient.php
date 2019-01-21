@@ -2,6 +2,8 @@
 /**
  * COmanage Registry Ceph CLI client interface
  *
+ * This contribution funded by NSF grant 1541335 for the OSiRIS project 
+ *
  * Portions licensed to the University Corporation for Advanced Internet
  * Development, Inc. ("UCAID") under one or more contributor license agreements.
  * See the NOTICE file distributed with this work for additional information
@@ -54,6 +56,7 @@ class CephCliClient extends CephCli {
     $this->ceph("fs add_data_pool $fsName $poolName");
   }
 
+  // this will fail if fs data is placed in pool
   public function removeFsDataPool($poolName, $fsName){
     $this->ceph("fs rm_data_pool $fsName $poolName");
   }
@@ -124,7 +127,7 @@ class CephCliClient extends CephCli {
   }
 
   public function getKey($id) {
-    return join('\n', $this->ceph("auth get-key " . $this->userPrefix . $id));
+    return $this->ceph("auth get-key " . $this->userPrefix . $id);
   }
 
   public function getKeyring($id, $format='array') {
@@ -156,13 +159,22 @@ class CephCliClient extends CephCli {
     return $returnCapsArray;
   }
 
-  // returns true if creation succeeds, false if pool exists, exception will be thrown if command fails
-  public function createDataPool($poolname, $pgcount, $size = 3) {
+  /**
+  * @return Array:  ceph data pools
+  **/
+  public function listDataPools() {
     // check if pool exists
-    $pools = $this->ceph('osd pool ls',true);
-    if (in_array($poolname, $pools)) {
-        return false;
-    }
+    return $this->ceph('osd pool ls',true);
+  }
+
+  /** 
+  * @param String: pool name
+  * @param String: placement group count
+  * @param Integer:  Pool size (replication count)
+  * @return Boolean true if creation succeeds.  
+  * Ceph command will throw exception if pool exists so check it first
+  **/
+  public function createDataPool($poolname, $pgcount, $size = 3) {
     $this->ceph("osd pool create $poolname $pgcount $pgcount");
     $this->ceph("osd pool set $poolname size $size");
     return true;

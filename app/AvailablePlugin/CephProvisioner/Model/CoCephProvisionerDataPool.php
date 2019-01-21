@@ -2,6 +2,8 @@
 /**
  * COmanage Registry Ceph Provisioner COU data pools
  *
+ * This contribution funded by NSF grant 1541335 for the OSiRIS project 
+ *
  * Portions licensed to the University Corporation for Advanced Internet
  * Development, Inc. ("UCAID") under one or more contributor license agreements.
  * See the NOTICE file distributed with this work for additional information
@@ -34,7 +36,7 @@ class CoCephProvisionerDataPool extends AppModel {
   
   // Association rules from this model to other models
   public $belongsTo = array(
-    "CoCephProvisioner.CoCephProvisionerTarget",
+    "CephProvisioner.CoCephProvisionerTarget",
     "Cou"
   );
     
@@ -91,7 +93,7 @@ class CoCephProvisionerDataPool extends AppModel {
   }
 
   /**
-   * Create or update Ceph data pools for COU Groups.  Rename existing pools if necessary
+   * Create Ceph data pools for COU Groups.  Does not rename old pools or move data if COU name changed - must move data manually.
    *
    * @since  COmanage Registry v2.0.0
    * @param  Array CO Provisioning Target data
@@ -109,62 +111,44 @@ class CoCephProvisionerDataPool extends AppModel {
     $oldPoolCoRecord = $this->getCouDataPools($coProvisioningTargetData,$coGroupData);
     $newPoolCoRecord = $this->createCouDataPoolList($coProvisioningTargetData,$coGroupData); 
 
-    // to be removed
     $this->log("Ceph provisioner updateCouDataPools - existing data pools " . json_encode($oldPoolCoRecord), 'debug');
     $this->log("Ceph provisioner updateCouDataPools - New Data pools: " . json_encode($newPoolCoRecord), 'debug');
 
     $ceph = $this->CoCephProvisionerTarget->cephClientFactory($coProvisioningTargetData);
-    $rgwa = $this->CoCephProvisionerTarget->rgwAdminClientFactory($coProvisioningTargetData);
-
+  
     $pgcount = $coProvisioningTargetData['CoCephProvisionerTarget']['cou_data_pool_pgcount'];
 
+    // get list of pools already created in Ceph
+    $existingDataPools = $ceph->listDataPools();
+
+    // database records match desired pool names.  We only have to verify they exist in ceph
+    if ($oldPoolCoRecord == $newPoolCoRecord) { 
+      $dbMatch = true; 
+    } else {
+      // Old pools didn't match desired pool names.  Try to remove them from application associations 
+      $this->CoCephProvisionerTarget-> linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $oldPoolCoRecord, false);
+    }
+    
+    // verify each desired pool
     foreach ($newPoolCoRecord as $poolRecord) {
-      $save = false;
       $poolType = $poolRecord['CoCephProvisionerDataPool']['cou_data_pool_type'];
       $newDataPool = $poolRecord['CoCephProvisionerDataPool']['cou_data_pool'];
-
-      $storedDataPool = Hash::extract($oldPoolCoRecord, "{n}.CoCephProvisionerDataPool[cou_data_pool_type=$poolType].cou_data_pool");
-
-      if (sizeof($storedDataPool) > 1) {
-        throw new RuntimeException(_txt('er.cephprovisioner.pooltype') . $poolType);
+      // check if pool exists or create it
+      if (in_array($newDataPool,$existingDataPools)) {
+        $this->log("Ceph provisioner updateCouDataPools - pool already exists in Ceph: " . $newDataPool, 'info');
+      } else {
+        $ceph->createDataPool($newDataPool, $pgcount);
       }
 
-      if (sizeof($storedDataPool) == 1) {
-        $oldDataPool = $storedDataPool[0];
-      } else {
-        $oldDataPool = $newDataPool;
-        $save = true;
-      } 
-
-      // pools have same name or there is no old data pool
-      if ($oldDataPool == $newDataPool) {
-        // method will return true if pool is created, false if exists already, exception if operation fails
-        if (!$ceph->createDataPool($newDataPool, $pgcount)) {
-          $this->log("Ceph provisioner updateCouDataPools - pool already exists in Ceph: " . $newDataPool, 'info');
-        }
-      } else {
-        // existing pool has different name than it should, rename, remove rgw placement target, and update the database record
-        // placement target will be created by application association done as later provisioning step
-        $ceph->renameDataPool($oldDataPool, $newDataPool);
-        $rgwa->removePlacementTarget($oldDataPool);
-
-        foreach ($oldPoolCoRecord as $dbPoolRecord) {
-          if ($dbPoolRecord['CoCephProvisionerDataPool']['cou_data_pool'] == $oldDataPool) {
-            $dbPoolRecord['CoCephProvisionerDataPool']['cou_data_pool'] = $newDataPool;
-            $poolRecord = $dbPoolRecord;
-            $save = true;
-          }
-        }
-      }
-      // save/update pool record
-      if ($save) {  
+      // update database with new records if necessary
+      if (!$dbMatch) {
         $this->log("\nCeph Provisioner updateCouDataPools - saving record: " . json_encode($poolRecord), 'debug'); 
         if (!$this->save($poolRecord)) {
           throw new RuntimeException(_txt('er.db.save'));
         }
         $this->clear();
       }
-    }
+    }  
     return $newPoolCoRecord;
   }
 
@@ -184,7 +168,7 @@ class CoCephProvisionerDataPool extends AppModel {
       CephDataPoolEnum::Rbd
     );    
 
-    if ($cou = $this->getCouName($coGroupData)) {
+    if ($cou = $this->CoCephProvisionerTarget->getCouName($coGroupData)) {
       $pools = array();
       $suffixes = CephDataPoolEnum::$data_pool_suffixes ;
 
@@ -204,23 +188,7 @@ class CoCephProvisionerDataPool extends AppModel {
     
   }
 
-  public function getCouName($coGroup) {
-    $args = array();
-    $dataPools = array();
-    // none of this makes sense if it isn't a reserved CO:COU group
-    if ($this -> CoCephProvisionerTarget -> isCouAdminOrMembersGroup($coGroup)) {
-      $args['conditions']['Cou.id'] = $coGroup['CoGroup']['cou_id'];
-      $args['contain'] = false;
-      $cou = $this -> Cou -> find('first', $args);
-
-      $this->log("Ceph provisioner getCouName - found cou: " .  json_encode($cou), 'debug');
-
-      if (sizeof($cou) > 0) {
-        return $cou['Cou']['name'];
-      }
-    }
-      return false;
-  }
+  
 
   /**
   *
@@ -233,7 +201,13 @@ class CoCephProvisionerDataPool extends AppModel {
     $args['conditions']['CoCephProvisionerDataPool.co_ceph_provisioner_target_id'] = $coProvisioningTargetData['CoCephProvisionerTarget']['id'];
     $args['conditions']['CoCephProvisionerDataPool.cou_id'] = $coGroupData['CoGroup']['cou_id'];
     $args['contain'] = false;
- 
+
+    //  leave out id and created/modified so it can be used to compared to a record constructed for insertion
+    $args['fields'] = [ 'CoCephProvisionerDataPool.co_ceph_provisioner_target_id', 
+                        'CoCephProvisionerDataPool.cou_id',
+                        'CoCephProvisionerDataPool.cou_data_pool_type',
+                        'CoCephProvisionerDataPool.cou_data_pool' ];
+
     $dataPools = $this->find('all', $args);
 
     return $dataPools;

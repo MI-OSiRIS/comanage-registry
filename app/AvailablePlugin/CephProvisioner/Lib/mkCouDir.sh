@@ -83,7 +83,7 @@ setfacl -m "group:$AdminGroup:rwx" "$DIRPATH"
 
 
 if [ $? -ne 0 ]; then
-    echo "Error: setfacl failed to set group read ACL group:$MemberGroup:rx"
+    echo "Error: setfacl failed to set admin group write ACL group:$AdminGroup:rwx"
     exit 5
 fi
 

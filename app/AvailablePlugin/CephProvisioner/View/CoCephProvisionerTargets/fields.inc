@@ -201,11 +201,11 @@
     </tr>
      <tr class="line2">
       <td>
-        <?php print _txt('pl.cephprovisioner.rgw_user_separator'); ?><br />
-        <font class="desc"><?php print _txt('pl.cephprovisioner.rgw_user_separator.desc'); ?></font>
+        <?php print _txt('pl.cephprovisioner.opt_rgw_ldap_auth'); ?><br />
+        <font class="desc"><?php print _txt('pl.cephprovisioner.opt_rgw_ldap_auth.desc'); ?></font>
       </td>
       <td>
-        <?php print ($e ? $this->Form->input('rgw_user_separator', array('size' => 4, 'default' => '_')) : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['rgw_user_separator'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
+        <?php print ($e ? $this->Form->input('opt_rgw_ldap_auth') : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['opt_rgw_ldap_auth'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
       </td>
     </tr>
      <tr class="line1">
@@ -266,17 +266,7 @@
         <?php print ($e ? $this->Form->input('opt_mds_cap_uid') : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['opt_mds_cap_uid'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
       </td>
     </tr>
-
-     <tr class="line1">
-      <td>
-        <?php print _txt('pl.cephprovisioner.opt_mds_cap_idmap'); ?><br />
-        <font class="desc"><?php print _txt('pl.cephprovisioner.opt_mds_cap_idmap.desc'); ?></font>
-      </td>
-      <td>
-        <?php print ($e ? $this->Form->input('opt_mds_cap_idmap') : filter_var($co_ceph_provisioner_targets[0]['CoCephProvisionerTarget']['opt_mds_cap_idmap'],FILTER_SANITIZE_SPECIAL_CHARS)); ?>
-      </td>
-    </tr>
-
+    
       <td>
         <i><font class="required"><?php print _txt('fd.req'); ?></font></i><br />
       </td>

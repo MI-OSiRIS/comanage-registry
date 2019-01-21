@@ -2,6 +2,8 @@
 /**
  * COmanage Registry CO Ceph Provisioner Targets Controller
  *
+ * This contribution funded by NSF grant 1541335 for the OSiRIS project 
+ *
  * Portions licensed to the University Corporation for Advanced Internet
  * Development, Inc. ("UCAID") under one or more contributor license agreements.
  * See the NOTICE file distributed with this work for additional information

@@ -1,0 +1,9 @@
+div.cred-actions {
+    float: right;
+}
+
+div.cred-actions a {
+    margin-right: 7px;   
+    margin-left: 7px;
+}
+

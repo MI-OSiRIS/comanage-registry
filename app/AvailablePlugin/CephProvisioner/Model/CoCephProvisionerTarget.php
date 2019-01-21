@@ -2,6 +2,8 @@
 /**
  * COmanage Registry Ceph RGW Provisioner target model
  *
+ * This contribution funded by NSF grant 1541335 for the OSiRIS project 
+ *
  * Portions licensed to the University Corporation for Advanced Internet
  * Development, Inc. ("UCAID") under one or more contributor license agreements.
  * See the NOTICE file distributed with this work for additional information
@@ -32,6 +34,8 @@ App::uses('CephApiClient', 'CephProvisioner.Lib');
 //App::uses('GrouperRestClient', 'GrouperProvisioner.Lib');
 //App::uses('GrouperRestClientException', 'GrouperProvisioner.Lib');
 
+//TODO:  Limit our use of exceptions to truly critical all-stop errors that should suspend all further execution (internal errors which indicate a serious bug in programming).  Otherwise an error message and return false so execution can continue. 
+
 class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   // Define class name for cake
   public $name = "CoCephProvisionerTarget";
@@ -47,6 +51,14 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       'className' => 'CephProvisioner.CoCephProvisionerDataPool',
       'dependent' => true
     ),
+      "CoCephProvisionerCred" => array(
+      'className' => 'CephProvisioner.CoCephProvisionerCred',
+      'dependent' => true
+    ), 
+      "CoCephProvisionerDataPlacement" => array(
+      'className' => 'CephProvisioner.CoCephProvisionerDataPlacement',
+      'dependent' => true
+    )
   );
   
   // Default display field for cake generated views
@@ -135,10 +147,9 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       'required' => true,
       'allowEmpty' => false
     ),
-      'rgw_user_separator' => array (
-      'rule' => 'notBlank',
-      'required' => true,
-      'allowEmpty' => false
+     'opt_rgw_ldap_auth' => array (
+      'rule' => 'boolean',
+      'on'   => false
     ),
       'ceph_user_prefix' => array (
       'rule' => 'notBlank',
@@ -167,11 +178,8 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       'opt_mds_cap_uid' => array (
       'rule' => 'boolean',
       'on'   => true
-    ),
-      'opt_mds_cap_idmap' => array (
-      'rule' => 'boolean',
-      'on'   => false
-    ),
+    )
+      
   );
   
   /**
@@ -192,50 +200,38 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     $person = isset($provisioningData['CoPerson']['id']);
     $group = isset($provisioningData['CoGroup']['id']);
 
-    try {
-      $this->log("CephProvisioner called for op: " . $op );
-      switch($op) {
-        case ProvisioningActionEnum::CoPersonAdded:
-        case ProvisioningActionEnum::CoPersonPetitionProvisioned:
-        case ProvisioningActionEnum::CoPersonPipelineProvisioned:
-        case ProvisioningActionEnum::CoPersonReprovisionRequested:
-        case ProvisioningActionEnum::CoPersonUnexpired:
-        case ProvisioningActionEnum::CoPersonUpdated:
-          $this->provisionCoPersonAction($coProvisioningTargetData,$provisioningData);
-          break;
-        case ProvisioningActionEnum::CoPersonUpdated:
-          $this->updateCoPersonAction($coProvisioningTargetData, $provisioningData);
-          break;
-        case ProvisioningActionEnum::CoPersonExpired:
-        case ProvisioningActionEnum::CoPersonEnteredGracePeriod:
-        case ProvisioningActionEnum::CoPersonDeleted:
-          $this->deleteCoPersonAction($coProvisioningTargetData, $provisioningData);
-          // remove user from acls on cou bucket
-          
-          break;
-        case ProvisioningActionEnum::CoGroupAdded:
-        case ProvisioningActionEnum::CoGroupReprovisionRequested:
-          $this->provisionCoGroupAction($coProvisioningTargetData,$provisioningData);
-          break;
-        case ProvisioningActionEnum::CoGroupUpdated:
-          $this->updateCoGroupAction($coProvisioningTargetData,$provisioningData);
-          break;
-          // create data pool for cou
-          // add data pool to rgw pools with placement tags matching admin group
-          // make sure cou bucket exists named like tolower(cou-name)
-          // make sure members of cou have read acl to bucket
-          // make sure admins of cou have write acl to bucket
-          break;
-        case ProvisioningActionEnum::CoGroupDeleted:
-          $this->deleteCoGroupAction($coProvisioningTargetData,$provisioningData);
-          break;
-        default:
-          throw new RuntimeException("CephProvisioner action $op is not implemented");
-          break;
-      }
-  } catch (CephClientException $e) {
-    throw new RuntimeException("Ceph Client Error:" . $e->getMessage());
-  }
+    $this->log("CephProvisioner called for op: " . $op );
+    switch($op) {
+      case ProvisioningActionEnum::CoPersonAdded:
+      case ProvisioningActionEnum::CoPersonPetitionProvisioned:
+      case ProvisioningActionEnum::CoPersonPipelineProvisioned:
+      case ProvisioningActionEnum::CoPersonUnexpired:
+        $this->provisionCoPersonAction($coProvisioningTargetData,$provisioningData);
+        break;
+      case ProvisioningActionEnum::CoPersonReprovisionRequested:
+        $this->reprovisionCoPersonAction($coProvisioningTargetData, $provisioningData);
+        break;
+      case ProvisioningActionEnum::CoPersonUpdated:
+        $this->updateCoPersonAction($coProvisioningTargetData, $provisioningData);
+        break;
+      case ProvisioningActionEnum::CoPersonExpired:
+      case ProvisioningActionEnum::CoPersonEnteredGracePeriod:
+      case ProvisioningActionEnum::CoPersonDeleted:
+        $this->deleteCoPersonAction($coProvisioningTargetData, $provisioningData);
+        break;
+      case ProvisioningActionEnum::CoGroupAdded:
+      case ProvisioningActionEnum::CoGroupReprovisionRequested:
+      case ProvisioningActionEnum::CoGroupUpdated:
+        $this->provisionCoGroupAction($coProvisioningTargetData,$provisioningData);
+        break;
+      case ProvisioningActionEnum::CoGroupDeleted:
+        $this->deleteCoGroupAction($coProvisioningTargetData,$provisioningData);
+        break;
+      default:
+        throw new RuntimeException("CephProvisioner action $op is not implemented");
+        break;
+    }
+  
     
     return true;
     
@@ -248,22 +244,68 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       return false;
     }
 
-    $this->log("Ceph provisioner provisionCoPersonAction - coPerson data: " . json_encode($coPersonData), 'debug');
+    // $this->log("Ceph provisioner provisionCoPersonAction - coPerson data: " . json_encode($coPersonData), 'debug');
 
     // add user ceph client key 
     $this->updateCephClientKey($coProvisioningTargetData, $coPersonData);
 
-    // Add rgw users with default placement tags 
-    $this->addRgwCouUsers($coProvisioningTargetData, $coPersonData);
+    // add rgw user - if user exists then it simply returns existing metadata
+    $md = $this->addRgwCoUser($coProvisioningTargetData,$coPersonData);
 
+    // Add rgw placement tags and other metadta - passing metadata in so this function can avoid 2nd lookup
+    $this->syncRgwMeta($coProvisioningTargetData, $coPersonData, $md);
   }
 
-  // the external service sync is time consuming, this seems like a good place to run it without
-  // running it everytime we provision or reprovision
+  // similar to provision co person but with the added step of looking for existing RGW credentials to reprovision
+  public function reprovisionCoPersonAction($coProvisioningTargetData, $coPersonData) {
+
+    // add user ceph client key  (no attempt is made to re-insert existing credentials from our db but they won't be overwritten if there already)
+    $this->updateCephClientKey($coProvisioningTargetData, $coPersonData);
+    
+     // get known credentials credentials database
+    $coPersonCreds = $this->CoCephProvisionerCred->getCoPersonCreds($coPersonData['CoPerson']['id'], array(CephClientEnum::RgwLdap, CephClientEnum::Rgw));
+
+    $firstIdentifier = array();
+
+    foreach ($coPersonCreds as $cred) {
+        // if user exists but doesn't have this access/secret combo then creds will be added and metadata returned
+        // if user exists with exactly this combo then ceph will just return the metadata for that user
+
+        $md = $this->addRgwCoUser($coProvisioningTargetData, 
+                                  $coPersonData, 
+                                  $cred['CoCephProvisionerCred']['identifier'],
+                                  $cred['CoCephProvisionerCred']['primaryid'],
+                                  $cred['CoCephProvisionerCred']['userid'],
+                                  $cred['CoCephProvisionerCred']['secret']);
+
+        // Add rgw placement tags - passing metadata in so this function can avoid 2nd lookup
+        // only sync tags on first hit of any given identifier - any further sync will be redundant
+        if (!array_key_exists($cred['CoCephProvisionerCred']['identifier'], $firstIdentifier)) {
+          $this->syncRgwMeta($coProvisioningTargetData, $coPersonData, $md, $cred['CoCephProvisionerCred']['identifier']);
+          $firstIdentifier[$cred['CoCephProvisionerCred']['identifier']] = true;
+        }
+    }
+
+    // user had no credentials in database, add new
+    if (empty($coPersonCreds)) {
+      $md = $this->addRgwCoUser($coProvisioningTargetData,$coPersonData);
+      $this->syncRgwMeta($coProvisioningTargetData, $coPersonData, $md);
+    }
+    
+  }
+
+  // call provisionCoPersonAction to create new ceph users in cluster and rgw (may be needed if uid identifer changed) 
+  // The sync methods will take care of removing stale ceph keys 
+  // or moving rgw user info and buckets from old identifier to new one
   public function updateCoPersonAction($coProvisioningTargetData, $coPersonData) {
+    // re-run provision co person to insert new identifiers
+    $this->provisionCoPersonAction($coProvisioningTargetData,$coPersonData);
+
+    // sync will remove old identifiers from rgw/ceph
+    // and move rgw metadata to new user so it keeps same access,secret,quota,etc)
     $this->syncRgwCoPeople($coProvisioningTargetData);
     $this->syncCephCoPeople($coProvisioningTargetData);
-    $this->provisionCoPersonAction($coProvisioningTargetData,$coPersonData);
+    
   }
 
   public function deleteCoPersonAction($coProvisioningTargetData,$coPersonData) {
@@ -272,7 +314,8 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   }
 
   public function deleteCoGroupAction($coProvisioningTargetData, $coGroupData) {
-    if (!$this -> isCouAdminOrMembersGroup($coGroupData)) {
+    // we only need pool deletion and delinking to happen for one of the 3 core COU groups
+    if (!$this -> isCouAdminGroup($coGroupData)) {
       return true;
     }
 
@@ -280,25 +323,24 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     // delete pool records from database and unlink pools from CephFS, RGW targets
     if ($couDataPools = $this -> CoCephProvisionerDataPool -> getCouDataPools($coProvisioningTargetData, $coGroupData)) {
 
-      // true 4th param means unlink these pools
-      $this -> linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools, true);
+      // false 4th param means unlink these pools
+      $this -> linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools, false);
 
       // this does not delete pools in ceph, but removes them from comanage db 
       $this -> CoCephProvisionerDataPool -> deleteCouDataPoolRecords($coProvisioningTargetData, $coGroupData);
 
     }
 
-    // sync users to remove those which are now invalidated due to removal of the group 
-    $this->syncRgwCoPeople($coProvisioningTargetData);
-    $this->syncCephCoPeople($coProvisioningTargetData);
-
     return true;
 
   }
 
+  // there are no groups in Ceph so this is only responsible for creating data pools matching COU name
+  // it only does anything when the COU admin group is provisioned
+  // access to those data pools is provisioned by co person changes
   public function provisionCoGroupAction($coProvisioningTargetData,$coGroupData) {
     // nothing to provision
-    if (!$this -> isCouAdminOrMembersGroup($coGroupData)) {
+    if (!$this -> isCouAdminGroup($coGroupData)) {
       return true;
     }
 
@@ -315,54 +357,374 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     }
   }
 
-  // the external service sync is time consuming, this seems like a good place to run it without
-  // running it everytime we provision or reprovision
-  public function updateCoGroupAction($coProvisioningTargetData, $coGroupData) {
-    $this->syncRgwCoPeople($coProvisioningTargetData);
-    $this->syncCephCoPeople($coProvisioningTargetData);
-    $this->provisionCoGroupAction($coProvisioningTargetData, $coGroupData);
+  // return either subuserid or pull uid identifier from coperson data 
+  public function getActingUserid($coPersonData, $coPersonSubuser=null) {
+     if (is_null($coPersonSubuser)) {
+        $userid = Hash::extract($coPersonData, "Identifier.{n}[type=uid].identifier");
+        if (empty($userid)) { 
+          $this->log("CephProvisioner getActingUserid: " . _txt('er.cephprovisioner.identifier'), 'error');
+          return null;
+        } else { return $userid[0]; }
+      } else { return $coPersonSubuser; }
   }
 
-  // Add rgw users with default placement tags (userid_couname format reserved for use by this module only)
-  public function addRgwCouUsers($coProvisioningTargetData,$coPersonData) {
-    $active = GroupEnum::ActiveMembers;
-    $admin = GroupEnum::Admins;
+  public function addRgwCoUser($coProvisioningTargetData, $coPersonData, $coPersonSubuser=null, $primaryUser=true, $accessKey=null, $secretKey=null) {
     $rgwa = $this -> rgwAdminClientFactory($coProvisioningTargetData);
-    $separator = $coProvisioningTargetData['CoCephProvisionerTarget']['rgw_user_separator'];
 
-     // extract user id identifier
-    $uid_identifier = IdentifierEnum::UID;
-    $userid = Hash::extract($coPersonData, "Identifier.{n}[type=uid].identifier");
+    // if subuser is not-null will return it, otherwise will extract identifier from coperson data
+    $userid = $this->getActingUserid($coPersonData, $coPersonSubuser);
 
-    if (empty($userid)) {
-      throw RuntimeException(_txt('er.cephprovisioner.identifier'));
+    // returns metadata array, return empty array if no user can be created
+    if (is_null($userid)) { return []; }
+   
+    // returns existing metadata if user already defined
+    $md = $rgwa->addRgwUser($userid, $coPersonData['CoPerson']['id'], $primaryUser, $accessKey, $secretKey);
+
+    $this->saveRgwCreds($coProvisioningTargetData,$coPersonData, $userid, $md, $primaryUser);
+    $this->saveRgwDefaultPlacement($coProvisioningTargetData, $coPersonData, $userid);
+
+    // return user metadata for use in other methods
+    return $md;
+  }
+
+  /**
+  * Set default placement in database for user identifier (userid)
+  * @param placement - the placement tag to set as default.  If not provided 
+  **/
+  public function saveRgwDefaultPlacement($coProvisioningTargetData, $coPersonData, $userid, $placement = null) {
+    $rgwa = $this -> rgwAdminClientFactory($coProvisioningTargetData);
+
+    if (is_null($placement)) {
+      // set default to first COU this co person belongs to if there is no existing data
+      $couList = $this->getCouList($coPersonData['CoPerson']['id']);
+
+      if (sizeof($couList) > 0) {
+         $placement = $couList[0];
+        } else {
+          // no COU returned, log an error (this is probably going to be causing an exception later if there is no placement data saved)
+          $this->log("No COU found for $userid belonging to coperson id: " . $coPersonData['CoPerson']['id'], 'error');
+          return false;
+        }
+    } 
+
+    // updat existing record if exists (reprovision)
+    $savedPlacement = $this->CoCephProvisionerDataPlacement->getPlacement($userid, array(CephClientEnum::Rgw, CephClientEnum::RgwLdap), true);
+    $args = array();
+    if (!empty($savedPlacement)) {
+      $args['CoCephProvisionerDataPlacement']['id'] = $savedPlacement['CoCephProvisionerDataPlacement']['id']; 
     }
 
-    $this->log("Ceph Provisioner addRgwCouUsers found userid: " . json_encode($userid), 'debug');
+    $args['CoCephProvisionerDataPlacement']['identifier'] = $userid;
+    $args['CoCephProvisionerDataPlacement']['co_ceph_provisioner_target_id'] = $coProvisioningTargetData['CoCephProvisionerTarget']['id'];
+    $args['CoCephProvisionerDataPlacement']['placement'] = $placement;
+    $args['CoCephProvisionerDataPlacement']['type'] = $rgwa->getAuth();
 
-    // get list of cou for which this person is active member or admin
-    $active_cou = Hash::extract($coPersonData, "CoGroupMember.{n}.CoGroup[group_type=$active].cou_id");
-    $admin_cou = Hash::extract($coPersonData, "CoGroupMember.{n}.CoGroup[group_type=$admin].cou_id");
 
-    if (!empty($active_cou)) {
-      // TODO: create acl on COU data bucket
-      foreach ($active_cou as $cou_id) {
-        if ($cou_id == null) { continue; }
+    $this->log("\nCeph Provisioner saveRgwDefaultPlacement - saving record: " . json_encode($args), 'debug'); 
 
-        // make a data structure compatible with this function
-        $coGroupData = ['CoGroup' => []];
-        $coGroupData['CoGroup']['cou_id'] = $cou_id;
-        $coGroupData['CoGroup']['group_type'] = GroupEnum::ActiveMembers;
-        $cou_name = $this->CoCephProvisionerDataPool->getCouName($coGroupData);
-        // add user as uid_cou matching what the ldap token provisioner will do
-        $constructedUser = $userid[0] . $separator . strtolower($cou_name);
-        $this->log("Ceph provisioner provisonCoPersonAction - constructed user: " . json_encode($constructedUser), 'debug');
-        $rgwa->addUserPlacementTag($constructedUser, $cou_name);
+    if (!$this->CoCephProvisionerDataPlacement->save($args)) {
+        throw new RuntimeException(_txt('er.db.save'));
+    }
+    $this->CoCephProvisionerDataPlacement->clear();
+  }
+
+  // if there are buckets associated with this user link them to the primary user
+  // if this is the primary user we should not be calling this function - co user deletions are handled in the syncRgwCoPeople function
+  // (we may want to rethink and also use this to delete co users on deprovision too)
+  public function deleteRgwCoUser($coProvisioningTargetData, $coPersonData, $rgwUserId) {
+    // make sure we can't delete primary user id
+
+    $CoPersonIdentifier = $this->getActingUserid($coPersonData);
+
+    if ($CoPersonIdentifier == $rgwUserId) {
+      throw new InternalErrorException(_txt('er.cephprovisioner.userid.delete'));
+    }
+
+    $rgwa = $this -> rgwAdminClientFactory($coProvisioningTargetData);
+
+    $args = array();
+    $args['CoCephProvisionerCred.identifier'] = $rgwUserId;
+
+    if (!$this->CoCephProvisionerCred->deleteAll($args)) {
+      $this->log("No matching credential found to delete from database: $rgwUserId",'error');
+    } else {
+      // remove data placement entry
+      $args = array();
+      $args['CoCephProvisionerDataPlacement.identifier'] = $rgwUserId;
+      if (!$this->CoCephProvisionerDataPlacement->deleteAll($args)) {
+        $this->log("Error deleting data placement preference, user will still be deleted: $rgwUserId",'error');
       }
-       $this->log("Ceph provisioner provisonCoPersonAction - ActiveCou: " . json_encode($active_cou), 'debug');
+      // move buckets from this user to primary id using coperson identifier (linking to a new user implies unlinking from old user)
+      $bucketList = $rgwa->getBucketList($rgwUserId);
+      $rgwa->linkBuckets($CoPersonIdentifier, $bucketList, true);
+      $rgwa->deleteRgwUser($rgwUserId);
     }
   }
 
+  /**
+  * RGW creds may need to be saved for several different ops such as new access key, new userid - so it is split out here 
+  */
+  public function saveRgwCreds($coProvisioningTargetData,$coPersonData, $userid, $md, $primary=false) {
+
+    $CoPersonIdentifier = $this->getActingUserid($coPersonData,null);
+    $primary_trigger = false;
+
+    // users can have multiple keys
+    foreach ($md['keys'] as $index=>$keyrecord) {
+      $cred = array();
+      $cred['CoCephProvisionerCred']['co_person_id'] = $coPersonData['CoPerson']['id'];
+      $cred['CoCephProvisionerCred']['co_ceph_provisioner_target_id'] = $coProvisioningTargetData['CoCephProvisionerTarget']['id'];
+      $cred['CoCephProvisionerCred']['identifier'] = $userid;
+      $cred['CoCephProvisionerCred']['type'] = CephClientEnum::Rgw;
+      
+      // see if there is an existing credential and if so just update it (could be reprovision, could be identifier change)
+      $existingCreds = $this->CoCephProvisionerCred->getCredsForUserid($keyrecord['access_key'],array(CephClientEnum::Rgw, CephClientEnum::RgwLdap));
+      if (!empty($existingCreds)) {
+        $cred['CoCephProvisionerCred']['id'] = $existingCreds['CoCephProvisionerCred']['id'];
+        $cred['CoCephProvisionerCred']['primaryid'] = $existingCreds['CoCephProvisionerCred']['primaryid'];
+      } elseif ($primary_trigger == false) {
+        // primary is considered the 'main' credential to be sorted first and not deleted (internally might be deleted and recreated, but the user can't delete it), 
+        // the check is to ensure only one true can ever be set true for given user metadata set
+        // it's an extra precaution in case of picking up existing MD from radosgw that was somehow never saved in db
+        // usually that wouldn't happen unless there was an error or bug at some point 
+        $cred['CoCephProvisionerCred']['primaryid'] = $primary;
+        $primary_trigger = true;
+      } else {
+        $cred['CoCephProvisionerCred']['primaryid'] = false;
+      }
+      
+      $cred['CoCephProvisionerCred']['userid'] = $keyrecord['access_key'];
+      $cred['CoCephProvisionerCred']['secret'] = $keyrecord['secret_key'];
+      $this->log("\nCeph Provisioner saveRgwCreds - saving credential record: " . json_encode($cred), 'debug'); 
+      if (!$this->CoCephProvisionerCred->save($cred)) {
+        throw new RuntimeException(_txt('er.db.save'));
+      }
+      $this->CoCephProvisionerCred->clear();
+    }
+  }
+
+  public function addRgwAccessKey($coProvisioningTargetData,$coPersonData, $rgwUserId, $primaryUser=false) {
+    $rgwa = $this -> rgwAdminClientFactory($coProvisioningTargetData);
+    $md = $rgwa->addUserKey($rgwUserId);
+    $this->saveRgwCreds($coProvisioningTargetData,$coPersonData, $rgwUserId, $md, $primaryUser);
+  }
+
+  public function removeRgwAccessKey($coProvisioningTargetData,$rgwUserId, $accessKey) {
+    $rgwa = $this -> rgwAdminClientFactory($coProvisioningTargetData);
+    $rgwa->removeUserKey($rgwUserId, $accessKey);
+
+    $args = array();
+    //$args['userid'] = $accessKey;
+    if ($id = $this->CoCephProvisionerCred->field('id', array('userid' => $accessKey))) {
+      $this->CoCephProvisionerCred->delete($id);
+    } else {
+      $this->log("Error removing access key: $rgwUserId",'error');
+    }
+  }
+
+  /**
+  * set RGW user metadata:  Placement tags, default placement, suspended status, more as it comes up
+  * 
+  * @param Array: provisioning target data
+  * @param Array: co person data
+  * @param Array[optional]:  RGW user metadata object.  Avoids looking up user data in function if it was previously obtained.
+  * @return Associative array of RGW user metadata 
+  */
+
+  // 
+  public function syncRgwMeta($coProvisioningTargetData,$coPersonData, $md = null, $coPersonSubuser=null) {
+    
+    $rgwa = $this -> rgwAdminClientFactory($coProvisioningTargetData);
+
+    // we'll use the subuser user id if given
+    // but we'll use group info from the main coperson to determine placement tags
+    $userid = $this->getActingUserid($coPersonData, $coPersonSubuser);
+
+    // returns metadata array, return empty array if we cannot sync
+    if (is_null($userid)) { return []; }
+
+    $this->log("Ceph Provisioner syncRgwMeta found userid: " . $userid, 'debug');
+
+    if ($md == null) {
+      $md = $rgwa->getUserMetadata($userid);
+    }
+
+    // unlikely but not impossible to have a programmer error with $md argument passed in
+    if ($md['user_id'] != $userid) {
+      throw new InternalErrorException(_txt('er.cephprovisioner.rgw.meta') . " - userid param: $userid, meta value: " . $md['user_id']);
+    }
+
+    // reset tags, method returns only active cou for person
+    $md['placement_tags'] = $this->getCouList($coPersonData['CoPerson']['id']);
+
+    // get the user default placement (error if not found)
+    $md['default_placement'] = $this->CoCephProvisionerDataPlacement->getPlacement($userid, array(CephClientEnum::Rgw, CephClientEnum::RgwLdap));
+
+    if (is_null($md['default_placement'])) {
+      throw new InternalErrorException(_txt('er.cephprovisioner.rgw.placement') . " - userid: $userid");
+    } else {
+      $this->log("CephProvisioner syncRgwMeta looked up default placement '" .  $md['default_placement'] . "' for userid '$userid'", 'debug');
+    }
+
+    // there is a ceph function for this but since we're writing a metadata blob let's consolidate in this method
+    if ($coPersonData['CoPerson']['status'] != StatusEnum::Active) {
+      $md['suspended'] = 1;
+      $this->log("CephProvisioner - syncRgwMeta coperson owner is not in active member COU group - suspending RGW user $userid", 'debug');
+    } else {
+      $md['suspended'] = 0;
+      //$this->log("CephProvisioner - syncRgwMeta coperson owner is active - enabling RGW user $user", 'debug');
+    }
+     
+    // write new metadata with tags replaced and new default 
+    $rgwa->setUserMetadata($userid,$md);
+    return $md;
+  }
+    
+ /**
+   * Determine Ceph access capabilities for CoPerson and create client key
+   *
+   * @since  COmanage Registry v3.1.0
+   * @param  Array CO Provisioning Target data
+   * @param  coPersonData
+   * @return Boolean True on success
+   *
+   */
+
+  public function updateCephClientKey($coProvisioningTargetData, $coPersonData, $newSecret=false) {
+
+    $couObject = ClassRegistry::init('Cou');
+    $ceph = $this->cephClientFactory($coProvisioningTargetData);
+    $caps = array('mon' => 'allow r', 'mgr' => 'allow r');
+    $prefix = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_user_prefix'];
+
+    // in this use-case method just extracts uid identifier from coPersonData
+    $userid = $this->getActingUserid($coPersonData);
+
+    if (is_null($userid)) { return false; } 
+
+    // remove key if this user is not currently active (can't suspend a ceph client key)
+    if ($coPersonData['CoPerson']['status'] != StatusEnum::Active) { 
+      $ceph->removeEntity($userid);
+      return true; 
+    }
+
+    // If configured to add uid/gid info look that info up in LDAP or grouper
+    // *** Related feature no longer supported *** 
+    /* 
+    if ($coProvisioningTargetData['CoCephProvisionerTarget']['opt_mds_cap_uid']) {
+
+      if ($coProvisioningTargetData['CoCephProvisionerTarget']['opt_posix_lookup_ldap']) {
+        $useridNumber = $this->getLdapUidNumber($coProvisioningTargetData, $coPersonData);
+        $gidList = $this->getLdapGidList($coProvisioningTargetData,$coPersonData);
+      } else {
+        $useridNumber = Hash::extract($coPersonData, "Identifier.{n}[type=uidNumber].identifier");
+        $gidList = $this->getGrouperGidList($coProvisioningTargetData, $userid);
+        // append the user personal group id which won't be in grouper
+        $gidNumber = Hash::extract($coPersonData, "Identifier.{n}[type=gidNumber].identifier");
+        if (empty($gidNumber)) { throw new RuntimeException(_txt('er.cephprovisioner.identifier')); }
+        $gidList[] = $gidNumber[0];
+      }
+
+      if (empty($useridNumber)) { throw new RuntimeException(_txt('er.cephprovisioner.identifier')); }
+      else { $useridNumber = $useridNumber[0]; }
+    }
+
+    */ 
+  
+    // some people might be in both cou admin and member groups, keep a log of cou id to avoid making cap strings for both
+    // (at some point admin vs member may indicate different cap strings but currently they do not)
+    $duplicateCheck = array();
+
+    //$couList = $this->getCouList($coPersonData['CoPerson']['id']);
+
+    foreach ($coPersonData['CoGroupMember'] as $group) {
+      if ($this->isCouAdminOrMembersGroup($group)) {
+
+        if (in_array($group['CoGroup']['cou_id'], $duplicateCheck)) { continue; }
+        $groupNames[] = $group['CoGroup']['name'];
+
+        $args = array();
+        $args['conditions']['Cou.id'] = $group['CoGroup']['cou_id'];
+        $args['contain'] = false;
+        $couData = $couObject->find('first', $args);
+
+        $couNameLower = strtolower($couData['Cou']['name']);
+
+        $duplicateCheck[] = $group['CoGroup']['cou_id'];
+
+        if (!$couDataPools = $this-> CoCephProvisionerDataPool -> getCouDataPools($coProvisioningTargetData, $group)) {
+          $this->log(_txt('er.cocephprovisioner.nopool'), 'error');
+          return false;
+        }
+
+        // *** this is no longer supported, we don't give out CephFS direct mounts and giving users RW access to FS pools was never secure ***
+        /* 
+
+        // always set rw on cou path
+        $pathSpec = "allow rw path=/$couNameLower";
+
+        // add uid/gid list if set (only if config switch was enabled earlier)
+        
+        if (isset($useridNumber) && isset($gidList)) {
+          $pathSpec .= " uid=$useridNumber gids=" . implode(',',$gidList); 
+        }
+
+        $caps['mds'][] = $pathSpec;
+
+        */ 
+
+        $poolCount = sizeof($couDataPools);
+        for ($idx = 0; $idx < $poolCount; $idx++) {
+          $type = $couDataPools[$idx]['CoCephProvisionerDataPool']['cou_data_pool_type'];
+          // skip rgw and fs pools, no direct access needed
+          if ($type == CephDataPoolEnum::Rgw || $type == CephDataPoolEnum::Fs) { continue; }
+          
+          $poolName = $couDataPools[$idx]['CoCephProvisionerDataPool']['cou_data_pool'];    
+          $caps['osd'][] = "allow rw pool=$poolName";
+        }
+      }
+    }
+
+    $this->log("CephProvisioner updateCephClientKey - generated caps array: " . json_encode($caps),'debug');
+
+    // there isn't really a way to tell ceph to generate a new secret for an entity 
+    // so we remove it and let it be recreated
+    if ($newSecret) {
+      $ceph->removeEntity($userid);
+    }
+    
+    // if userid/entity already exists this function will just set the caps to match what we calculate they should be
+    $ceph->addOrUpdateEntity($userid,$caps);
+
+    $secret = $ceph->getKey($userid);
+
+    // Update CephProvisionerCreds
+    $cred = array();
+    $cred['CoCephProvisionerCred']['co_person_id'] = $coPersonData['CoPerson']['id'];
+    $cred['CoCephProvisionerCred']['co_ceph_provisioner_target_id'] = $coProvisioningTargetData['CoCephProvisionerTarget']['id'];
+    $cred['CoCephProvisionerCred']['type'] = CephClientEnum::Cluster;
+    $cred['CoCephProvisionerCred']['identifier'] = $userid;
+    $cred['CoCephProvisionerCred']['userid'] = $userid;
+    $cred['CoCephProvisionerCred']['secret'] = $secret;
+    $cred['CoCephProvisionerCred']['primaryid'] = true;
+
+    $existingCred = $this->CoCephProvisionerCred->getCredsForUserid($userid,CephClientEnum::Cluster);
+
+    if ($existingCred) { 
+      $cred['CoCephProvisionerCred']['id'] = $existingCred['CoCephProvisionerCred']['id'];
+    }
+
+    $this->log("\nCeph Provisioner updateCephClientKey - saving credential record: " . json_encode($cred), 'debug'); 
+  
+    if (!$this->CoCephProvisionerCred->save($cred)) {
+      throw new RuntimeException(_txt('er.db.save'));
+    }
+
+    $this->CoCephProvisionerCred->clear();
+
+    return true;
+
+  }
   public function syncCephCoPeople($coProvisioningTargetData) {
     $ceph = $this->cephClientFactory($coProvisioningTargetData);
     $CoPersonObject = ClassRegistry::init('CoPerson');
@@ -384,6 +746,10 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
           $this->log("CephProvisioner - syncCephCoPeople identifier $userid not found - deleting user. " . "Caught exception was " . $e->getCode() . ':' . $e->getMessage(), 'info');
           // all the ceph lib classes hard-code client. into operations
           $ceph->removeEntity($userid);
+          $args = array();
+          $args['CoCephProvisionerCred.identifier'] = $userid;
+          $args['CoCephProvisionerCred.type'] = CephClientEnum::Cluster;
+          $this->CoCephProvisionerCred->deleteAll($args);  
         } else {
           throw $e;
         }
@@ -391,76 +757,162 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     }
   }
 
-  // this checks users matching our naming pattern (uid_cou) and removes any 
-  // which do not have valid uid or cou.  
-  // FIXME: calling this for every person or group update won't scale well
+
+// verify users against comanage copersonid and remove / rename as necessary
+
   public function syncRgwCoPeople($coProvisioningTargetData) {
       $rgwa = $this->rgwAdminClientFactory($coProvisioningTargetData);
-      $sep = $coProvisioningTargetData['CoCephProvisionerTarget']['rgw_user_separator'];
-      $userList = $rgwa->listRgwUsers();
+      $userList = $rgwa->getRgwUsers();
 
-      foreach ($userList as $user) {
-          // sanity check, be sure this is really a managed user with our separator
-          if (strpos($user, $sep) === false) { continue; }
-          $this->log("CephProvisioner - syncRgwCoPeople checking user: " . json_encode($user),'debug');
-          $CoGroupObject = ClassRegistry::init('CoGroup');
-          $CouObject = ClassRegistry::init('Cou');
+      foreach ($userList as $user => $md) {
+          $coPersonId = $rgwa->getCoPersonId($md);
+          $isCoPersonSubuser = $rgwa->isCoPersonSubuser($md);
+
+          // sanity check, would not ever expect this to be the case
+          // getCoPersonId will have generated an error message already
+          if (is_null($coPersonId)) { continue; }
+          
+          $this->log("CephProvisioner - syncRgwCoPeople checking user: " . json_encode($user) . ' copersonid: ' . $coPersonId,'debug');
+          
           $CoPersonObject = ClassRegistry::init('CoPerson');
-
-          $userComp = explode('_', $user);
-          $rgw_uid = $userComp[0];
-          $rgw_cou = $userComp[1];
-
-          //check cou validity
+          //$CoGroupObject = ClassRegistry::init('CoGroup');
+          $CoIdentifierObject = ClassRegistry::init('Identifier');
+         
+          // look for coperson with this id and see if the identifier matches the rgw user
+          // if not we have a rename situation
+          
           $args = array();
-          $args['conditions']['Cou.name'] = $rgw_cou;
+          $args['conditions']['CoPerson.id'] = $coPersonId;
+          $args['condition']['CoPerson.deleted'] = 0;
           $args['contain'] = false;
-          $couData = $CouObject->find('first', $args);
-          $this->log("CephProvisioner - syncRgwCoPeople found cou: " . json_encode($couData), 'debug');
-          // if cou component doesn't exist this isn't valid account
-          if (empty($couData)) {
-              $this->log("Ceph RGW sync - COU Component $rgw_cou not found - deleting user: " . $user, 'info');
+          $coPersonData = $CoPersonObject->find('first', $args);
+
+          $args = array();
+          $args['conditions']['Identifier.co_person_id'] = $coPersonId;
+          $args['conditions']['Identifier.type'] = IdentifierEnum::UID;
+          $args['fields'] = ['Identifier.identifier'];
+          $args['contain'] = false;
+          $CoIdentifierData = $CoIdentifierObject->find('first', $args);
+          
+          if (empty($coPersonData) || empty($CoIdentifierData)) {
+               if (empty($CoIdentifierData)) { 
+                $this->log("CephProvisioner - syncRgwCoPeople deleting user $user - No identifier found for co person id $coPersonId", 'debug');
+              } else {
+                $this->log("CephProvisioner - syncRgwCoPeople deleting user $user - non-existent or deleted coperson id: $coPersonId" , 'debug');
+              }
+              // Relatively safe - this will only work if no buckets associated with user 
+              $args = array();
+              $args['CoCephProvisionerCred.identifier'] = $user;
+              $args['CoCephProvisionerCred.type'] = array(CephClientEnum::Rgw, CephClientEnum::RgwLdap);
               $rgwa->deleteRgwUser($user);
+              $this->CoCephProvisionerCred->deleteAll($args);  // might fail, we don't care
               continue;
           }
 
-          $co_id = $couData['Cou']['co_id'];
-          $cou_id = $couData['Cou']['id'];
-          $cou_name = $couData['Cou']['name'];
-          // COU component of name is valid, now see if any co person has the identifier
-          try {
-              $coPersonId = $CoPersonObject->idForIdentifier($co_id,$rgw_uid,IdentifierEnum::UID);
-              $this->log("CephProvisioner - syncRgwCoPeople found CO Person ID: " . json_encode($coPersonId), 'debug');
-              // now verify that the co person is in the COU group
-              $coPersonGroups = $CoGroupObject -> findForCoPerson($coPersonId, null, null, null, false);
-              $this->log("CephProvisioner - syncRgwCoPeople CO Person member groups found: " . json_encode($coPersonGroups), 'debug');
-          } catch (InvalidArgumentException $e) {
-              if ($e->getMessage() == 'Unknown Identifier') {
-                  $this->log("CephProvisioner - syncRgwCoPeople person identifier component $rgw_uid not found - deleting user: " . $user . " Exception was" . $e->getCode() . ':' . $e->getMessage(), 'info');
-                  $rgwa->deleteRgwUser($user);
-                  continue;
-              } else {
-                  throw $e;
-              }
-          }
-          // user and cou exist, now check if user is in fact a member of this cou
+          $CoPersonIdentifier = $CoIdentifierData['Identifier']['identifier'];
 
-          $activeMemberGroup = GroupEnum::ActiveMembers;
-          $couGroupMatch = Hash::extract($coPersonGroups, "{n}.CoGroup[cou_id=$cou_id][group_type=$activeMemberGroup].name");
-          if (empty($couGroupMatch)) {
-              $this->log("CephProvisioner - syncRgwCoPeople $rgw_uid is not in active member COU group for $cou_name - deleting RGW user", 'info');
-              $rgwa->deleteRgwUser($user);
-          } else {
-              $this->log("CephProvisioner - syncRgwCoPeople rgw suffix matches user cou group: " . json_encode($couGroupMatch), 'debug');
+          // if this is a coPersonSubuser then it's fine that the identifier doesn't match, otherwise indicates 
+          // that it is an old identifier leftover from rename
+          if ($CoPersonIdentifier != $user && !$isCoPersonSubuser) {
+            // delete
+            $this->log("CephProvisioner - syncRgwCoPeople user changed: " . json_encode($user) . ' copersonid: ' . $coPersonId,'debug');
+            // person was renamed - set new user metadata to match old
+            // requires removing old access key first - we have all the metadata so we'll use it to both
+            // unset the old key and for pushing into new user after removing fields we don't want to push
+
+            $deprovisionMd = $md;
+            $provisionMd = $md;
+            
+            foreach ($deprovisionMd['keys'] as $key) {
+              // explicitely remove the key from the old user or it will conflict, modifying metadata is not enough
+              $rgwa->removeUserKey($user, $key['access_key']);
+            }
+            // remove info from old user 
+            $deprovisionMd['keys'] = [];
+            $deprovisionMd['swift_keys'] = [];
+            $deprovisionMd['subusers'] = [];
+
+            // set the relevant meta info to new user 
+            $provisionMd['key'] = "user:$CoPersonIdentifier";
+            $provisionMd['user_id'] = $CoPersonIdentifier;
+
+            // everything else (access keys, subusers, swift keys) will be automatically altered to match the user key
+            // (by ceph, not in this function) 
+            $rgwa->setUserMetadata($user, $deprovisionMd);
+            $rgwa->setUserMetadata($CoPersonIdentifier, $provisionMd);
+
+            // move buckets from this user to new user matching coperson identifier (linking to a new user implies unlinking from old user)
+            $bucketList = $rgwa->getBucketList($user);
+            $rgwa->linkBuckets($CoPersonIdentifier, $bucketList, true);
+
+            // user can be moved now
+            $this->log("CephProvisioner - syncRgwCoPeople deleting user with copersonid: $coPersonId RGW uid: $user because identifer changed to: " . $CoPersonIdentifier , 'debug');
+            
+            $rgwa->deleteRgwUser($user);
+            
+            // remove creds that were automatically inserted when the new identifier was created
+            // we'll be updating the previous credential record with creds copied from old user metadata  (or inserting new if it is somehow gone)
+
+            $args = array();
+            $args['CoCephProvisionerCred.identifier'] = array($CoPersonIdentifier);
+            $args['CoCephProvisionerCred.type'] = array(CephClientEnum::Rgw, CephClientEnum::RgwLdap);
+            //'CoCephProvisionerCred.type' => CephClientEnum::RgwLdap;
+            $this->log("deleting ". json_encode($args));
+            $this->CoCephProvisionerCred->deleteAll($args);  
+            
+            $args = array();
+            $args['CoCephProvisionerDataPlacement.identifier'] = $user;
+            $this->CoCephProvisionerDataPlacement->deleteAll($args);
+            
+            // if there were already creds in db with same access/secret this will just update them to new identifier
+            $this->saveRgwCreds($coProvisioningTargetData,$coPersonData, $CoPersonIdentifier, $provisionMd, true);
+            $this->saveRgwDefaultPlacement($coProvisioningTargetData, $coPersonData, $CoPersonIdentifier, $provisionMd['default_placement']);
+            
+            // there is no need to check for active membership, they are deleted
+            continue;             
           }
       }
   }
 
-  public function linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools, $unlink=false) {
+  public function getCouList($coPersonId) {
+    $CoGroupObject = ClassRegistry::init('CoGroup');
+    $coPersonGroups = $CoGroupObject -> findForCoPerson($coPersonId, null, null, null, false);
+    $rv = array();
+
+    foreach ($coPersonGroups as $coGroup) {
+      // only interested in required COU member groups
+      if (!$this->isCouMembersGroup($coGroup)) { continue; }
+      $cou = $this->getCouName($coGroup);
+      // The CO (not COU) group that everyone belongs to returns false from getCouName
+      if ($cou) { $rv[] = $cou; }
+      $this->log("Ceph provisioner getCouList - found cou: " .  json_encode($cou), 'debug');
+    }
+      // people will generally be in both _active and _all groups so remove any duplicates
+      return array_unique($rv);
+  }
+
+  public function getCouName($coGroup) {
+    $args = array();
+    // none of this makes sense if it isn't a reserved CO:COU group
+    if ($this -> isCouAdminOrMembersGroup($coGroup)) {
+      $args['conditions']['Cou.id'] = $coGroup['CoGroup']['cou_id'];
+      $args['contain'] = false;
+      $cou = $this -> CoCephProvisionerDataPool -> Cou -> find('first', $args);
+
+      $this->log("Ceph provisioner getCouName - found cou: " .  json_encode($cou), 'debug');
+
+      if (sizeof($cou) > 0) {
+        return $cou['Cou']['name'];
+      }
+    }
+      return false;
+  }
+
+  public function linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools, $link=true) {
       $rgwa = $this->rgwAdminClientFactory($coProvisioningTargetData);
       $ceph = $this->cephClientFactory($coProvisioningTargetData);
       
-      if (!$cou = $this->CoCephProvisionerDataPool->getCouName($coGroupData)) { 
+      if (!$cou = $this->getCouName($coGroupData)) { 
         throw new RuntimeException(_txt('er.cephprovisioner.nocou'));
       }
 
@@ -471,20 +923,21 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
         $poolName = $pool['CoCephProvisionerDataPool']['cou_data_pool'];
 
         // no need to unset the pool application if we are unlinking the pool
-        $unlink ? false : $ceph->enableDataPoolApplication($poolName, $poolType);
+        $link ? $ceph->enableDataPoolApplication($poolName, $poolType) : false;
 
+        // removal from FS will fail if data still placed in pool (which is good)
         switch ($poolType) {
           case CephDataPoolEnum::Rgw:
-            $unlink ? $rgw->removePlacementTarget($poolName) : $rgwa->addPlacementTarget($cou, $cou, $poolName);
+            $link ? $rgwa->addPlacementTarget($cou, $cou, $poolName) : $rgwa->removePlacementTarget($poolName);
             break;
           case CephDataPoolEnum::Fs:
-            $unlink ? $ceph->removeFsDataPool($poolName, $fsName) : $ceph->addFsDataPool($poolName, $fsName);
+            $link ? $ceph->addFsDataPool($poolName, $fsName) : $ceph->removeFsDataPool($poolName, $fsName);
             break;
         }
       }
 
       // unused, but I always forget how to use hash::extract so leave this here so I can reference it
-      //$poolName = Hash::extract($couDataPools,  "{n}.CoCephProvisionerDataPool[cou_data_pool_type=$poolType].cou_data_pool");
+      //$poolName = Hash::extract($couDataPools,  "{n}.CephProvisionerDataPool[cou_data_pool_type=$poolType].cou_data_pool");
 
 
   }
@@ -493,7 +946,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   * create COU data directory under configured mount point.  Helper script does not do anything to modify dir if it exists.
   * @param provisioning target data
   * @param provisioning group data (to extract COU name)
-  * @param couDataPools (retrieve with CoCephProvisionerDataPool methods)
+  * @param couDataPools (retrieve with CephProvisionerDataPool methods)
   * @return Boolean depending on success
   * 
   *
@@ -502,9 +955,9 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   public function createCouDataDir($coProvisioningTargetData,$coGroupData, $couDataPools) {
   
     $mountDir = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_fs_mountpoint'];
-    $baseCommand = $coProvisioningTargetData['CoCephProvisionerTarget']['opt_cou_data_dir_command'];
+    $baseCommand = $coProvisioningTargetData['CoCephProvisionerTarget']['cou_data_dir_command'];
 
-    if (!$cou = $this->CoCephProvisionerDataPool->getCouName($coGroupData)) { 
+    if (!$cou = $this->getCouName($coGroupData)) { 
         $this->log(_txt('er.cephprovisioner.nocou'), 'error');
         return false;
     }
@@ -533,107 +986,6 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       return false;
     }
     return true;
-  }
-
-    /**
-   * Determine Ceph access capabilities for CoPerson and create client key
-   *
-   * @since  COmanage Registry v3.1.0
-   * @param  Array CO Provisioning Target data
-   * @param  coPersonData
-   * @return Boolean True on success
-   * @throws RuntimeException
-   * @throws CephClientException
-   */
-
-  public function updateCephClientKey($coProvisioningTargetData, $coPersonData) {
-
-    $couObject = ClassRegistry::init('Cou');
-    $ceph = $this->cephClientFactory($coProvisioningTargetData);
-    $caps = array('mon' => 'allow r', 'mgr' => 'allow r');
-    $prefix = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_user_prefix'];
-
-    $userid = Hash::extract($coPersonData, "Identifier.{n}[type=uid].identifier");
-
-    if (empty($userid)) { throw new RuntimeException(_txt('er.cephprovisioner.identifier')); }
-    else { $userid = $userid[0]; }
-
-    // If configured to add uid/gid info look that info up in LDAP or grouper
-    if ($coProvisioningTargetData['CoCephProvisionerTarget']['opt_mds_cap_uid']) {
-
-      if ($coProvisioningTargetData['CoCephProvisionerTarget']['opt_posix_lookup_ldap']) {
-        $useridNumber = $this->getLdapUidNumber($coProvisioningTargetData, $coPersonData);
-        $gidList = $this->getLdapGidList($coProvisioningTargetData,$coPersonData);
-      } else {
-        $useridNumber = Hash::extract($coPersonData, "Identifier.{n}[type=uidNumber].identifier");
-        $gidList = $this->getGrouperGidList($coProvisioningTargetData, $userid);
-        // append the user personal group id which won't be in grouper
-        $gidNumber = Hash::extract($coPersonData, "Identifier.{n}[type=gidNumber].identifier");
-        if (empty($gidNumber)) { throw new RuntimeException(_txt('er.cephprovisioner.identifier')); }
-        $gidList[] = $gidNumber[0];
-      }
-
-      if (empty($useridNumber)) { throw new RuntimeException(_txt('er.cephprovisioner.identifier')); }
-      else { $useridNumber = $useridNumber[0]; }
-    }
-  
-    // some people might be in both cou admin and member groups, keep a log of cou id to avoid making cap strings for both
-    // (at some point admin vs member may indicate different cap strings but currently they do not)
-    $duplicateCheck = array();
-
-    foreach ($coPersonData['CoGroupMember'] as $group) {
-      if ($this->isCouAdminOrMembersGroup($group)) {
-
-        if (in_array($group['CoGroup']['cou_id'], $duplicateCheck)) { continue; }
-        $groupNames[] = $group['CoGroup']['name'];
-
-        $args = array();
-        $args['conditions']['Cou.id'] = $group['CoGroup']['cou_id'];
-        $args['contain'] = false;
-        $couData = $couObject->find('first', $args);
-
-        $couNameLower = strtolower($couData['Cou']['name']);
-
-        $duplicateCheck[] = $group['CoGroup']['cou_id'];
-
-        if (!$couDataPools = $this-> CoCephProvisionerDataPool -> getCouDataPools($coProvisioningTargetData, $group)) {
-          throw new RuntimeException(_txt('er.cocephprovisioner.nopool') . ' ');
-        }
-
-        // always set rw on cou path
-        $pathSpec = "allow rw path=/$couNameLower";
-
-        // add uid/gid list if set (only if config switch was enabled earlier)
-        if (isset($useridNumber) && isset($gidList)) {
-          $pathSpec .= " uid=$useridNumber gids=" . implode(',',$gidList); 
-        }
-
-        $caps['mds'][] = $pathSpec;
-
-        $poolCount = sizeof($couDataPools);
-        for ($idx = 0; $idx < $poolCount; $idx++) {
-          $type = $couDataPools[$idx]['CoCephProvisionerDataPool']['cou_data_pool_type'];
-          // skip rgw pools, no direct access needed
-          // maybe skip fs pools? Dangerous to allow full access to all users (but we'll have to if they want to mount the FS directly)
-          if ($type == CephDataPoolEnum::Rgw) { continue; }
-          // or ($type == CephDataPoolEnum::Fs) 
-          $poolName = $couDataPools[$idx]['CoCephProvisionerDataPool']['cou_data_pool'];    
-          $caps['osd'][] = "allow rw pool=$poolName";
-        }
-      }
-    }
-
-    // Add idmap cap to key if configured
-    if ($coProvisioningTargetData['CoCephProvisionerTarget']['opt_mds_cap_idmap']) {
-      $caps['mds'][] = 'idmap';
-    }
-
-    $this->log("CephProvisioner updateCephClientKey - generated caps array: " . json_encode($caps),'debug');
-    
-    $ceph->addOrUpdateEntity($userid,$caps);
-
-    return true;
-
   }
 
   public function getLdapTarget($coProvisioningTargetData) {
@@ -807,7 +1159,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   public function rgwAdminClientFactory($coProvisioningTargetData) {
     $client_id = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_client_name'];
     $cluster = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_cluster'];
-    $separator = $coProvisioningTargetData['CoCephProvisionerTarget']['rgw_user_separator'];
+    $auth = $coProvisioningTargetData['CoCephProvisionerTarget']['opt_rgw_ldap_auth'];
 
     if (empty($cluster)) { $cluster = 'ceph'; }
 
@@ -815,13 +1167,13 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       throw CephClientException("RGW admin api client is not implemented");
     } else {
       try {
-        $ceph = new CephRgwAdminCliClient($client_id,$cluster, $separator);
-    } catch (CephCliClientException $e) {
-      $this->log("CephProvisioner unable to create new CephRgwAdminCliClient: " . $e->getMessage());
-      return null;
+        $ceph = new CephRgwAdminCliClient($client_id,$cluster, $auth);
+      } catch (CephCliClientException $e) {
+        $this->log("CephProvisioner unable to create new CephRgwAdminCliClient: " . $e->getMessage());
+        return null;
+      }
     }
     return $ceph;
-    }
   }
 
   public function cephClientFactory($coProvisioningTargetData) {
@@ -848,13 +1200,21 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     return $ceph;
   }
 
+  // convenience wrappers
   public function isCouAdminOrMembersGroup($coGroup) {
-    return (($coGroup['CoGroup']['group_type'] == GroupEnum::ActiveMembers
-             || $coGroup['CoGroup']['group_type'] == GroupEnum::AllMembers 
-             || $coGroup['CoGroup']['group_type'] == GroupEnum::Admins )
-            && !empty($coGroup['CoGroup']['cou_id']));
+    $CoGroupObject = ClassRegistry::init('CoGroup');
+    return $CoGroupObject->isCouAdminOrMembersGroup($coGroup);
   }
 
+  public function isCouAdminGroup($coGroup) {
+    $CoGroupObject = ClassRegistry::init('CoGroup');
+    return $CoGroupObject->isCouAdminGroup($coGroup);
+  }
+
+  public function isCouMembersGroup($coGroup) {
+    $CoGroupObject = ClassRegistry::init('CoGroup');
+    return $CoGroupObject->isCouMembersGroup($coGroup);
+  }
 
 }
 

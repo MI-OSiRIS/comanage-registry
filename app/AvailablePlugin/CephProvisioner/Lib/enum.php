@@ -46,4 +46,10 @@ class CephDataPoolEnum {
     );
 }
 
+class CephClientEnum {
+    const Rgw = 0;
+    const RgwLdap = 1;
+    const Cluster = 2;
+}
+
 

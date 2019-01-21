@@ -2,6 +2,8 @@
 /**
  * COmanage Registry Ceph CLI client interface
  *
+ * This contribution funded by NSF grant 1541335 for the OSiRIS project 
+ *
  * Portions licensed to the University Corporation for Advanced Internet
  * Development, Inc. ("UCAID") under one or more contributor license agreements.
  * See the NOTICE file distributed with this work for additional information
@@ -38,6 +40,7 @@ class CephCli {
     // usage is implementation specific in RGW and cluster client 
     protected $identifier;
     protected $ceph = '/usr/bin/ceph';
+    public $debug_output = false;
 
   public function __construct($client_id = 'admin', $cluster = 'ceph', $identifier = null, $options = array()) {
 
@@ -49,6 +52,7 @@ class CephCli {
     $this->cluster = $cluster;
     $this->identifier = $identifier;
     $this->options = $options;
+  
   }
 
   /**
@@ -74,21 +78,23 @@ class CephCli {
     $discard = exec($cmd, $output, $return);
     $s_output = implode("\n", $output);
 
+    if(Configure::read('debug')) { 
+      CakeLog::write('debug', 'Ceph CLI was ' . $cmd);
+      CakeLog::write('debug', 'Ceph command output: ' . $s_output);
+    }
+
     if ($return != 0) {
         if (preg_match("/\((\d+)\)/", $s_output, $errcode)) {
           $code = $errcode[1];
         } else {
           $code = 0;
         }
-      throw new CephClientException($s_output,$code);
+      throw new CephClientException('Ceph: ' . $s_output,$code);
     }
 
-    if(Configure::read('debug')) {
-            CakeLog::write('error', 'Ceph CLI was ' . $cmd);
-            CakeLog::write('error', 'Ceph command output: ' . $s_output);
-    }
 
-     // output returns as array
+    
+    // output returns as array
     if ($arrayOutput) {
       return $output;
     } else {
