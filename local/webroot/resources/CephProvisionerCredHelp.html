@@ -1,0 +1,45 @@
+<h4 style="color: #186696;">Quick Reference for Ceph S3/Rgw Access Key</h4>
+
+<h5>Userid</h5>  
+<p>Identifies the owner of data buckets.  Is not given to S3 clients for authentication but may be used to set bucket ACL allowing other userid access to a bucket.  You can create additional user id if you would like to isolate data buckets for different usage.  Buckets created by one userid are not by default accessible to your other user id.</p>  
+
+<p>You can ask that any one of your S3 userid be mapped to a CILogon certificate DN for used with Globus, but only one can be mapped to any given identity.  It can be changed by request.  If you have multiple institutional identities with different certificate DN we can map each one to a different user id.  </p>
+
+<h5>access_key and secret_key</h5>
+
+<p>Used for authentication by S3 client.  You can create as many of these as you like and delete them if they become out of date.  You cannot delete your last access/secret pair but instead use the 'regenerate' button to make a new pair if you want to reset it.</p>
+
+<p>All access_key associated with a userid by default will see the same view of S3 data buckets.  Buckets created using any given set of access_key / secret pair are associated with a single user id.  Using any of the access_key for a given user id sees the same view of S3 buckets and has same access rights - permissions are associated with the user id, not with the access/secret pair.  
+</p>
+
+<h5>Downloading credentials</h5>
+The download button will download the credential in a format suitable for saving directly as ~/.aws/config.  The python boto client will then read this file for authentication.  
+
+<p>For more assistance and URLs to the S3 endpoints please look at our <a href="http://www.osris.org/documentation/s3.html">documentation page</a>.  
+
+</p>You may also want to look into <a href="http://www.osris.org/documentation/globus.html">Globus</a> for access to your S3 storage</p>
+
+<h4 style="color: #186696;">Quick Reference for Ceph Client Key</h4>
+
+<p>These are credentials for direct connection to the Ceph cluster for using Rados or RBD.  Every COU has 2 pools created by default:  cou.YourCouName.rados and cou.YourCouName.rbd.  Everyone in the COU can access these pools using credentials obtained from the Ceph credentials page.  Most users will not directly access the cluster in this way but the option is available.  </p>
+
+<h5>Userid</h5>
+
+<p>Ceph client keys are identified as 'client.id'.  The userid printed here is the 'id' portion.</p>
+
+<h5>Credentials</h5>
+<p>The shared secret key.  </p>
+
+<h5>Downloading Credentials</h5>
+
+<p>The download button will download the credential in ceph client keyring format.  Typically ceph clients lookup these keyrings in a path like /etc/ceph/ceph.client.osiris.yourid.keyring.  </p>
+
+<p>For direct cluster connections you'll need to contact us to open up appropriate network ports.   We have some additional information <a href="http://www.osris.org/documentation/rados.html">documented here</a>.</p>
+
+<h4 style="color: #186696;">Using CephFS or shell/scp access</h4>
+
+<p>These credentials are not required.  </p>
+
+<p>To setup shell access to OSiRIS xfer nodes: <a href=http://www.osris.org/documentation/sshkey.html">SSH Key Upload</a></p>
+
+<p>To enable Globus access to CephFS space (also applies to S3 and Globus):  <a href="http://www.osris.org/documentation/globus.html">Globus Instructions</a></p>
