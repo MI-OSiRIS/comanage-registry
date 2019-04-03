@@ -288,10 +288,10 @@
             print $cred_regen; 
             print $cred_add;
             print $cred_remove; 
+            // there is a good reason why the td below is not on a newline - extra spaces after credential may be interpreted as a space and be included in a copy/paste (firefox)
             ?>
           </div>
-            <?php print $credential; ?>
-        </td>
+            <?php print $credential; ?></td>
       </tr>
       <?php 
       // may be empty
