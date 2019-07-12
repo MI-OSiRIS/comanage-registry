@@ -44,8 +44,8 @@ class CoCephProvisionerCredsController extends StandardController {
     'limit' => 25,
     'order' => array(
       'type' => 'asc',
+      'primaryid' => 'desc',
       'identifier' => 'asc',
-      'primaryid' => 'desc'
     )
   );
   
@@ -152,7 +152,7 @@ class CoCephProvisionerCredsController extends StandardController {
               $coProvisioningTargetData,
               $coPersonData,
               $this->request->data['AddRgwUserid']['rgw_new_userid'],
-              true  // first userid is marked primary in credential table to avoid letting user delete it
+              false  // first userid is marked primary in credential table to avoid letting user delete it, others are never primary
             );
             $this->Flash->set(_txt('pl.cephprovisioner.rgw.newid'), array('key' => 'success'));
           } else {
@@ -199,7 +199,7 @@ class CoCephProvisionerCredsController extends StandardController {
             $coProvisioningTargetData,
             $coPersonData,
             $coCephProvisionerCredData['CoCephProvisionerCred']['identifier'],
-            true  // only the primary user id regenerates keys, the rest can just be removed/added as required
+            true  // only the primary uid would generate new creds
           );
 
           $this->CoCephProvisionerCred->CoCephProvisionerTarget->removeRgwAccessKey(
