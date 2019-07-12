@@ -158,13 +158,13 @@
                           . 'secret_key: ' 
                           . filter_var($c['CoCephProvisionerCred']['secret'], FILTER_SANITIZE_SPECIAL_CHARS);
                           
-            $credential_plain = '# Boto config file ~/.aws/config \n'
-                                . '[default]\n'
+            $credential_plain = '# Boto config file ~/.aws/credentials \n'
+                                . '[' . $c['CoCephProvisionerCred']['identifier'] . ']\n'
                                 . 'aws_access_key_id=' . $c['CoCephProvisionerCred']['userid'] . '\n'
                                 . 'aws_secret_access_key=' . $c['CoCephProvisionerCred']['secret'] . '\n';
 
             // download in format suitable to save as `/.aws/config
-            $download = "keyDownload('$credential_plain', 'config')";
+            $download = "keyDownload('$credential_plain', 'credentials')";
 
             $add_key_url = $this->Html->url(             
               array(
