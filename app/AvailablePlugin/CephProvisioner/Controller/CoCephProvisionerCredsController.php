@@ -133,7 +133,7 @@ class CoCephProvisionerCredsController extends StandardController {
     $args['conditions']['CoCephProvisionerTarget.id'] = $provTargetId;
     $coProvisioningTargetData = $this->CoCephProvisionerCred->CoCephProvisionerTarget->find('first', $args);
 
-    // get coperson data including identifiers and groups
+    // get coperson data including identifiers, email, and groups
     $args = array();
     $args['contain'] = [ 'Identifier', 'CoGroupMember' => [ 'CoGroup'] ]; 
     $args['conditions']['CoPerson.id'] = $this->request->params['named']['copersonid'];

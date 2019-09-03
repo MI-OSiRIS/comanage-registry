@@ -151,30 +151,29 @@ class CephRgwAdminCliClient extends CephCli {
     * @return Array of user metadata (class methods all accept this directly and will encode to json for final use)
     **/
 
-    public function addRgwUser($userid, $copersonid, $primaryUser=true, $accessKey=null, $secretKey=null) {
+    public function addRgwUser($userid, $copersonid, $email=null, $primaryUser=true, $accessKey=null, $secretKey=null) {
 
         $idattr = ($primaryUser) ? 'copersonid': 'cpownerid';
+        $cli_inputs = "--display-name='$userid:$idattr:$copersonid' --uid='$userid'";
 
         // both required if specifying access-key
         if ($accessKey && $secretKey) { 
-            $userKey = " --access-key='$accessKey' --secret-key='$secretKey'"; 
-        } else {
-            $userKey = '';
-        }
+            $cli_inputs .= " --access-key='$accessKey' --secret-key='$secretKey'"; 
+        } 
+        if ($email) {
+            $cli_inputs .= " --email='$email'";
+        } 
         
-        // creating the user with same access and secret specified will just return the metadata 
-        // if the user exists but doesn't have the access/secret combo specified then it will be added and metadata returned
-        // if user exists and we do not specify new/existing access combo then ceph will throw an error
-        $md = $this->ceph("user create --display-name='$idattr:$copersonid' --uid='$userid' $userKey");
-        
-        /*  Optionally we could catch attempts to create same user 
-        (I'd rather fail and get an error because this shouldn't be happening in current implementation)
+        // creating the user with same metadata (email, display, etc), access, and secret will just return the existing user metadata 
+        // if the user exists with same metadata but doesn't have the access/secret combo specified then it will be added and metadata returned
+        // if user exists but with different metadata an error will be thrown and we'll fall back to a user modify command
+        try {
+            $md = $this->ceph("user create $cli_inputs");
         } catch (CephClientException $e) {
-            if ($e->code == 17) {
-                $md = $this->getUserMetadata($userid);
+            if ($e->getCode() == 17) {
+                $md = $this->ceph("user modify $cli_inputs");
             } else { throw $e; }
         }
-        */
         
         // if backend auth is ldap we want to remove the keys and set type
         if ($this->auth == CephClientEnum::RgwLdap) {
@@ -200,10 +199,10 @@ class CephRgwAdminCliClient extends CephCli {
         $coPersonIdExp = explode(':', $md['display_name']);
           
         // identifier was found but our delimiter wasn't found or multiple were found, we should not ever have this happen
-        if (count($coPersonIdExp) != 2) {
+        if (count($coPersonIdExp) != 3) {
           throw new InternalErrorException(_txt('er.cocephprovisioner.rgw.copersonid'));
         } else {
-          return $coPersonIdExp[1];
+          return $coPersonIdExp[2];
         }
     }
 

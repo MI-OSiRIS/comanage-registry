@@ -104,7 +104,7 @@ class CoCephProvisionerDataPool extends AppModel {
 
   public function updateCouDataPools($coProvisioningTargetData, $coGroupData) {
     if(empty($coGroupData['CoGroup']['cou_id'])) {
-      throw new RuntimeException(_txt('er.cephprovisioner.datapool.cogroup'));
+      throw new InternalErrorException(_txt('er.cephprovisioner.datapool.cogroup'));
     }
 
     // retrieve any existing data pool records and generate list of what the data pools should be

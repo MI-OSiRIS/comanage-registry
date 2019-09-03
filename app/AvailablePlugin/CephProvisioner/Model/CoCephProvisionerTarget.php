@@ -200,7 +200,9 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     $person = isset($provisioningData['CoPerson']['id']);
     $group = isset($provisioningData['CoGroup']['id']);
 
-    $this->log("CephProvisioner called for op: " . $op );
+    $this->log("CephProvisioner called for op: " . $op, 'debug');
+    // $this->log("Provisioning Data: " . json_encode($provisioningData), 'debug');
+
     switch($op) {
       case ProvisioningActionEnum::CoPersonAdded:
       case ProvisioningActionEnum::CoPersonPetitionProvisioned:
@@ -270,6 +272,9 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     foreach ($coPersonCreds as $cred) {
         // if user exists but doesn't have this access/secret combo then creds will be added and metadata returned
         // if user exists with exactly this combo then ceph will just return the metadata for that user
+        // if user exists but info is different (display, email, etc) then the user will be modified with new info
+
+        $this->log("reprovisionCoPersonAction: reprovision cred: " . $cred['CoCephProvisionerCred']['identifier'], 'debug');
 
         $md = $this->addRgwCoUser($coProvisioningTargetData, 
                                   $coPersonData, 
@@ -348,40 +353,67 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       $this->linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $couDataPools);
       
       if ( $coProvisioningTargetData['CoCephProvisionerTarget']['opt_create_cou_data_dir'] ) {
-          if (!$this->createCouDataDir($coProvisioningTargetData, $coGroupData, $couDataPools)) {
+        if (!$this->createCouDataDir($coProvisioningTargetData, $coGroupData, $couDataPools)) {
             throw new RuntimeException(_txt('er.cephprovisioner.coudir'));
-          }
-      } else {
-        throw new RuntimeException(_txt('er.cephprovisioner.datapool.provision'));
+        }
       }
+    } else {
+        throw new RuntimeException(_txt('er.cephprovisioner.datapool.provision'));
     }
   }
 
-  // return either subuserid or pull uid identifier from coperson data 
-  public function getActingUserid($coPersonData, $coPersonSubuser=null) {
-     if (is_null($coPersonSubuser)) {
-        $userid = Hash::extract($coPersonData, "Identifier.{n}[type=uid].identifier");
-        if (empty($userid)) { 
-          $this->log("CephProvisioner getActingUserid: " . _txt('er.cephprovisioner.identifier'), 'error');
-          return null;
-        } else { return $userid[0]; }
-      } else { return $coPersonSubuser; }
+  //  pull uid identifier from coperson data 
+  public function getCoPersonUid($coPersonData) {
+    $identifier = Hash::extract($coPersonData, "Identifier.{n}[type=uid].identifier");
+    if (empty($identifier)) { 
+      $this->log("CephProvisioner getCoPersonUid (" . $coPersonData['CoPerson']['id'] . ")" . _txt('er.cephprovisioner.identifier'), 'error');
+      return null;
+    } else { return $identifier[0]; }
   }
 
-  public function addRgwCoUser($coProvisioningTargetData, $coPersonData, $coPersonSubuser=null, $primaryUser=true, $accessKey=null, $secretKey=null) {
+  public function addRgwCoUser($coProvisioningTargetData, $coPersonData, $rgwUserId=null, $primaryUser=true, $accessKey=null, $secretKey=null) {
     $rgwa = $this -> rgwAdminClientFactory($coProvisioningTargetData);
 
-    // if subuser is not-null will return it, otherwise will extract identifier from coperson data
-    $userid = $this->getActingUserid($coPersonData, $coPersonSubuser);
+    // extract identifier from coperson data and see if the user info being added is for the primary co person uid (it has to be if rgwUserId is not provided)
+    // addRgwUser sets a different string in display name depending on whether this is a user-defined or comanage defined uid
+    $coPersonUid = $this->getCoPersonUid($coPersonData);
 
-    // returns metadata array, return empty array if no user can be created
-    if (is_null($userid)) { return []; }
-   
-    // returns existing metadata if user already defined
-    $md = $rgwa->addRgwUser($userid, $coPersonData['CoPerson']['id'], $primaryUser, $accessKey, $secretKey);
+    if (is_null($rgwUserId)) { $rgwUserId = $coPersonUid; }
 
-    $this->saveRgwCreds($coProvisioningTargetData,$coPersonData, $userid, $md, $primaryUser);
-    $this->saveRgwDefaultPlacement($coProvisioningTargetData, $coPersonData, $userid);
+    // can't create a user with no id
+    if (is_null($rgwUserId)) { 
+      throw new InternalErrorException(_txt('er.cephprovisioner.identifier'));
+    }
+
+    $coPersonUser = ($rgwUserId == $coPersonUid) ? true : false;
+
+    $email = null;  
+      
+    if (array_key_exists('EmailAddress', $coPersonData) && $coPersonUser) {
+      foreach ($coPersonData['EmailAddress'] as $emr) 
+        # use first 'official', else first of whatever is left
+        switch($emr['type']) {
+          case 'official':
+            $email = $emr['mail'];
+            break 2;
+          default:
+            $email = $emr['mail'];
+        }
+    }
+
+    try {
+      // returns existing metadata if user already defined
+      $md = $rgwa->addRgwUser($rgwUserId, $coPersonData['CoPerson']['id'], $email, $coPersonUser, $accessKey, $secretKey);
+    } catch (CephClientException $e) {
+        // pass it up for output 
+        throw new RuntimeException("$rgwUserId (coperson " . $coPersonData['CoPerson']['id'] . ') ' . $e->getMessage());
+    }
+
+    $this->saveRgwCreds($coProvisioningTargetData,$coPersonData, $rgwUserId, $md, $primaryUser);
+    $this->saveRgwDefaultPlacement($coProvisioningTargetData, $coPersonData, $rgwUserId);
+
+    // syncs placement tags, default placement, and suspended status
+    $md = $this->syncRgwMeta($coProvisioningTargetData, $coPersonData, $md, $rgwUserId);
 
     // return user metadata for use in other methods
     return $md;
@@ -434,7 +466,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   public function deleteRgwCoUser($coProvisioningTargetData, $coPersonData, $rgwUserId) {
     // make sure we can't delete primary user id
 
-    $CoPersonIdentifier = $this->getActingUserid($coPersonData);
+    $CoPersonIdentifier = $this->getCoPersonUid($coPersonData);
 
     if ($CoPersonIdentifier == $rgwUserId) {
       throw new InternalErrorException(_txt('er.cephprovisioner.userid.delete'));
@@ -466,7 +498,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   */
   public function saveRgwCreds($coProvisioningTargetData,$coPersonData, $userid, $md, $primary=false) {
 
-    $CoPersonIdentifier = $this->getActingUserid($coPersonData,null);
+    $CoPersonIdentifier = $this->getCoPersonUid($coPersonData);
     $primary_trigger = false;
 
     // users can have multiple keys
@@ -528,42 +560,47 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
   * @param Array: provisioning target data
   * @param Array: co person data
   * @param Array[optional]:  RGW user metadata object.  Avoids looking up user data in function if it was previously obtained.
+  * @param String: Operate on provided UID instead of uid from coperson identifier
   * @return Associative array of RGW user metadata 
   */
 
   // 
-  public function syncRgwMeta($coProvisioningTargetData,$coPersonData, $md = null, $coPersonSubuser=null) {
+  public function syncRgwMeta($coProvisioningTargetData,$coPersonData, $md = null, $rgwUserId=null) {
     
     $rgwa = $this -> rgwAdminClientFactory($coProvisioningTargetData);
 
-    // we'll use the subuser user id if given
-    // but we'll use group info from the main coperson to determine placement tags
-    $userid = $this->getActingUserid($coPersonData, $coPersonSubuser);
+    $coPersonUid = $this->getCoPersonUid($coPersonData);
 
-    // returns metadata array, return empty array if we cannot sync
-    if (is_null($userid)) { return []; }
+    if (is_null($rgwUserId)) { 
+      $rgwUserId = $this->getCoPersonUid($coPersonData); 
+    }
 
-    $this->log("Ceph Provisioner syncRgwMeta found userid: " . $userid, 'debug');
+    // tried to sync a user with no identifier, something has gone wrong 
+    if (is_null($rgwUserId)) { 
+       throw new InternalErrorException(_txt('er.cephprovisioner.identifier')); 
+    }
+
+    $this->log("Ceph Provisioner syncRgwMeta found userid: " . $rgwUserId, 'debug');
 
     if ($md == null) {
-      $md = $rgwa->getUserMetadata($userid);
+      $md = $rgwa->getUserMetadata($rgwUserId);
     }
 
     // unlikely but not impossible to have a programmer error with $md argument passed in
-    if ($md['user_id'] != $userid) {
+    if ($md['user_id'] != $rgwUserId) {
       throw new InternalErrorException(_txt('er.cephprovisioner.rgw.meta') . " - userid param: $userid, meta value: " . $md['user_id']);
     }
 
-    // reset tags, method returns only active cou for person
+    // set tags to active COU for the coperson owning this userid
     $md['placement_tags'] = $this->getCouList($coPersonData['CoPerson']['id']);
 
     // get the user default placement (error if not found)
-    $md['default_placement'] = $this->CoCephProvisionerDataPlacement->getPlacement($userid, array(CephClientEnum::Rgw, CephClientEnum::RgwLdap));
+    $md['default_placement'] = $this->CoCephProvisionerDataPlacement->getPlacement($rgwUserId, array(CephClientEnum::Rgw, CephClientEnum::RgwLdap));
 
     if (is_null($md['default_placement'])) {
-      throw new InternalErrorException(_txt('er.cephprovisioner.rgw.placement') . " - userid: $userid");
+      throw new InternalErrorException(_txt('er.cephprovisioner.rgw.placement') . " - userid: $rgwUserId");
     } else {
-      $this->log("CephProvisioner syncRgwMeta looked up default placement '" .  $md['default_placement'] . "' for userid '$userid'", 'debug');
+      $this->log("CephProvisioner syncRgwMeta looked up default placement '" .  $md['default_placement'] . "' for userid '$rgwUserId'", 'debug');
     }
 
     // there is a ceph function for this but since we're writing a metadata blob let's consolidate in this method
@@ -576,7 +613,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     }
      
     // write new metadata with tags replaced and new default 
-    $rgwa->setUserMetadata($userid,$md);
+    $rgwa->setUserMetadata($rgwUserId,$md);
     return $md;
   }
     
@@ -597,8 +634,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     $caps = array('mon' => 'allow r', 'mgr' => 'allow r');
     $prefix = $coProvisioningTargetData['CoCephProvisionerTarget']['ceph_user_prefix'];
 
-    // in this use-case method just extracts uid identifier from coPersonData
-    $userid = $this->getActingUserid($coPersonData);
+    $userid = $this->getCoPersonUid($coPersonData);
 
     if (is_null($userid)) { return false; } 
 

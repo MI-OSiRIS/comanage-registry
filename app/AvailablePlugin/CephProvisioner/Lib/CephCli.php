@@ -84,16 +84,9 @@ class CephCli {
     }
 
     if ($return != 0) {
-        if (preg_match("/\((\d+)\)/", $s_output, $errcode)) {
-          $code = $errcode[1];
-        } else {
-          $code = 0;
-        }
-      throw new CephClientException('Ceph: ' . $s_output,$code);
+      throw new CephClientException('Ceph: ' . $s_output,$return);
     }
 
-
-    
     // output returns as array
     if ($arrayOutput) {
       return $output;
