@@ -252,10 +252,8 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     $this->updateCephClientKey($coProvisioningTargetData, $coPersonData);
 
     // add rgw user - if user exists then it simply returns existing metadata
-    $md = $this->addRgwCoUser($coProvisioningTargetData,$coPersonData);
+    $md = $this->setRgwCoUser($coProvisioningTargetData,$coPersonData);
 
-    // Add rgw placement tags and other metadta - passing metadata in so this function can avoid 2nd lookup
-    $this->syncRgwMeta($coProvisioningTargetData, $coPersonData, $md);
   }
 
   // similar to provision co person but with the added step of looking for existing RGW credentials to reprovision
@@ -267,8 +265,13 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
      // get known credentials credentials database
     $coPersonCreds = $this->CoCephProvisionerCred->getCoPersonCreds($coPersonData['CoPerson']['id'], array(CephClientEnum::RgwLdap, CephClientEnum::Rgw));
 
-    $firstIdentifier = array();
+    // user had no credentials in database, add new
+    if (empty($coPersonCreds)) { 
+      $md = $this->setRgwCoUser($coProvisioningTargetData,$coPersonData); 
+      return true;
+    }
 
+    // sync existig credentials 
     foreach ($coPersonCreds as $cred) {
         // if user exists but doesn't have this access/secret combo then creds will be added and metadata returned
         // if user exists with exactly this combo then ceph will just return the metadata for that user
@@ -276,27 +279,14 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
 
         $this->log("reprovisionCoPersonAction: reprovision cred: " . $cred['CoCephProvisionerCred']['identifier'], 'debug');
 
-        $md = $this->addRgwCoUser($coProvisioningTargetData, 
+        $md = $this->setRgwCoUser($coProvisioningTargetData, 
                                   $coPersonData, 
                                   $cred['CoCephProvisionerCred']['identifier'],
                                   $cred['CoCephProvisionerCred']['primaryid'],
                                   $cred['CoCephProvisionerCred']['userid'],
                                   $cred['CoCephProvisionerCred']['secret']);
-
-        // Add rgw placement tags - passing metadata in so this function can avoid 2nd lookup
-        // only sync tags on first hit of any given identifier - any further sync will be redundant
-        if (!array_key_exists($cred['CoCephProvisionerCred']['identifier'], $firstIdentifier)) {
-          $this->syncRgwMeta($coProvisioningTargetData, $coPersonData, $md, $cred['CoCephProvisionerCred']['identifier']);
-          $firstIdentifier[$cred['CoCephProvisionerCred']['identifier']] = true;
-        }
     }
-
-    // user had no credentials in database, add new
-    if (empty($coPersonCreds)) {
-      $md = $this->addRgwCoUser($coProvisioningTargetData,$coPersonData);
-      $this->syncRgwMeta($coProvisioningTargetData, $coPersonData, $md);
-    }
-    
+    return true;
   }
 
   // call provisionCoPersonAction to create new ceph users in cluster and rgw (may be needed if uid identifer changed) 
@@ -371,7 +361,7 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     } else { return $identifier[0]; }
   }
 
-  public function addRgwCoUser($coProvisioningTargetData, $coPersonData, $rgwUserId=null, $primaryUser=true, $accessKey=null, $secretKey=null) {
+  public function setRgwCoUser($coProvisioningTargetData, $coPersonData, $rgwUserId=null, $primaryUser=true, $accessKey=null, $secretKey=null) {
     $rgwa = $this -> rgwAdminClientFactory($coProvisioningTargetData);
 
     // extract identifier from coperson data and see if the user info being added is for the primary co person uid (it has to be if rgwUserId is not provided)
@@ -569,10 +559,8 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     
     $rgwa = $this -> rgwAdminClientFactory($coProvisioningTargetData);
 
-    $coPersonUid = $this->getCoPersonUid($coPersonData);
-
     if (is_null($rgwUserId)) { 
-      $rgwUserId = $this->getCoPersonUid($coPersonData); 
+      $rgwUserId = $this->getCoPersonUid($coPersonData);
     }
 
     // tried to sync a user with no identifier, something has gone wrong 
@@ -591,29 +579,43 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       throw new InternalErrorException(_txt('er.cephprovisioner.rgw.meta') . " - userid param: $userid, meta value: " . $md['user_id']);
     }
 
+    // only sync data if there is a change (avoid resyncing if we are called multiple times on same user id)
+    $sync_update = false;
+    $suspended = 0;
     // set tags to active COU for the coperson owning this userid
-    $md['placement_tags'] = $this->getCouList($coPersonData['CoPerson']['id']);
+    $placement_tags = $this->getCouList($coPersonData['CoPerson']['id']);
+    // get the default placement (error if we can't find this)
+    $default_placement = $this->CoCephProvisionerDataPlacement->getPlacement($rgwUserId, array(CephClientEnum::Rgw, CephClientEnum::RgwLdap));
+    $this->log("CephProvisioner syncRgwMeta looked up default placement '" .  $default_placement . "' for userid '$rgwUserId'", 'debug');
+    if ($coPersonData['CoPerson']['status'] != StatusEnum::Active) { 
+      $suspended = 1; 
+      $this->log("CephProvisioner - syncRgwMeta coperson owner is not in active member COU group - suspending RGW user $userid", 'debug');
+    }
 
-    // get the user default placement (error if not found)
-    $md['default_placement'] = $this->CoCephProvisionerDataPlacement->getPlacement($rgwUserId, array(CephClientEnum::Rgw, CephClientEnum::RgwLdap));
+    if ($md['placement_tags'] != $placement_tags) {   
+      $md['placement_tags'] = $placement_tags;
+      $sync_update = true;
+    }
 
-    if (is_null($md['default_placement'])) {
+    if ($md['default_placement'] != $default_placement) {
+      $md['default_placement'] = $default_placement;
+      $sync_update = true;
+    }
+
+    // there is a dedicated ceph command for this but since we're writing a metadata blob let's consolidate in this method
+    if ($md['suspended'] != $suspended) {
+      $md['suspended'] = $suspended;
+      $sync_update = true;
+    }
+
+    if (empty($md['default_placement'])) {
       throw new InternalErrorException(_txt('er.cephprovisioner.rgw.placement') . " - userid: $rgwUserId");
     } else {
       $this->log("CephProvisioner syncRgwMeta looked up default placement '" .  $md['default_placement'] . "' for userid '$rgwUserId'", 'debug');
     }
-
-    // there is a ceph function for this but since we're writing a metadata blob let's consolidate in this method
-    if ($coPersonData['CoPerson']['status'] != StatusEnum::Active) {
-      $md['suspended'] = 1;
-      $this->log("CephProvisioner - syncRgwMeta coperson owner is not in active member COU group - suspending RGW user $userid", 'debug');
-    } else {
-      $md['suspended'] = 0;
-      //$this->log("CephProvisioner - syncRgwMeta coperson owner is active - enabling RGW user $user", 'debug');
-    }
      
-    // write new metadata with tags replaced and new default 
-    $rgwa->setUserMetadata($rgwUserId,$md);
+    // if anything is new write new metadata with tags replaced and new default 
+    if ($sync_update) {  $rgwa->setUserMetadata($rgwUserId,$md); }
     return $md;
   }
     

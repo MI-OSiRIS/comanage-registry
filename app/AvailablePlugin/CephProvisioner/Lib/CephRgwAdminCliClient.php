@@ -458,9 +458,4 @@ class CephRgwAdminCliClient extends CephCli {
         return false;
     }
 
-// ref:  gen new secret key for user:  
-# radosgw-admin key create --uid=user  --gen-access-key --gen-secret
-# radosgw-admin key rm --uid=user  --access-key=HUES7OY
-
-
 }

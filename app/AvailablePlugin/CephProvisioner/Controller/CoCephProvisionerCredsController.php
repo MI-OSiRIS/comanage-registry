@@ -148,7 +148,7 @@ class CoCephProvisionerCredsController extends StandardController {
         ) {
 
           if (!$this->CoCephProvisionerCred->getCredsForIdentifier($userid, array(CephClientEnum::Rgw, CephClientEnum::RgwLdap))) {
-            $this->CoCephProvisionerCred->CoCephProvisionerTarget->addRgwCoUser(
+            $this->CoCephProvisionerCred->CoCephProvisionerTarget->setRgwCoUser(
               $coProvisioningTargetData,
               $coPersonData,
               $this->request->data['AddRgwUserid']['rgw_new_userid'],
@@ -173,7 +173,7 @@ class CoCephProvisionerCredsController extends StandardController {
 
           $this -> CoCephProvisionerCred ->
                 CoCephProvisionerTarget ->
-                syncRgwCouTags($coProvisioningTargetData,
+                syncRgwMeta($coProvisioningTargetData,
                               $coPersonData, 
                               null, 
                               $coCephProvisionerCredData['CoCephProvisionerCred']['identifier']);
