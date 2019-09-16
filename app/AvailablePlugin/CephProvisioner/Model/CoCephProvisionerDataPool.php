@@ -125,8 +125,14 @@ class CoCephProvisionerDataPool extends AppModel {
     if ($oldPoolCoRecord == $newPoolCoRecord) { 
       $dbMatch = true; 
     } else {
-      // Old pools didn't match desired pool names.  Try to remove them from application associations 
+      // Old pools didn't match desired pool names or not in database
+
+      // If there were pools in DB make sure they are not associated with any targets, cephfs   
+      // this is a no-op if there are no records
       $this->CoCephProvisionerTarget-> linkPoolsToApplications($coProvisioningTargetData,$coGroupData, $oldPoolCoRecord, false);
+
+      // mark for database update in either case
+      $dbMatch = false;  
     }
     
     // verify each desired pool
