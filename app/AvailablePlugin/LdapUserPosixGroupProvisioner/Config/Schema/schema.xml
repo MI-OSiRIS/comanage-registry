@@ -35,9 +35,9 @@
     <field name="co_provisioning_target_id" type="I">
       <constraint>REFERENCES cm_co_provisioning_targets(id)</constraint>
     </field>
-    <field name="co_ldap_provisioner_target_id" type="I">
-      <constraint>REFERENCES cm_co_ldap_provisioner_targets(id)</constraint>
-    </field>
+    <!-- No foreign key here: the generated constraint name is 68 characters,
+         over MySQL's 64 limit, so every schema update reported a failure. -->
+    <field name="co_ldap_provisioner_target_id" type="I" />
     <field name="created" type="T" />
     <field name="modified" type="T" />
 
