@@ -68,6 +68,8 @@
       print $this->Html->css('co-base') . "\n    ";
       print $this->Html->css('co-responsive') . "\n    ";
       print $this->Html->css('co-lightbox') . "\n    ";
+      // OSiRIS: Font Awesome 4.6.3 for CephProvisioner credential page icons
+      print $this->Html->css('fonts/Font-Awesome-4.6.3/css/font-awesome.min') . "\n    ";
     ?>
 
     <!-- Load JavaScript -->

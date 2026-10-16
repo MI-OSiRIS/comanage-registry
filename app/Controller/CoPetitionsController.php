@@ -3440,6 +3440,10 @@ class CoPetitionsController extends StandardController {
   
   function view($id) {
     // The current step is determined by the status of the petition
+    // OSiRIS: parse and set petition token for unauthenticated enrollees
+    // (still missing upstream as of 4.6.1; see #687 for the related redirect fix)
+    $this->parseToken();
+
     $this->set('vv_current_step', $this->CoPetition->currentStep($id));
     
     parent::view($id);
