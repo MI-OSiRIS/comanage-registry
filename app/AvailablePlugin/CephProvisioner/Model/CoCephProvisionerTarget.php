@@ -565,7 +565,10 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       
       $cred['CoCephProvisionerCred']['userid'] = $keyrecord['access_key'];
       $cred['CoCephProvisionerCred']['secret'] = $keyrecord['secret_key'];
-      $this->log("\nCeph Provisioner saveRgwCreds - saving credential record: " . json_encode($cred), 'debug'); 
+      // Never log the secret itself (debug.log is a plain file on disk).
+      $logCred = $cred;
+      $logCred['CoCephProvisionerCred']['secret'] = '[REDACTED]';
+      $this->log("\nCeph Provisioner saveRgwCreds - saving credential record: " . json_encode($logCred), 'debug');
       if (!$this->CoCephProvisionerCred->save($cred)) {
         throw new RuntimeException(_txt('er.db.save'));
       }
@@ -803,7 +806,10 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       $cred['CoCephProvisionerCred']['id'] = $existingCred['CoCephProvisionerCred']['id'];
     }
 
-    $this->log("\nCeph Provisioner updateCephClientKey - saving credential record: " . json_encode($cred), 'debug'); 
+    // Never log the secret itself (debug.log is a plain file on disk).
+    $logCred = $cred;
+    $logCred['CoCephProvisionerCred']['secret'] = '[REDACTED]';
+    $this->log("\nCeph Provisioner updateCephClientKey - saving credential record: " . json_encode($logCred), 'debug');
   
     if (!$this->CoCephProvisionerCred->save($cred)) {
       throw new RuntimeException(_txt('er.db.save'));
