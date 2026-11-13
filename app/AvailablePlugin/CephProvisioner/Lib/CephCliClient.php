@@ -136,6 +136,17 @@ class CephCliClient extends CephCli {
     return $this->ceph("auth get-key " . $this->userPrefix . $id);
   }
 
+  // true if the entity exists, false if ceph says there is none (ENOENT). Any other error is passed up.
+  public function entityExists($id) {
+    try {
+      $this->getKey($id);
+    } catch (CephClientException $e) {
+      if ($e->getCode() == 2) { return false; }
+      throw $e;
+    }
+    return true;
+  }
+
   public function getKeyring($id, $format='array') {
     $output =  $this->ceph("auth get " . $this->userPrefix . $id, true);
     // remove the 'exported keyring for xxx' output line

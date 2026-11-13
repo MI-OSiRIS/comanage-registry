@@ -207,8 +207,15 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
       case ProvisioningActionEnum::CoPersonAdded:
       case ProvisioningActionEnum::CoPersonPetitionProvisioned:
       case ProvisioningActionEnum::CoPersonPipelineProvisioned:
+        $this->provisionCoPersonAction($coProvisioningTargetData,$provisioningData);
+        break;
       case ProvisioningActionEnum::CoPersonUnexpired:
         $this->provisionCoPersonAction($coProvisioningTargetData,$provisioningData);
+        // expireCoPersonAction suspended every RGW user of this person, provisionCoPersonAction only re-enables the primary one.
+        // (Registry also sends this action when an Expired person moves to another non-active status: stay suspended then.)
+        if ($provisioningData['CoPerson']['status'] == StatusEnum::Active) {
+          $this->setRgwCoPersonSuspended($coProvisioningTargetData, $provisioningData, false);
+        }
         break;
       case ProvisioningActionEnum::CoPersonReprovisionRequested:
         $this->reprovisionCoPersonAction($coProvisioningTargetData, $provisioningData);
@@ -217,7 +224,12 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
         $this->updateCoPersonAction($coProvisioningTargetData, $provisioningData);
         break;
       case ProvisioningActionEnum::CoPersonExpired:
+        $this->expireCoPersonAction($coProvisioningTargetData, $provisioningData);
+        break;
       case ProvisioningActionEnum::CoPersonEnteredGracePeriod:
+        // Access continues during the grace period, so there is nothing to change in Ceph.
+        // (This action used to run the full sync, which did nothing for the person concerned.)
+        break;
       case ProvisioningActionEnum::CoPersonDeleted:
         $this->deleteCoPersonAction($coProvisioningTargetData, $provisioningData);
         break;
@@ -332,16 +344,169 @@ class CoCephProvisionerTarget extends CoProvisionerPluginTarget {
     // re-run provision co person to insert new identifiers
     $this->provisionCoPersonAction($coProvisioningTargetData,$coPersonData);
 
-    // sync will remove old identifiers from rgw/ceph
-    // and move rgw metadata to new user so it keeps same access,secret,quota,etc)
-    $this->syncRgwCoPeople($coProvisioningTargetData);
-    $this->syncCephCoPeople($coProvisioningTargetData);
-    
+    // The full sync fetches the metadata of every RGW user, one radosgw-admin call each (minutes with a few hundred users),
+    // and all it can do for this person is clean up after a change of uid. So run it only when there is something
+    // left under an old uid: an ordinary update (group membership, role, status, name, email) skips it.
+    if ($this->coPersonHasStaleCephIds($coProvisioningTargetData, $coPersonData)) {
+      $this->log("CephProvisioner updateCoPersonAction - coperson " . $coPersonData['CoPerson']['id'] . " has Ceph or RGW users under an old uid, running full sync", 'debug');
+      // sync will remove old identifiers from rgw/ceph
+      $this->syncRgwCoPeople($coProvisioningTargetData);
+      $this->syncCephCoPeople($coProvisioningTargetData);
+    } else {
+      $this->log("CephProvisioner updateCoPersonAction - coperson " . $coPersonData['CoPerson']['id'] . " uid unchanged, full sync skipped", 'debug');
+    }
   }
 
+  // The person no longer exists or has a status that is not provisioned. The full sync is what removes RGW users and
+  // ceph client keys whose CO Person or uid identifier is gone, so it still runs here (deletes are rare).
   public function deleteCoPersonAction($coProvisioningTargetData,$coPersonData) {
     $this->syncRgwCoPeople($coProvisioningTargetData);
     $this->syncCephCoPeople($coProvisioningTargetData);
+  }
+
+  /**
+   * CO Person expired: take away Ceph access for this person only (no full sync).
+   * The ceph client key is removed, since a key cannot be suspended (updateCephClientKey does the same for any
+   * non-active person, and creates a new key when the person is active again). Every RGW user of the person is
+   * suspended: buckets and objects are left alone.
+   *
+   * @param  Array CO Provisioning Target data
+   * @param  Array CO Person provisioning data
+   * @throws RuntimeException if Ceph refused one of the changes (the others are still attempted)
+   */
+  public function expireCoPersonAction($coProvisioningTargetData, $coPersonData) {
+    $userid = $this->getCoPersonUid($coPersonData);
+    $keyError = null;
+
+    if (!is_null($userid)) {
+      try {
+        $ceph = $this->cephClientFactory($coProvisioningTargetData);
+        $ceph->removeEntity($userid);
+        $this->log("CephProvisioner expireCoPersonAction - removed ceph client key of expired coperson uid $userid", 'debug');
+      } catch (CephClientException $e) {
+        // still suspend the RGW users before reporting this
+        $keyError = $e->getMessage();
+        $this->log("CephProvisioner expireCoPersonAction - could not remove ceph client key of $userid: " . $keyError, 'error');
+      }
+    }
+
+    $this->setRgwCoPersonSuspended($coProvisioningTargetData, $coPersonData, true);
+
+    if (!is_null($keyError)) {
+      throw new RuntimeException("CephProvisioner could not remove the ceph client key of $userid: " . $keyError);
+    }
+  }
+
+  /**
+   * RGW user ids of a CO Person: the uid identifier (primary RGW user) and every identifier in the credential table
+   * (additional RGW users the person created).
+   *
+   * @param  Array CO Person provisioning data
+   * @return Array of RGW user ids, may be empty
+   */
+  public function getRgwCoPersonUserIds($coPersonData) {
+    $ids = array();
+    $userid = $this->getCoPersonUid($coPersonData);
+    if (!is_null($userid)) { $ids[] = $userid; }
+
+    $creds = $this->CoCephProvisionerCred->getCopersonCreds($coPersonData['CoPerson']['id'], array(CephClientEnum::Rgw, CephClientEnum::RgwLdap));
+    foreach ($creds as $cred) {
+      $ids[] = $cred['CoCephProvisionerCred']['identifier'];
+    }
+    return array_values(array_unique($ids));
+  }
+
+  /**
+   * Suspend or re-enable every RGW user of a CO Person. Only users that exist in RGW and carry this CO Person's id
+   * in their metadata are touched, and only if their suspended flag differs.
+   *
+   * @param  Array CO Provisioning Target data
+   * @param  Array CO Person provisioning data
+   * @param  Boolean true to suspend, false to re-enable
+   * @throws RuntimeException if Ceph refused a change (the other users are still attempted)
+   */
+  public function setRgwCoPersonSuspended($coProvisioningTargetData, $coPersonData, $suspend) {
+    $rgwa = $this->rgwAdminClientFactory($coProvisioningTargetData);
+    $coPersonId = $coPersonData['CoPerson']['id'];
+    $suspended = $suspend ? 1 : 0;
+    $failed = array();
+
+    foreach ($this->getRgwCoPersonUserIds($coPersonData) as $rgwUserId) {
+      try {
+        $md = $rgwa->getUserMetadata($rgwUserId);
+        // no such RGW user (never provisioned, or a credential record outlived it)
+        if (empty($md) || !isset($md['display_name'])) { continue; }
+        // not managed by this plugin, or a credential record pointing at someone else's RGW user
+        if (!$rgwa->verifyUserIdentifier($md) || $rgwa->getCoPersonId($md) != $coPersonId) {
+          $this->log("CephProvisioner setRgwCoPersonSuspended - RGW user $rgwUserId does not carry coperson id $coPersonId, left alone", 'error');
+          continue;
+        }
+        if (isset($md['suspended']) && (int)$md['suspended'] == $suspended) { continue; }
+        $md['suspended'] = $suspended;
+        $rgwa->setUserMetadata($rgwUserId, $md);
+        $this->log("CephProvisioner setRgwCoPersonSuspended - RGW user $rgwUserId (coperson $coPersonId) suspended set to $suspended", 'debug');
+      } catch (Exception $e) {
+        $failed[] = $rgwUserId;
+        $this->log("CephProvisioner setRgwCoPersonSuspended - RGW user $rgwUserId: " . $e->getMessage(), 'error');
+      }
+    }
+
+    if (!empty($failed)) {
+      throw new RuntimeException("CephProvisioner could not set suspended=$suspended on RGW user(s): " . implode(', ', $failed));
+    }
+  }
+
+  /**
+   * Is anything of this CO Person still in Ceph under a uid that is no longer theirs? That is the one case where a
+   * person update needs the full sync (syncRgwCoPeople moves the RGW user and its buckets to the new uid,
+   * syncCephCoPeople removes the old ceph client key).
+   *
+   * The credential table records the identifier every key was created under, so only records whose identifier differs
+   * from the current uid are checked against Ceph, with the same tests the full sync applies:
+   *  - RGW:  the user exists and is a primary user (display name has 'copersonid:'). A 'cpownerid:' user is an
+   *          additional user of the person and is meant to have another name.
+   *  - ceph: the client key still exists.
+   * Normally no record differs and this makes no Ceph call at all.
+   *
+   * @param  Array CO Provisioning Target data
+   * @param  Array CO Person provisioning data
+   * @return Boolean true if the full sync has work to do for this person
+   */
+  public function coPersonHasStaleCephIds($coProvisioningTargetData, $coPersonData) {
+    $userid = $this->getCoPersonUid($coPersonData);
+    $creds = $this->CoCephProvisionerCred->getCopersonCreds(
+      $coPersonData['CoPerson']['id'],
+      array(CephClientEnum::Rgw, CephClientEnum::RgwLdap, CephClientEnum::Cluster));
+
+    $rgwIds = array();
+    $cephIds = array();
+    foreach ($creds as $cred) {
+      $identifier = $cred['CoCephProvisionerCred']['identifier'];
+      if (is_null($identifier) || $identifier === '' || $identifier === $userid) { continue; }
+      if ($cred['CoCephProvisionerCred']['type'] == CephClientEnum::Cluster) {
+        $cephIds[$identifier] = true;
+      } else {
+        $rgwIds[$identifier] = true;
+      }
+    }
+
+    if (!empty($rgwIds)) {
+      $rgwa = $this->rgwAdminClientFactory($coProvisioningTargetData);
+      foreach (array_keys($rgwIds) as $rgwUserId) {
+        $md = $rgwa->getUserMetadata($rgwUserId);
+        if (empty($md) || !isset($md['display_name']) || !$rgwa->verifyUserIdentifier($md)) { continue; }
+        if (!$rgwa->isCoPersonSubuser($md)) { return true; }
+      }
+    }
+
+    if (!empty($cephIds)) {
+      $ceph = $this->cephClientFactory($coProvisioningTargetData);
+      foreach (array_keys($cephIds) as $cephUserId) {
+        if ($ceph->entityExists($cephUserId)) { return true; }
+      }
+    }
+
+    return false;
   }
 
   public function deleteCoGroupAction($coProvisioningTargetData, $coGroupData) {
