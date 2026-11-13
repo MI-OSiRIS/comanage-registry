@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<!--
+  OSiRIS LDAP CO Group Provisioner Plugin Database Schema
+
+  While this schema mostly works with database prefixes, foreign key constraints
+  must be specified in raw SQL, which needs the prefixed table name.
+-->
+<schema version="0.3">
+  <table name="co_ldap_co_group_provisioner_targets">
+    <field name="id" type="I">
+      <key />
+      <autoincrement />
+    </field>
+    <!-- No foreign keys: with a table name this long a generated constraint name can pass MySQL's 64 characters,
+         which made every schema update report a failure for LdapUserPosixGroupProvisioner -->
+    <field name="co_provisioning_target_id" type="I" />
+    <field name="co_ldap_provisioner_target_id" type="I" />
+    <field name="basedn" type="C" size="256" />
+    <field name="gid_min" type="I" />
+    <!-- not set or false: dry run, changes are only logged -->
+    <field name="apply_changes" type="L" />
+    <field name="created" type="T" />
+    <field name="modified" type="T" />
+
+    <index name="co_ldap_co_group_provisioner_targets_i1">
+      <col>co_provisioning_target_id</col>
+      <unique />
+    </index>
+  </table>
+</schema>
