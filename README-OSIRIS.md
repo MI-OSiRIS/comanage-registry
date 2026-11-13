@@ -7,7 +7,7 @@ changes that ran in production on wsu-comanage (comanage.osris.org) under 4.2.1.
 
 | Path | What | Source |
 |---|---|---|
-| `app/AvailablePlugin/CephProvisioner/` | OSiRIS Ceph provisioner (RGW users, creds page, COU data dirs) | copied unchanged from wsu-comanage, 2026-10-16 |
+| `app/AvailablePlugin/CephProvisioner/` | OSiRIS Ceph provisioner (RGW users, creds page, COU data dirs) | copied from wsu-comanage, 2026-10-16; changed since (below) |
 | `app/AvailablePlugin/LdapUserPosixGroupProvisioner/` | Creates a matching posixGroup for each posixAccount | from wsu-comanage; one foreign key dropped from its schema (below) |
 | `app/webroot/css/fonts/Font-Awesome-4.6.3/` | Icons used by the CephProvisioner credentials page | copied from wsu-comanage |
 | `app/View/Layouts/default.ctp` | One line: load Font Awesome 4.6.3 CSS | local patch (Aug 2024) |
@@ -27,6 +27,25 @@ so it was never created and every schema update since 2017 reported
 
 `app/tmp`, `app/webroot/local-resources` and `app/webroot/img/logo.png` are
 upstream symlinks into `local/`, so they need no change.
+
+`CephProvisioner` changes since the copy:
+
+- Secrets are no longer written to debug.log.
+- **Full sync only when needed** (Nov 2026). The plugin used to fetch the metadata of every RGW user
+  (one `radosgw-admin` call each, about 3 minutes) on every person update, expiry and delete.
+  Now, by provisioning action:
+
+  | Action | Ceph work |
+  |---|---|
+  | Person updated | Provision that person. Full sync only if the person still has an RGW user or ceph key under an old uid (uid renamed). |
+  | Person expired | Remove that person's ceph key and suspend all their RGW users. No full sync. Before, expiry ran only the full sync, which did neither. |
+  | Person unexpired | Provision that person; if Active again, re-enable all their RGW users. |
+  | Entered grace period | Nothing (access continues). |
+  | Person deleted, or status not provisioned | Full sync, as before. This is what removes RGW users and keys whose person or uid is gone. |
+
+  `Test/Standalone/provision_actions.php` checks this table against the real plugin code with the
+  two command lines faked: `php app/AvailablePlugin/CephProvisioner/Test/Standalone/provision_actions.php`.
+  The test instance cannot exercise it, because its provisioning targets are disabled.
 
 Known wart, left as-is: `CephRgwAdminCliClient::getRgwUsersV2()` hardcodes
 `/srv/comanage/comanage-registry/app/tmp/...`. It is dead code (its only caller is commented out).
