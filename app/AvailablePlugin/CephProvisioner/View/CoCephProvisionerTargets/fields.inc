@@ -179,26 +179,6 @@
         ?>
       </td>
     </tr>
-    <tr class="line1">
-      <td>
-        <strong class="fieldTitle"><?php print _txt('pl.cephprovisioner.grouper_target'); ?></strong><font class="required">*</font><br />
-        <font class="desc"><?php print _txt('pl.cephprovisioner.grouper_target.desc'); ?></font>
-      </td>
-      <td>
-        <?php
-          $attrs = array();
-          $attrs['empty'] = false;
-          
-          print $this->Form->select('co_grouper_provisioner_target_id',
-                                    $vv_grouper_provisioners,
-                                    $attrs);
-
-          if($this->Form->isFieldError('co_grouper_provisioner_target_id')) {
-            print $this->Form->error('co_grouper_provisioner_target_id');
-          }
-        ?>
-      </td>
-    </tr>
      <tr class="line2">
       <td>
         <?php print _txt('pl.cephprovisioner.opt_rgw_ldap_auth'); ?><br />
