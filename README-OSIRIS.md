@@ -9,6 +9,7 @@ changes that ran in production on wsu-comanage (comanage.osris.org) under 4.2.1.
 |---|---|---|
 | `app/AvailablePlugin/CephProvisioner/` | OSiRIS Ceph provisioner (RGW users, creds page, COU data dirs) | copied from wsu-comanage, 2026-10-16; changed since (below) |
 | `app/AvailablePlugin/LdapUserPosixGroupProvisioner/` | Creates a matching posixGroup for each posixAccount | from wsu-comanage; one foreign key dropped from its schema (below) |
+| `app/AvailablePlugin/LdapCoGroupProvisioner/` | Keeps the LDAP copies of the CO and COU groups in step with COmanage (Grouper's old job) | written Nov 2026 (below) |
 | `app/webroot/css/fonts/Font-Awesome-4.6.3/` | Icons used by the CephProvisioner credentials page | copied from wsu-comanage |
 | `app/View/Layouts/default.ctp` | One line: load Font Awesome 4.6.3 CSS | local patch (Aug 2024) |
 | `app/Controller/CoPetitionsController.php` | `view()` calls `parseToken()` so unauthenticated enrollees can view their petition | local patch (Jan 2026); still not upstream in 4.6.1 |
@@ -46,6 +47,37 @@ upstream symlinks into `local/`, so they need no change.
   `Test/Standalone/provision_actions.php` checks this table against the real plugin code with the
   two command lines faked: `php app/AvailablePlugin/CephProvisioner/Test/Standalone/provision_actions.php`.
   The test instance cannot exercise it, because its provisioning targets are disabled.
+
+`LdapCoGroupProvisioner` (Nov 2026) replaces Grouper, which used to copy COmanage's groups to LDAP and stopped
+working in 2024. COmanage's own LDAP provisioner can't do it: it writes a group either with `member` DNs or
+as a posixGroup with `memberUid`, never both, and never `uniqueMember`, which is what the hosts' sssd and the
+LDAP memberOf plugin use.
+
+- **What it writes:** the groups Grouper wrote, unchanged in form: `posixGroup` + `groupOfUniqueNames` with
+  `uniqueMember`, under one base DN (`ou=OSiRIS,ou=Groups,dc=osris,dc=org`). An existing group is found by its
+  name (`CO:COU:ATLAS:admins` is `cn=CO_COU_ATLAS_admins`) and only its members are changed. A group LDAP doesn't
+  have yet is created as `cn=<name>,ou=<COU>,<base>` with the next free gidNumber. No entry is ever deleted or
+  renamed: a group deleted or suspended in COmanage is emptied.
+- **Which groups:** Standard, Active Members, All Members and Admins. Not Approvers groups, and not the
+  per-person groups linked to a Unix Cluster (`LdapUserPosixGroupProvisioner` writes those).
+- **Which members:** people with a DN from the LDAP provisioner and a membership valid now, who are Active or in
+  their Grace Period. All Members groups also keep expired and suspended people, as in COmanage.
+- **When:** on a group change, that group. On a person change, that person's memberships, so expiring someone
+  removes them from every group at once, including Admins groups (COmanage leaves those memberships in place)
+  and groups that exist only in LDAP. An active person is never removed from an LDAP-only group.
+- **Safety:** nothing is written until "Apply changes" is set on the target; before that each change is logged
+  in `debug.log` as `DRY RUN, would: ...`. A change that would remove more than 10 members and more than half
+  of a group is refused, unless an admin provisions that group by hand.
+- **Not handled:** renaming a group or COU in COmanage creates a new LDAP group and leaves the old one with its
+  members. Empty the old one by hand.
+- **Configuration** (one provisioning target per CO): the LDAP provisioning target whose server, bind account
+  and people DNs to use; the base DN; the lowest gidNumber for new groups.
+- **Install:** link `local/Plugin/LdapCoGroupProvisioner -> ../../app/AvailablePlugin/LdapCoGroupProvisioner`,
+  run `Console/cake database` as apache (creates `cm_co_ldap_co_group_provisioner_targets`), then delete the
+  files under `local/tmp/cache/models` and `persistent`.
+- **Test:** `php app/AvailablePlugin/LdapCoGroupProvisioner/Test/Standalone/group_sync.php` runs the real classes
+  against an LDAP directory and COmanage tables held in memory. The code that talks to a real LDAP server
+  (`Lib/LdapCoGroupDirectory.php`) is not covered by it.
 
 Known wart, left as-is: `CephRgwAdminCliClient::getRgwUsersV2()` hardcodes
 `/srv/comanage/comanage-registry/app/tmp/...`. It is dead code (its only caller is commented out).
